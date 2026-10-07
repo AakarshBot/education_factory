@@ -84,3 +84,41 @@ def test_invalid_history_file_fails_closed(tmp_path):
 
     with pytest.raises(RuntimeError, match="Could not read"):
         load_history(path)
+
+from channel_history import HistoryEntry, load_history, save_history
+
+
+def test_history_defaults_content_format_to_long_form(tmp_path):
+    path = tmp_path / "history.json"
+    entry = HistoryEntry(
+        exam="SSC",
+        subject="Maths",
+        topic="Percentages",
+        lesson_type="practice",
+        title="Practice",
+        status="published",
+        created_at="2026-10-01T00:00:00Z",
+        metrics={"views": 10},
+    )
+    save_history([entry], path)
+    loaded = load_history(path)
+    assert loaded[0].content_format == "long_form"
+
+
+def test_history_round_trips_shorts_format(tmp_path):
+    path = tmp_path / "history.json"
+    entry = HistoryEntry(
+        exam="SSC",
+        subject="Maths",
+        topic="Percentages",
+        lesson_type="practice",
+        title="Short",
+        status="published",
+        created_at="2026-10-01T00:00:00Z",
+        video_id="short1",
+        metrics={"views": 10},
+        content_format="shorts",
+    )
+    save_history([entry], path)
+    loaded = load_history(path)
+    assert loaded == [entry]
