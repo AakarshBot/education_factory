@@ -26,7 +26,12 @@ def _entry(topic, lesson_type="practice", subject="Maths"):
 
 def test_select_lesson_type_prefers_supported_adapted_format():
     class Adaptation:
-        format_weights = {"practice": 0.9, "timed_test": 1.1, "revision": 1.0}
+        format_weights = {
+            "practice": 0.9,
+            "timed_test": 1.1,
+            "concept_practice": 1.0,
+            "revision": 0.9,
+        }
 
     assert factory._select_lesson_type(Adaptation()) == "timed_test"
 
@@ -209,3 +214,15 @@ def test_short_segment_indices_requires_question():
     import pytest
     with pytest.raises(RuntimeError, match="no question"):
         factory._short_segment_indices(Lesson())
+
+
+def test_select_lesson_type_can_choose_concept_practice():
+    class Adaptation:
+        format_weights = {
+            "practice": 0.9,
+            "timed_test": 0.9,
+            "concept_practice": 1.1,
+            "revision": 0.9,
+        }
+
+    assert factory._select_lesson_type(Adaptation()) == "concept_practice"
