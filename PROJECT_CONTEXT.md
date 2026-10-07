@@ -1131,3 +1131,37 @@ Launch fix completed on 2026-10-08:
 Current next action:
 - Pull the latest `main` into the local factory and rerun the same first real factory command.
 - If another real launch defect appears at a later stage, diagnose and fix only that defect.
+
+## Launch audit — full pre-rerun review completed
+
+The first real launch attempt exposed a sequence of provider/runtime integration defects. Before asking the user to run the factory again, the production code was reviewed across the Gemini generation stages, YouTube authentication/Analytics, upload scheduling, rendering, and media QA.
+
+Corrections now committed to main:
+- All five Gemini structured-output stages now use the current `generationConfig.responseFormat.text` contract documented by Google for `generateContent`; deprecated `responseSchema` and the raw `responseJsonSchema` path are no longer sent.
+- Gemini JSON Schema remains valid for the current API, including nullable fields where still required.
+- Question generation now requires exactly four unique choices because the existing long-form/Short renderers require four-choice question cards. The canonical `Question` schema was not changed.
+- All five Gemini generation stages now retry transient HTTP 429/503 provider failures before failing closed.
+- The default Gemini model is `gemini-3.1-flash-lite`, a current GA high-volume model; the local `.env` is already set to the same model.
+- Fixed malformed FFmpeg volume-detection regular expressions in `audio_qa.py` that would have caused the first rendered job to fail during audio QA.
+- Added regression coverage for the Gemini response-format contract, four-choice generation contract, transient topic-scoring recovery, and FFmpeg volume parsing.
+- Removed the accidental `docs/` OAuth website detour files from the repository; the factory has no website/pipeline dependency.
+
+Current verification status:
+- YouTube OAuth token contains all three required scopes.
+- YouTube Data API access was verified against the real channel.
+- YouTube Analytics API access was verified against the real channel.
+- The first factory run did not reach rendering or upload; it failed first in topic scoring, then later reached question generation before the Gemini schema correction.
+- No real video was uploaded by the failed runs.
+- Full pytest has still not been executed and must not be represented as green.
+
+Critical current platform boundary identified:
+- Google documents that videos uploaded through `videos.insert` by an unverified API project created after July 28, 2020 are restricted to private viewing until the API project passes YouTube's compliance audit. Therefore the factory's intended public/scheduled publishing behavior must not be declared operational until the project's YouTube API compliance/audit status is resolved. citeturn665925search0turn665925search1turn665925search2
+
+Next step before another full production run:
+1. Pull current main into the local factory.
+2. Run the focused regression tests for the corrected Gemini and audio- QA paths.
+3. Run one real Gemini structured-output smoke test locally.
+4. Complete/resolve the current YouTube API compliance-audit requirement needed for public publication.
+5. Only after those checks, run the first complete production job again.
+
+The user's locked operating model remains unchanged: USER RUNS THE FACTORY ONCE OR TWICE PER DAY → FACTORY DOES EVERYTHING ELSE AUTOMATICALLY.
