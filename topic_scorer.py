@@ -188,7 +188,7 @@ YouTube signals:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "responseSchema": _RESPONSE_SCHEMA,
+            "responseJsonSchema": _RESPONSE_SCHEMA,
         },
     }
 
