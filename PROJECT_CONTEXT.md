@@ -1513,22 +1513,23 @@ Corrections now present on main:
 
 ## Self-contained question guard — 2026-10-08
 
-The visual-dependency correction has been hardened in the generation stage.
+The visual-dependency correction is hardened in the generation stage.
 
 Current behavior:
-- Gemini is still instructed to generate fully self-contained, text-only questions.
-- A deterministic post-generation guard now rejects common references to an unseen figure, diagram, chart, image, map, table, or externally shown arrangement before a `Question` is created.
+- Gemini is instructed to generate fully self-contained, text-only questions.
+- A deterministic post-generation guard rejects common references to an unseen figure, diagram, chart, image, map, table, or externally shown arrangement before a `Question` is created.
 - The guard checks the question and all four choices.
-- It remains conservative enough to allow genuinely self-contained statements such as describing a figure entirely in text.
-- A regression test covers both rejection of an unseen diagram reference and acceptance of a self-contained figure statement.
+- It remains conservative enough to allow genuinely self-contained statements that describe a figure entirely in text.
+- Regression coverage includes both rejection of an unseen diagram reference and acceptance of a self-contained figure statement.
 
-No new dependency, wrapper, compatibility layer, or pipeline was introduced.
+## Long-form explanation layout verification — 2026-10-08
 
-Known technical output state from the audited run remains:
-- long-form: 1920×1080 with aligned audio/video duration
-- Short: 1080×1920 and under 3 minutes
+The final-render audit fix is present in the production layout:
+- `_explanation_scene()` renders the verified answer at left.
+- The explanation content occupies the right-side solution area.
+- The lower strip uses the existing progress indicator.
+- There is no `Why it works` label or unused replacement section in the current code.
+- A regression test now asserts that an explanation scene invokes the progress indicator exactly once.
 
-Current gate:
-- The two confirmed final-file defects are corrected in code.
-- No additional objective final-render defect is currently recorded beyond those findings.
-- The next implementation batch after user approval is the smallest clean cleanup of the long-form explanation layout/render path, followed by the English secondary-audio design audit.
+No visual redesign was introduced.
+

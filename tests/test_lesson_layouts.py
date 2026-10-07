@@ -43,3 +43,20 @@ def test_all_assembled_segment_kinds_render():
             image = render_lesson_scene(lesson, index, size=(1280, 720))
             assert isinstance(image, Image.Image)
             assert image.size == (1280, 720)
+
+
+def test_explanation_scene_uses_progress_instead_of_orphan_label(monkeypatch):
+    lesson = assemble_lesson([question()], lesson_type="practice")
+    calls = {"progress": 0}
+
+    def fake_progress(*args, **kwargs):
+        calls["progress"] += 1
+
+    monkeypatch.setattr("lesson_layouts.draw_progress", fake_progress)
+    image = render_lesson_scene(
+        lesson,
+        next(i for i, segment in enumerate(lesson.segments) if segment.kind == "explanation"),
+    )
+
+    assert image.size == (1920, 1080)
+    assert calls["progress"] == 1
