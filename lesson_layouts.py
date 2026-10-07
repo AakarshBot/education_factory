@@ -12,6 +12,7 @@ from visual_primitives import (
     SURFACE,
     draw_answer_reveal,
     _font,
+    _canvas_base,
     draw_calculation_step,
     draw_choices,
     draw_highlighted_text,
@@ -22,7 +23,9 @@ from visual_primitives import (
 )
 
 def _canvas(size):
-    return Image.new("RGB", size, BACKGROUND)
+    image = Image.new("RGB", size, BACKGROUND)
+    _canvas_base(image)
+    return image
 
 def _question(lesson, segment, image):
     question = lesson.questions[segment.question_index]

@@ -18,6 +18,7 @@ from visual_primitives import (
     MUTED,
     SURFACE,
     _font,
+    _canvas_base,
     draw_answer_reveal,
     draw_calculation_step,
     draw_choices,
@@ -33,7 +34,9 @@ DEFAULT_FPS = 30
 
 
 def _canvas():
-    return Image.new("RGB", SHORT_SIZE, BACKGROUND)
+    image = Image.new("RGB", SHORT_SIZE, BACKGROUND)
+    _canvas_base(image)
+    return image
 
 
 def _label(draw, text, xy, *, size=30, fill=ACCENT):

@@ -19,6 +19,11 @@ def question(source_type="original", source_reference=None):
         source_reference=source_reference,
     )
 
+def test_scene_canvas_uses_product_background():
+    image = render_lesson_scene(assemble_lesson([question()], lesson_type="practice"), 0)
+    assert image.getpixel((80, 80)) == (21, 27, 38)
+
+
 def test_all_lesson_question_layouts_have_distinct_compositions():
     lessons = [
         assemble_lesson([question()], lesson_type="practice"),
