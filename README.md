@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 4.1 — Visual primitives**
+**Step 4.2 — Lesson-specific layouts**
 
-The factory now has deterministic Pillow drawing primitives for question cards, choices, timers, answer reveals, worked-calculation steps, highlighted text, flow diagrams, progress, and score/result screens. The next step is lesson-specific visual composition.
+The factory now composes different visual scenes for practice, timed tests, concept + practice, PYQ analysis, and revision lessons while reusing the deterministic visual primitives.
