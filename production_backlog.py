@@ -265,12 +265,16 @@ def complete_job(
         topic.strip().lower(),
     )
     remaining: list[BacklogEntry] = []
+    found = False
     for entry in entries:
         if entry.key != key:
             remaining.append(entry)
             continue
+        found = True
         if entry.status != "claimed" or entry.claimed_run_id != run_id:
             raise RuntimeError(f"backlog job is not claimed by run: {key}")
+    if not found:
+        return list(entries)
     return remaining
 
 
