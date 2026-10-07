@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 8 / Step 8.3 — Persistent backlog, resume-safe execution, and cadence state**
+**Engineering complete — final factory audit passed**
 
-The factory now has a direct one-command production path, a resume-safe job manifest, a persistent ranked production backlog, and local once/twice-daily cadence state. Normal runs consume the backlog first, refresh demand only when needed, and record the next operating window.
+The factory now has one direct production path, persistent ranked backlog, resume-safe job manifests, analytics-driven adaptation, and once/twice-daily cadence state. The remaining step is the external YouTube account/OAuth launch gate and the first real end-to-end run.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
