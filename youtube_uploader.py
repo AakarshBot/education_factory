@@ -63,6 +63,8 @@ def upload_video(
     description = metadata.description
     if metadata.hashtags:
         description = f"{description}\n\n{' '.join(metadata.hashtags)}"
+    if len(description.encode("utf-8")) > 5000:
+        raise RuntimeError("final YouTube description exceeds 5000 UTF-8 bytes")
 
     body = {
         "snippet": {
