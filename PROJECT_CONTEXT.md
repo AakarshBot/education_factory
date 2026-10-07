@@ -280,8 +280,8 @@ Created only repository-level hygiene/documentation needed before production cod
 ### Step 0.3 — Local/free dependency policy
 Define the minimum dependency set. Avoid the heavyweight ML stack used by Final-Shorts unless a later feature demonstrably requires it.
 
-### Step 0.4 — Config and secret handling
-Create .env.example, configuration conventions, and secret boundaries. Never commit credentials.
+### Step 0.4 — Config and secret handling — **COMPLETE**
+Added one direct `config.py` boundary that loads `.env`, exposes the small set of runtime settings currently needed, and validates secrets only when a concrete stage requires them. Updated `.env.example` with Gemini, YouTube OAuth, and TTS settings. Added focused `tests/test_config.py` coverage for defaults, environment overrides, and required-setting failures. No credentials are committed.
 
 ---
 
@@ -559,11 +559,13 @@ Current repository files:
 - `.gitignore`
 - `.env.example`
 - `requirements.txt`
+- `config.py`
+- `tests/test_config.py`
 
-Production code has not started.
+Production content generation has not started.
 
 ## NEXT STEP
 
-**Step 0.4 — Lock configuration and secret handling in code.**
+**Step 1.1 — Define the canonical question schema.**
 
-Create only the minimal configuration/secret boundary needed by the first runnable slice. It must read environment values safely, define explicit required/optional settings, and contain no provider-specific scaffolding beyond what the current build actually needs.
+This is the first content-engine implementation. It will create one small, explicit data contract for questions and answer/explanation data. No LLM call or renderer will be added yet.
