@@ -67,9 +67,10 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     config = calls[0][1]["json"]["generationConfig"]
     assert config["responseFormat"]["text"]["mimeType"] == "application/json"
     assert "responseSchema" not in config
-    assert config["responseFormat"]["text"]["schema"]["properties"]["choices"]["type"] == "array"
-    assert config["responseFormat"]["text"]["schema"]["properties"]["choices"]["minItems"] == 4
-    assert config["responseFormat"]["text"]["schema"]["properties"]["choices"]["maxItems"] == 4
+    choices_schema = config["responseFormat"]["text"]["schema"]["properties"]["questions"]["items"]["properties"]["choices"]
+    assert choices_schema["type"] == "array"
+    assert choices_schema["minItems"] == 4
+    assert choices_schema["maxItems"] == 4
 
 
 def test_generate_questions_rejects_wrong_math_answer(monkeypatch):
