@@ -45,3 +45,27 @@ def test_next_run_is_one_day_for_one_run():
 def test_invalid_cadence():
     with pytest.raises(ValueError, match="1 or 2"):
         next_run_at(datetime.now(timezone.utc), 3)
+
+
+def test_naive_datetime_is_rejected():
+    with pytest.raises(ValueError, match="timezone-aware"):
+        next_run_at(datetime(2026, 10, 8, 12, 0), 2)
+
+
+def test_run_id_and_status_are_required():
+    with pytest.raises(ValueError, match="run_id"):
+        record_run(
+            FactoryState(),
+            run_id="",
+            status="complete",
+            now=datetime.now(timezone.utc),
+            runs_per_day=2,
+        )
+    with pytest.raises(ValueError, match="status"):
+        record_run(
+            FactoryState(),
+            run_id="run-1",
+            status="",
+            now=datetime.now(timezone.utc),
+            runs_per_day=2,
+        )
