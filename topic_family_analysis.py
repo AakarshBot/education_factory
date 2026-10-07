@@ -111,7 +111,9 @@ def _family_metrics(
         if entry.content_format != "long_form" or entry.status.strip().lower() != "published" or not entry.video_id:
             continue
         views = _metric(entry, "views")
-        if views is None or views < 0:
+        if views is None:
+            continue
+        if views < 0:
             raise RuntimeError("history metrics must contain non-negative views")
         valid.append(entry)
 
@@ -200,6 +202,10 @@ def analyze_topic_families(
         for entry in subject_items:
             topic = entry.topic.strip()
             if not topic:
+                continue
+            if entry.content_format != "long_form" or entry.status.strip().lower() != "published" or not entry.video_id:
+                continue
+            if _metric(entry, "views") is None:
                 continue
             key = topic.casefold()
             topic_tokens.setdefault(key, _topic_tokens(topic))
