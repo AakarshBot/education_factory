@@ -1503,16 +1503,32 @@ Next manual action:
 
 The first successful production files (`long_form.mp4` and `short.mp4`) were inspected directly.
 
-Confirmed defects:
-- Several generated Counting of Figures questions refer to a figure/diagram or a specific shape arrangement that is not actually rendered in the final video. This creates a content usability problem even when the question is technically valid JSON.
+Confirmed objective defects:
+- Several generated Counting of Figures questions referred to a figure/diagram or a specific shape arrangement that was not rendered in the final video. This is a content-usability defect, not a styling preference.
 - The long-form explanation scene rendered an orphan `Why it works` label with no content beneath it, leaving unnecessary dead space.
 
-Corrections committed to main:
-- `question_generator.py` now requires every generated question to be fully self-contained in text and explicitly forbids references to missing visuals such as a given figure, shown-below diagram, or image.
-- `lesson_layouts.py` explanation scenes now use the reclaimed lower area for the existing progress indicator instead of the orphan label.
-- No new visual framework, dependency, wrapper, or broad redesign was added.
+Corrections now present on main:
+- `question_generator.py` requires every generated question to be self-contained in text and explicitly forbids missing-visual references in the generation prompt.
+- `lesson_layouts.py` explanation scenes use the reclaimed lower area for the existing progress indicator instead of the orphan label.
 
-The supplied videos also confirm the basic technical outputs are correct: long-form is 1920x1080 with matching video/audio duration, and Short is 1080x1920 within the 3-minute limit.
+## Self-contained question guard — 2026-10-08
 
-Next production gate:
-- Do not rerun the factory until the user confirms whether any additional final-file defects remain beyond the two confirmed issues above.
+The visual-dependency correction has been hardened in the generation stage.
+
+Current behavior:
+- Gemini is still instructed to generate fully self-contained, text-only questions.
+- A deterministic post-generation guard now rejects common references to an unseen figure, diagram, chart, image, map, table, or externally shown arrangement before a `Question` is created.
+- The guard checks the question and all four choices.
+- It remains conservative enough to allow genuinely self-contained statements such as describing a figure entirely in text.
+- A regression test covers both rejection of an unseen diagram reference and acceptance of a self-contained figure statement.
+
+No new dependency, wrapper, compatibility layer, or pipeline was introduced.
+
+Known technical output state from the audited run remains:
+- long-form: 1920×1080 with aligned audio/video duration
+- Short: 1080×1920 and under 3 minutes
+
+Current gate:
+- The two confirmed final-file defects are corrected in code.
+- No additional objective final-render defect is currently recorded beyond those findings.
+- The next implementation batch after user approval is the smallest clean cleanup of the long-form explanation layout/render path, followed by the English secondary-audio design audit.
