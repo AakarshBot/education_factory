@@ -1086,3 +1086,34 @@ Important launch-workflow rule:
 **Launch Gate — start the complete external Google/YouTube setup from a brand-new Gmail account.**
 
 The engineering build should be treated as complete unless a real first-run test reveals an actual defect.
+
+## Launch-gate correction — current YouTube Analytics OAuth requirement
+
+During external launch setup, the current official YouTube Analytics API documentation was checked against the production authentication code. Google currently requires the `https://www.googleapis.com/auth/youtube.readonly` scope for `reports.query`, in addition to the existing Analytics read-only scope. The factory's `youtube_auth.py` was therefore updated on 2026-10-08 to request exactly these three scopes:
+
+- `https://www.googleapis.com/auth/youtube.upload`
+- `https://www.googleapis.com/auth/youtube.readonly`
+- `https://www.googleapis.com/auth/yt-analytics.readonly`
+
+This is a platform-compatibility correction, not a new production pipeline or redesign. The user must add the new `youtube.readonly` scope to Google Auth Platform → Data Access before reauthorizing the local factory. A prior token with only the older two scopes must not be treated as sufficient.
+
+Current external launch status:
+- Google account: created and secured
+- YouTube channel: created
+- Channel phone verification / Intermediate features: enabled
+- Google Cloud project: created
+- YouTube Data API v3: enabled
+- YouTube Analytics API: enabled
+- OAuth app: configured as External in Testing
+- Desktop OAuth client: created
+- YouTube API key: created for public demand discovery
+- Gemini API key: created
+- local factory: cloned and dependencies installed
+- `client_secrets.json`: placed locally
+- `.env`: configured locally
+- OAuth reauthorization: pending after adding the new `youtube.readonly` scope
+- first real factory run: pending
+- first real upload: pending
+- real analytics ingestion: pending
+
+The full repository pytest suite remains unclaimed as green, consistent with the final engineering audit.
