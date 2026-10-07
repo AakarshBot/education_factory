@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 7 / Step 7.4 — Official PYQ discovery and reuse gate**
+**Phase 8 / Step 8.1 — Resume-safe production execution**
 
-The factory now has a direct one-command production path from demand discovery through educational generation, narration, long-form + Shorts rendering, metadata, upload/scheduling, history, and analytics. Concept + practice is automatic. Official PYQ discovery is automated, but question reuse remains explicitly permission-gated.
+The factory now has a direct one-command production path plus a persistent resume-safe job manifest. Completed artifacts are restored instead of regenerated after ordinary failures, and exact publish times are preserved across retries.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
