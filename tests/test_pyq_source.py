@@ -27,6 +27,7 @@ def source(reference, text):
         question=q,
         source_reference=reference,
         rights_note="Reuse permission verified from source.",
+        reuse_permitted=True,
     )
 
 
@@ -81,6 +82,7 @@ def test_verified_pyq_source_requires_matching_reference():
             question=q,
             source_reference="https://ssc.gov.in/q2",
             rights_note="verified",
+            reuse_permitted=True,
         )
 
 
@@ -95,3 +97,14 @@ def test_select_verified_pyq_questions_returns_verified_questions():
         count=2,
     )
     assert [item.source_reference for item in result] == ["a", "b"]
+
+
+def test_verified_pyq_source_rejects_missing_reuse_permission():
+    q = question("https://ssc.gov.in/q1", "A")
+    with pytest.raises(ValueError, match="reuse permission"):
+        VerifiedPYQSource(
+            question=q,
+            source_reference="https://ssc.gov.in/q1",
+            rights_note="Source is official.",
+            reuse_permitted=False,
+        )
