@@ -903,7 +903,7 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 7 / STEP 7.1 COMPLETE**
+Status: **PHASE 7 / STEP 7.2 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -933,6 +933,8 @@ Completed:
 - Phase 6.3 — deterministic subject analysis
 - Phase 6.4 — deterministic topic-family analysis
 - Phase 6.5 — conservative automatic editorial adaptation
+- Phase 7.1 — one-command autonomous factory run
+- Phase 7.2 — automatic Shorts derivation and publishing
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -969,6 +971,7 @@ Current repository files include:
 - `subject_analysis.py`
 - `topic_family_analysis.py`
 - `editorial_adaptation.py`
+- `factory.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -1010,6 +1013,15 @@ Step 6.5 test status:
 - The adaptation logic was executed in isolation with representative format, subject, and topic-family fixtures and passed.
 - A full repository pytest run was not available because this environment cannot resolve GitHub from the shell.
 
+Step 7.2 test status:
+- Added history round-trip tests for the new `content_format` field.
+- Added upload validation/persistence coverage for Shorts.
+- Added deterministic Short question-cycle selection tests.
+- Added explicit tests proving Shorts are excluded from long-form format, subject, and topic-family analyses.
+- Updated the factory orchestration test to cover long-form rendering, Short rendering, separate uploads, and analytics refresh.
+- Current YouTube guidance confirms square or vertical videos up to three minutes are categorized as Shorts.
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
+
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
@@ -1023,8 +1035,6 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 7 / Step 7.2 — Automatic Shorts derivation and publishing.**
+**Phase 7 / Step 7.3 — Complete the remaining locked lesson products.**
 
-Derive a useful Short from each completed long-form lesson using the existing portrait renderer, narration/timing, QA, metadata, and upload path without creating a second educational-content pipeline.**Phase 6 / Step 6.4 — Topic-family analysis.**
-
-Identify recurring winning topic clusters from the persisted production history and metrics, without treating a single anomalous video as a strategy signal.
+Add the missing direct generation inputs for concept + practice and PYQ analysis so the factory can choose all locked long-form products without hidden manual content.
