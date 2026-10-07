@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 6 / Step 6.1 — YouTube Analytics metrics ingestion**
+**Phase 6 / Step 6.2 — Deterministic format analysis**
 
-The factory now has direct YouTube upload/scheduling and analytics-ingestion stages, with production state stored in local channel history.
+The factory now has direct YouTube upload/scheduling, analytics ingestion, and format-comparison stages, with production state stored in local channel history.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
