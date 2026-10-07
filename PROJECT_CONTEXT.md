@@ -680,6 +680,7 @@ The upload stage:
 - publishes immediately in `public` mode or schedules in `scheduled` mode
 - forces scheduled videos to `private` with an ISO 8601 `publishAt` value, as required by the YouTube API
 - appends the generated hashtags to the supplied description and passes the generated keyword tags, category, and Hindi default language directly to YouTube
+- validates the final combined description against YouTube's 5,000 UTF-8-byte limit before making a network request
 - validates the video file, mode, and schedule time before making a network request
 - fails closed on upload errors or responses without a YouTube video ID
 - records the returned video ID, publication/schedule status, lesson identity, and title in the local channel history
@@ -840,7 +841,7 @@ Step 5.2 test status:
 - No credential or token has been committed.
 
 Step 5.3 test status:
-- Added focused mocked-upload tests for public publishing, scheduled publishing, validation failures, API failures, missing IDs, and history persistence.
+- Added focused mocked-upload tests for public publishing, scheduled publishing, validation failures including the final description byte limit, API failures, missing IDs, and history persistence.
 - Real YouTube upload was deliberately not run because the dedicated channel/account and OAuth token do not exist yet.
 
 Architecture:
