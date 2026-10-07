@@ -132,3 +132,26 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
         "upload",
         "analytics",
     ]
+
+
+def test_short_segment_indices_selects_one_question_cycle():
+    class Segment:
+        def __init__(self, kind):
+            self.kind = kind
+
+    class Lesson:
+        segments = tuple(Segment(kind) for kind in (
+            "question", "answer", "explanation",
+            "shortcut", "question", "answer",
+        ))
+
+    assert factory._short_segment_indices(Lesson()) == [0, 1, 2, 3]
+
+
+def test_short_segment_indices_requires_question():
+    class Lesson:
+        segments = ()
+
+    import pytest
+    with pytest.raises(RuntimeError, match="no question"):
+        factory._short_segment_indices(Lesson())
