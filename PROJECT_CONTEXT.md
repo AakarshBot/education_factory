@@ -1359,6 +1359,19 @@ Completed external gate:
 - The proven Final-Shorts desktop OAuth client secret was copied locally into education_factory as `client_secrets.json`.
 - education_factory `token.json` was removed locally so the new channel account will authorize against the existing project/client instead of reusing another channel's token.
 
+Completed launch gate:
+- In Google Auth Platform -> Audience for project `amazing-sunset-504916-c4`, the OAuth app is in Testing and `education.factory.india@gmail.com` was added as a test user.
+- The proven Final-Shorts desktop OAuth client secret was copied locally into education_factory as `client_secrets.json`.
+- education_factory `token.json` was removed before authorization.
+- The factory's YouTube auth flow was authorized with the new channel account and the identity check is expected to show `Exam Session India`.
+- `youtube_uploader.py` uses the standard `videos.insert` upload path and does not add a compliance/publishing wrapper.
+
+Current launch gate:
+- Engineering regression suite: 183 passed.
+- Real Gemini structured-output smoke test: passed.
+- YouTube Data API and Analytics API: previously verified.
+- Existing working YouTube upload project/client: reused.
+
 Next manual action:
-- From `C:\Users\aakar\Desktop\education_factory`, run the YouTube identity/auth smoke test below. It will open the Google authorization page if needed. Approve the requested YouTube scopes for `education.factory.india@gmail.com` and confirm the printed channel is `Exam Session India`.
-- Do not send credentials or secret file contents.
+- Pull the latest `main` into `C:\Users\aakar\Desktop\education_factory` and run the first complete production job with the default scheduled mode.
+- Do not run with `--publish-mode public` yet; scheduled mode is the safer first production path.
