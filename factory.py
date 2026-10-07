@@ -33,7 +33,7 @@ from question import Question
 from question_generator import generate_questions
 from shorts_renderer import render_short
 from subject_analysis import analyze_subjects
-from topic_family_analysis import analyze_topic_families
+from topic_family_analysis import TopicFamilyPerformance, analyze_topic_families
 from topic_scorer import score_topics
 from youtube_analytics import ingest_metrics
 from youtube_auth import get_youtube_client
@@ -57,11 +57,6 @@ AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
 SHORT_PUBLISH_DELAY = timedelta(hours=2)
-
-
-def _slug(value: str) -> str:
-    clean = re.sub(r"[^\w]+", "-", value.strip().lower(), flags=re.UNICODE)
-    return clean.strip("-") or "lesson"
 
 
 def _new_run(output_root: Path) -> JobManifest:
@@ -183,14 +178,34 @@ def _select_lesson_type(adaptation) -> str:
     )
 
 
-def _select_job(jobs, adaptation):
+def _select_job(
+    jobs,
+    adaptation,
+    topic_families: tuple[TopicFamilyPerformance, ...] = (),
+):
     if not jobs:
         raise RuntimeError("editorial queue produced no jobs")
 
+    family_by_topic = {}
+    for family in topic_families:
+        subject = family.subject.strip().lower()
+        weight = adaptation.topic_family_weights.get(
+            (family.subject, family.family_name),
+            1.0,
+        )
+        for topic in family.topics:
+            family_by_topic[(subject, topic.strip().lower())] = weight
+
     def adjusted(job):
+        subject = job.subject.strip().lower()
+        family_weight = family_by_topic.get(
+            (subject, job.topic.strip().lower()),
+            1.0,
+        )
         return (
             job.total_score
-            * adaptation.subject_weights.get(job.subject.strip().lower(), 1.0)
+            * adaptation.subject_weights.get(subject, 1.0)
+            * family_weight
         )
 
     return max(
@@ -388,7 +403,7 @@ def run_factory(
                 backlog = merge_jobs(backlog, jobs)
 
             jobs = pending_jobs(backlog)
-            job = _select_job(jobs, adaptation)
+            job = _select_job(jobs, adaptation, tuple(families))
             backlog = claim_job(
                 backlog,
                 job,
