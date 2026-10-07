@@ -107,7 +107,6 @@ def _search(
             )
         )
 
-    _save_cache(cache_file, key=key, signals=signals, now=now)
     return signals
 
 
@@ -240,4 +239,5 @@ def discover_demand(
             )
         )
 
+    _save_cache(cache_file, key=key, signals=signals, now=now)
     return signals
