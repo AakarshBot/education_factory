@@ -10,6 +10,7 @@ from PIL import Image
 from audio_qa import check_audio
 from lesson import Lesson
 from lesson_layouts import render_lesson_scene
+from visual_qa import check_image, check_video
 
 DEFAULT_FPS = 30
 
@@ -66,6 +67,7 @@ def render_long_form(
                     )
                 scene_path = work_dir / f"scene_{index:04d}.png"
                 scene.save(scene_path, format="PNG", optimize=False)
+                check_image(scene_path, expected_size=size)
                 lines.append(f"file {_concat_path(scene_path)}")
                 lines.append(f"duration {scene_durations[index]:.6f}")
 
@@ -115,6 +117,7 @@ def render_long_form(
                 raise RuntimeError("Long-form render produced no video")
 
             temp_output.replace(output)
+            check_video(output, expected_size=size, expected_duration_seconds=total_duration)
     except OSError as exc:
         raise RuntimeError("Could not run FFmpeg for long-form rendering") from exc
 
