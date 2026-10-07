@@ -11,7 +11,7 @@ from validators import (
 )
 
 
-def make_math_question(answer="1700", choices=None):
+def make_math_question(answer="₹1,700", choices=None):
     return Question(
         subject="maths",
         exam="SSC CGL",
