@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -10,6 +11,8 @@ from config import GEMINI_API_KEY, GEMINI_MODEL, validate_config
 from demand_discovery import DemandSignal
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+_TRANSIENT_STATUS_CODES = frozenset({429, 503})
+_RETRY_DELAYS = (1, 2, 4)
 
 _SCORE_WEIGHTS = {
     "demand": 0.25,
@@ -189,15 +192,22 @@ YouTube signals:
         },
     }
 
-    response = requests.post(
-        _GEMINI_URL.format(model=GEMINI_MODEL),
-        headers={
-            "x-goog-api-key": GEMINI_API_KEY,
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=60,
-    )
+    response = None
+    for attempt in range(len(_RETRY_DELAYS) + 1):
+        response = requests.post(
+            _GEMINI_URL.format(model=GEMINI_MODEL),
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=60,
+        )
+        if response.status_code not in _TRANSIENT_STATUS_CODES or attempt == len(_RETRY_DELAYS):
+            break
+        time.sleep(_RETRY_DELAYS[attempt])
+
+    assert response is not None
     if response.status_code != 200:
         raise RuntimeError(
             f"Gemini topic scoring failed ({response.status_code}): "
