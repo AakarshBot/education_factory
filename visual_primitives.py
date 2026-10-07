@@ -12,7 +12,10 @@ LAT_B="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.name!="nt" el
 def _dev(text): return any("\u0900"<=c<="\u097f" for c in text)
 
 def _font(size,bold=False,dev=False):
-    return ImageFont.truetype(DEV_B if dev and bold else DEV if dev else LAT_B if bold else LAT,size)
+    path = DEV_B if dev and bold else DEV if dev else LAT_B if bold else LAT
+    if not os.path.exists(path):
+        path = DEV if dev else LAT
+    return ImageFont.truetype(path,size)
 
 def _measure(draw,text,size,bold):
     words=text.split()
