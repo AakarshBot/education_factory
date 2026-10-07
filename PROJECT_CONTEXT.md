@@ -304,10 +304,23 @@ Added `question.py` with one canonical immutable `Question` dataclass containing
 The schema is JSON-safe through `to_dict()` and can be reconstructed through `from_dict()`. It contains no LLM calls, provider logic, rendering logic, or business rules.
 Added `tests/test_question.py` covering the complete field set and dict round-trip behavior.
 
-### Step 1.2 — Deterministic validators
-Implement reliable validators for generated questions.
+### Step 1.2 — Deterministic validators — **COMPLETE**
+Added `validators.py` with a deliberately narrow deterministic validation layer.
 
-Math validators are first priority.
+Implemented:
+- safe arithmetic-expression evaluation using Python AST with only numeric constants, unary signs, addition, subtraction, multiplication, division, and bounded integer powers
+- exact numeric answer parsing using `Fraction` / `Decimal`
+- Maths answer verification by comparing the generated answer against a machine-checkable expression
+- multiple-choice validation for minimum choice count, uniqueness, and membership of the correct answer
+- fail-closed validation when a Maths question has no machine-checkable expression
+
+Important design decision:
+- The canonical `Question` schema remains unchanged.
+- A machine-checkable Maths expression is supplied to validation as generation metadata rather than stored as another public question field.
+- The validator does not attempt to "prove" arbitrary natural-language Maths questions from prose. That would be brittle and unsafe.
+- No LLM retry, generation, explanation validation, or topic rules were added at this stage.
+
+Added `tests/test_validators.py` covering exact arithmetic, number parsing, mismatched answers, unsafe expressions, required Maths expressions, and multiple-choice integrity.
 
 ### Step 1.3 — Question generation
 Generate original question sets using the canonical schema.
@@ -549,7 +562,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 1 / STEP 1.1 COMPLETE**
+Status: **PHASE 1 / STEP 1.2 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -559,6 +572,7 @@ Completed in Phase 0:
 
 Completed in Phase 1:
 - Step 1.1 — canonical question schema
+- Step 1.2 — deterministic Maths/question validators
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -568,16 +582,18 @@ Current repository files:
 - `requirements.txt`
 - `config.py`
 - `question.py`
+- `validators.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
+- `tests/test_validators.py`
 
 Test status:
-- Focused Step 1.1 tests are committed.
+- Focused Step 1.2 tests are committed.
 - They have not been executed in this hosted GitHub-only session; no test pass is claimed yet.
-- No CI workflow has been added yet because that is not required by Step 1.1.
+- No CI workflow has been added yet.
 
 ## NEXT STEP
 
-**Step 1.2 — Deterministic validators.**
+**Step 1.3 — Question generation.**
 
-Implement the smallest reliable validation layer required before generated questions can ever reach lesson assembly. Maths is first priority. Validation must verify the answer against the question data where deterministic verification is possible, without adding an LLM retry loop or speculative validation rules.
+Build the first real generation path around the canonical `Question` schema and deterministic validation contract. The generator must produce original questions, include machine-checkable Maths metadata for Maths items, and reject invalid generated sets before any explanation or rendering stage can use them.
