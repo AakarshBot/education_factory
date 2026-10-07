@@ -512,8 +512,58 @@ Not yet implemented:
 - analytics
 - autonomous run command
 
+## STEP 0.3 — LOCAL/FREE DEPENDENCY POLICY — **COMPLETE**
+
+The factory uses a deliberately small Python stack. Production code should use the standard library wherever practical and add a package only for a concrete capability.
+
+Locked direct dependencies:
+- `Pillow` — deterministic educational graphics and image operations.
+- `edge-tts` — free Microsoft Edge online TTS access without an API key; it also exposes speech timing/subtitle support. citeturn785269search1
+- `requests` — direct HTTP access so we do not add an SDK merely to call a simple API.
+- `python-dotenv` — local `.env` loading without embedding secrets in code.
+- `google-api-python-client` — YouTube Data API upload, scheduling, metadata and channel operations.
+- `google-auth` and `google-auth-oauthlib` — YouTube OAuth authorization.
+- `pytest` — focused automated tests.
+
+LLM policy:
+- Use the Gemini API through direct HTTP rather than adding the Gemini Python SDK unless a later concrete capability requires the SDK.
+- Default model for the initial text-generation implementation: `gemini-3.8-flash`, subject to the then-active free-tier availability. Google's current pricing page lists a free tier for this model, while current model documentation identifies it as stable. citeturn307393search0turn307393search1
+- The factory must track and fail clearly on rate limits rather than silently switching to paid usage. Gemini limits are project/account dependent and can vary; the active limits are shown in AI Studio. citeturn202704search2
+- Google Search grounding is not assumed for free production because current pricing states it is unavailable for Gemini 3.x free-tier requests. citeturn307393search0
+
+Media policy:
+- FFmpeg/ffprobe are required local executables for final audio/video assembly and duration checks. FFmpeg is free/open source; use only standard components so the default LGPL licensing remains applicable. citeturn785269search11
+- Do not add MoviePy, OpenCV, Torch, Transformers, browser automation, image-generation libraries, or other heavyweight media/ML stacks unless an implemented stage proves the dependency necessary.
+
+YouTube API policy:
+- The production target is far below YouTube's default quota allocation. Current official documentation lists a default 10,000-unit/day allocation, plus specific limits around `search.list` and `videos.insert`. The uploader must still minimize calls and handle quota errors explicitly. citeturn785269search2
+
+Security policy:
+- Real credentials stay in `.env` or local OAuth files and are ignored by Git.
+- Never print, commit, or persist API secrets in repository source.
+
+The dependency file is now `requirements.txt`. No heavyweight Final-Shorts dependency set was carried over.
+
+## CURRENT BUILD STATE — UPDATED
+
+Status: **FOUNDATION / STEP 0.3 COMPLETE**
+
+Completed in Phase 0:
+- Step 0.1 — master project context
+- Step 0.2 — minimal repository skeleton
+- Step 0.3 — minimum local/free dependency policy and build stack
+
+Current repository files:
+- `PROJECT_CONTEXT.md`
+- `README.md`
+- `.gitignore`
+- `.env.example`
+- `requirements.txt`
+
+Production code has not started.
+
 ## NEXT STEP
 
-**Step 0.3 — Lock the local/free dependency policy and choose the minimum build stack.**
+**Step 0.4 — Lock configuration and secret handling in code.**
 
-Before adding production dependencies, inspect what can be done with Python standard library plus a minimal set of free/open-source packages. The dependency list must be justified by an immediate factory requirement; avoid inheriting Final-Shorts' heavyweight ML stack.
+Create only the minimal configuration/secret boundary needed by the first runnable slice. It must read environment values safely, define explicit required/optional settings, and contain no provider-specific scaffolding beyond what the current build actually needs.
