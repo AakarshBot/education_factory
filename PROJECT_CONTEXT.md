@@ -1375,3 +1375,20 @@ Current launch gate:
 Next manual action:
 - Pull the latest `main` into `C:\Users\aakar\Desktop\education_factory` and run the first complete production job with the default scheduled mode.
 - Do not run with `--publish-mode public` yet; scheduled mode is the safer first production path.
+
+## TTS launch defect — 2026-10-08
+
+The first complete factory run reached narration and failed on `RuntimeError: TTS word timings are not monotonic` from `narration.py`.
+
+Root cause:
+- The repository allowed any `edge-tts` 7.x release.
+- Upstream edge-tts 7.2.8 specifically fixed word-boundary offset compensation by replacing metadata-based compensation with CBR audio-byte timing. citeturn939354search0turn125075search2
+
+Correction committed to main:
+- `requirements.txt` now requires `edge-tts>=7.2.8,<8`.
+- No wrapper, fallback timing algorithm, or new dependency was added.
+
+The failed run produced no evidence of a YouTube upload; failure occurred before upload during narration.
+
+Next manual action:
+- From `C:\\Users\\aakar\\Desktop\\education_factory`, upgrade the installed edge-tts version with the command supplied in chat, then rerun `python factory.py`.
