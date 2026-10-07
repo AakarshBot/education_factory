@@ -139,3 +139,9 @@ def test_analyze_topic_families_flags_small_samples():
 
 def test_analyze_topic_families_empty_history():
     assert analyze_topic_families([]) == tuple()
+
+
+def test_analyze_topic_families_excludes_shorts():
+    short = entry("Maths", "Percentages", "s1", views=999)
+    short = __import__("dataclasses").replace(short, content_format="shorts")
+    assert analyze_topic_families([short]) == ()
