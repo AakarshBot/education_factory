@@ -1291,3 +1291,13 @@ Current gate:
 - Pull main and rerun the full pytest suite once more.
 - Do not run factory.py yet.
 - After pytest is green, rerun the real Gemini one-question smoke test. A successful response is required before proceeding to the first complete production job.
+## Gemini contract regression suite green — 2026-10-08
+
+After correcting the live Gemini REST mime enum to APPLICATION_JSON, the user's local full pytest suite is green again:
+- 183 passed in 21.60s.
+- No pytest failures remain.
+
+Current gate:
+- The next required check is the real one-question Gemini structured-output smoke test against the configured production API key/model.
+- Do not run factory.py yet.
+- If the real smoke test succeeds, the next platform gate is YouTube API compliance/public-publication status before the first complete production run.
