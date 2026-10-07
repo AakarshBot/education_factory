@@ -50,7 +50,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
 
     monkeypatch.setattr(question_generator, "validate_config", lambda **_: None)
     monkeypatch.setattr(question_generator, "GEMINI_API_KEY", "test-key")
-    monkeypatch.setattr(question_generator, "requests", type("R", (), {"post": fake_post}))
+    monkeypatch.setattr(question_generator.requests, "post", fake_post)
 
     result = question_generator.generate_questions(
         subject="maths",
