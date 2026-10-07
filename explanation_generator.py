@@ -84,7 +84,7 @@ Questions:
         "generationConfig": {
             "responseFormat": {
                 "text": {
-                    "mimeType": "application/json",
+                    "mimeType": "APPLICATION_JSON",
                     "schema": _RESPONSE_SCHEMA,
                 }
             },
