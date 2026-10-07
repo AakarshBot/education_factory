@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 2.2 — Topic scoring**
+**Step 2.3 — Editorial queue**
 
-The factory now converts raw YouTube demand signals into scored educational topic candidates. Editorial queue selection is the next layer.
+The factory now converts scored educational topic candidates into bounded, deterministic production jobs. Historical memory is the next layer.

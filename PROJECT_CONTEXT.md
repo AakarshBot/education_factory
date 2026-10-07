@@ -439,8 +439,24 @@ Added `tests/test_topic_scorer.py` covering demand/weighted-score calculation, c
 
 ---
 
-### Step 2.3 — Editorial queue
-Automatically choose the next jobs.
+### Step 2.3 — Editorial queue — **COMPLETE**
+Added `editorial_queue.py` as the deterministic handoff from scored topics to production jobs.
+
+The queue:
+- orders candidates by `total_score` descending
+- uses exam/subject/topic lexical ordering only as a deterministic tie-break
+- carries the evidence indexes and scoring rationale into each `EditorialJob`
+- removes duplicate exam/subject/topic keys
+- respects an explicit `max_jobs` limit
+- does not invent a minimum score, content format, subject rotation, or historical-duplication rule
+- performs no LLM calls
+
+Added `tests/test_editorial_queue.py` covering score-first ordering, evidence preservation, limits, deterministic ties, deduplication, and invalid input.
+
+Because historical channel memory is deliberately deferred to Step 2.4, this queue does not pretend to know what has already been published.
+
+### Step 2.4 — Historical memory
+Store enough local channel history to avoid repetitive publishing and support learning from prior results.
 
 ### Step 2.3 — Editorial queue
 Automatically choose the next jobs.
@@ -650,7 +666,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 2 / STEP 2.2 COMPLETE**
+Status: **PHASE 2 / STEP 2.3 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -668,6 +684,7 @@ Completed in Phase 1:
 Completed in Phase 2:
 - Step 2.1 — demand discovery
 - Step 2.2 — topic scoring
+- Step 2.3 — editorial queue
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -684,6 +701,7 @@ Current repository files:
 - `lesson_assembler.py`
 - `demand_discovery.py`
 - `topic_scorer.py`
+- `editorial_queue.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
@@ -692,18 +710,24 @@ Current repository files:
 - `tests/test_lesson_assembler.py`
 - `tests/test_demand_discovery.py`
 - `tests/test_topic_scorer.py`
+- `tests/test_editorial_queue.py`
 
 Test status:
-- Step 2.2 dedicated tests: **6 passed locally**.
-- Demand remains application-computed from the source ranks.
+- Step 2.3 dedicated tests: **5 passed locally**.
+- Queue ordering is deterministic and score-first.
 - The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
 
 Architecture note:
 - Step 2.1 discovers raw demand signals.
-- Step 2.2 converts those signals into scored educational topic candidates.
-- Step 2.3 will decide what to produce from these scores.
-- Historical channel memory remains a later stage.
+- Step 2.2 turns those signals into scored topic candidates.
+- Step 2.3 converts candidates into bounded editorial jobs without inventing strategy beyond the locked scoring system.
+- Step 2.4 will add persistent channel history before the queue learns from past publishing.
 
+## NEXT STEP
+
+**Step 2.4 — Historical memory.**
+
+Store enough local channel history to avoid repetitive publishing and support learning from prior results.
 ## NEXT STEP
 
 **Step 2.3 — Editorial queue.**
