@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 5 / Step 5.1 — Metadata generation**
+**Phase 5 / Step 5.2 — YouTube OAuth**
 
-The factory now generates five grounded title candidates, a unique description, directly relevant hashtags and tags, and series context from the finished lesson contract. Metadata is validated against current YouTube limits before publishing.
+The factory now has a direct desktop OAuth flow that stores the refreshable authorized-user token locally, uses the minimum upload scope, and builds the YouTube Data API client without committing credentials.
