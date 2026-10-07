@@ -1316,3 +1316,18 @@ Current launch gate:
 - Remaining platform gate: YouTube API compliance audit/public-upload restriction.
 
 Next manual action: open the official YouTube Data API Services Audit and Quota Extension Form and begin the compliance-audit request. Do not submit anything until the factory supplies the exact answers/evidence for each field.
+## YouTube audit compliance site — 2026-10-08
+
+Google's current YouTube Data API audit form requires a publicly accessible organization website, privacy-policy URL, Terms documentation, homepage/privacy screenshots, and conditional evidence depending on the selected API use case. A minimal compliance-only static site has therefore been added under `/docs`.
+
+Site files committed to main:
+- docs/index.html — factory overview with links to privacy policy and terms.
+- docs/privacy.html — YouTube API data handling, local storage, revocation, and Google Privacy Policy information.
+- docs/terms.html — Terms of Service for the local factory.
+
+Important boundary:
+- This site is only for the external YouTube compliance audit and evidence. It is not a runtime dependency of the factory and does not change the production pipeline.
+
+Next manual action:
+- Enable GitHub Pages for AakarshBot/education_factory from main branch `/docs` so the compliance pages become publicly reachable.
+- After the site is live, verify the homepage and privacy page in a browser before filling the corresponding audit-form URLs/evidence.
