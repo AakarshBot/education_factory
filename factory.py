@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,7 +18,7 @@ from lesson import Lesson
 from lesson_assembler import assemble_lesson
 from long_form_renderer import render_long_form
 from shorts_renderer import render_short
-from metadata_generator import generate_metadata
+from metadata_generator import VideoMetadata, generate_metadata
 from narration import synthesize_speech
 from question_generator import generate_questions
 from subject_analysis import analyze_subjects
@@ -33,10 +32,10 @@ DEFAULT_OUTPUT_ROOT = Path("output")
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
-DEFAULT_LESSON_TYPE = "practice"
 AUTO_LESSON_TYPES = ("practice", "timed_test", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
+SHORT_PUBLISH_DELAY = timedelta(hours=2)
 
 
 def _slug(value: str) -> str:
@@ -277,9 +276,15 @@ def run_factory(
         short_durations,
     )
 
-    short_metadata = replace(
-        metadata,
+    short_metadata = VideoMetadata(
         primary_title=metadata.title_candidates[1],
+        title_candidates=metadata.title_candidates,
+        description=metadata.description,
+        hashtags=metadata.hashtags,
+        tags=metadata.tags,
+        series_context=metadata.series_context,
+        category_id=metadata.category_id,
+        default_language=metadata.default_language,
     )
     short_metadata_path.write_text(
         json.dumps(short_metadata.to_dict(), ensure_ascii=False, indent=2),
@@ -306,7 +311,7 @@ def run_factory(
     )
 
     short_publish_at = (
-        selected_publish_at + timedelta(hours=2)
+        selected_publish_at + SHORT_PUBLISH_DELAY
         if publish_mode == "scheduled" and selected_publish_at is not None
         else None
     )
@@ -321,10 +326,7 @@ def run_factory(
         content_format="shorts",
     )
 
-    try:
-        ingest_metrics(history_path=history_file)
-    except RuntimeError:
-        raise
+    ingest_metrics(history_path=history_file)
 
     return lesson
 
