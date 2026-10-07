@@ -9,9 +9,6 @@ from pathlib import Path
 from typing import Any
 
 
-TERMINAL_STATUSES = frozenset({"complete", "failed"})
-
-
 @dataclass
 class JobManifest:
     run_id: str
