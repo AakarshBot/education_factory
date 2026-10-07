@@ -365,13 +365,27 @@ Added `tests/test_explanation_generator.py` covering answer preservation, struct
 
 Current Gemini REST implementation remains based on the documented `generateContent` endpoint and structured JSON response configuration. Google's current API documentation explicitly recommends validating structured output values in application code. citeturn723793search1turn723793search4
 
-### Step 1.5 — Lesson assembler
-Turn verified questions into one of the approved learning experiences:
-- practice
-- timed test
-- concept + practice
-- PYQ analysis
-- revision/marathon
+### Step 1.5 — Lesson assembler — **COMPLETE**
+Added `lesson.py` as the canonical immutable lesson contract and `lesson_assembler.py` as the deterministic sequencing stage.
+
+The assembler:
+- accepts only `Question` objects that already contain verified answers and non-empty explanations
+- creates one explicit sequence of renderable `LessonSegment` records
+- supports the five locked learning experiences: practice, timed test, concept + practice, PYQ analysis, and revision/marathon
+- never calls Gemini and never changes question data
+- adds a 15-second timed phase only for timed tests
+- requires explicit concept text for concept + practice rather than inventing a concept with an LLM
+- requires `source_type="pyq"` and a non-empty `source_reference` for PYQ analysis
+- exposes shortcuts as separate segments when a question has one
+- preserves the original question order
+- supports an explicit title override while otherwise deriving a deterministic title
+
+Added `tests/test_lesson_assembler.py` covering all five lesson types, sequencing, source requirements, concept requirements, missing explanations, invalid input, and custom titles.
+
+Important architecture decision:
+- Lesson assembly is intentionally deterministic. It does not introduce a generation stage or attempt to infer missing teaching content.
+- Concept + practice accepts `concept_summary` as an input contract; a future concept-writing stage may supply it before assembly.
+- PYQ analysis only assembles already-sourced PYQs and carries the source reference into the lesson sequence for later rendering/attribution.
 
 ---
 
@@ -597,7 +611,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 1 / STEP 1.4 COMPLETE**
+Status: **PHASE 1 / STEP 1.5 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -610,6 +624,7 @@ Completed in Phase 1:
 - Step 1.2 — deterministic Maths/question validators
 - Step 1.3 — structured original question generation
 - Step 1.4 — answer-locked explanation generation
+- Step 1.5 — deterministic lesson assembly
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -622,23 +637,31 @@ Current repository files:
 - `validators.py`
 - `question_generator.py`
 - `explanation_generator.py`
+- `lesson.py`
+- `lesson_assembler.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
 - `tests/test_question_generator.py`
 - `tests/test_explanation_generator.py`
+- `tests/test_lesson_assembler.py`
 
 Test status:
-- Focused Step 1.4 tests are committed.
-- They have not been executed in this hosted GitHub-only session; no test pass is claimed.
-- The earlier question generator test was updated to enforce the new separation between question creation and explanation creation.
-- No CI workflow has been added yet.
+- Step 1.5 dedicated tests: **9 passed locally**.
+- The new lesson contract and assembler also passed Python syntax compilation.
+- The full repository suite was not executed in this hosted session because the environment could not clone the GitHub repository; no broader full-suite pass is claimed.
 
 Architecture note:
-- Question generation is now responsible for producing/validating the question and answer package.
-- Explanation generation is a separate single-call stage.
-- This separation reduces wasted model output and prevents explanation writing from being coupled to answer generation.
+- Question generation creates and deterministically verifies the question/answer package.
+- Explanation generation separately creates explanations from the verified answers.
+- Lesson assembly then sequences those verified question/explanation packages into a selected learning experience.
+- Rendering, audio, publishing, and topic discovery remain outside the lesson assembler.
 
+## NEXT STEP
+
+**Step 2.1 — Demand discovery.**
+
+Build free/low-cost topic discovery around exam-related search intent and current learning needs.
 ## NEXT STEP
 
 **Step 1.5 — Lesson assembler.**
