@@ -85,8 +85,6 @@ def test_invalid_history_file_fails_closed(tmp_path):
     with pytest.raises(RuntimeError, match="Could not read"):
         load_history(path)
 
-from channel_history import HistoryEntry, load_history, save_history
-
 
 def test_history_defaults_content_format_to_long_form(tmp_path):
     path = tmp_path / "history.json"
