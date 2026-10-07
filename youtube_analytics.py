@@ -127,6 +127,8 @@ def ingest_metrics(
     path = Path(history_path)
     entries = load_history(path)
     video_ids = [entry.video_id for entry in entries if entry.video_id]
+    if not video_ids:
+        return entries
 
     if youtube_analytics is None:
         youtube_analytics = get_youtube_analytics_client()
