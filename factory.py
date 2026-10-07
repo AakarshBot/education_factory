@@ -303,6 +303,7 @@ def run_factory(
             "difficulty": difficulty,
             "language": language,
             "publish_mode": publish_mode,
+            "history_path": str(Path(history_path).resolve()),
         }
         manifest.save()
     else:
@@ -318,6 +319,7 @@ def run_factory(
         difficulty = str(config["difficulty"])
         language = str(config["language"])
         publish_mode = str(config["publish_mode"])
+        history_path = config.get("history_path", history_path)
 
     current_stage = "initialization"
 
