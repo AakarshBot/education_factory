@@ -50,6 +50,7 @@ def test_discover_demand_collects_recent_and_popular_signals(monkeypatch):
         days=30,
         max_results=10,
         region_code="IN",
+        cache_path=tmp_path / "demand_cache.json",
     )
 
     assert len(signals) == 2
@@ -105,3 +106,41 @@ def test_discover_demand_rejects_http_failure(monkeypatch):
 
     with pytest.raises(RuntimeError, match="403"):
         demand_discovery.discover_demand(queries=["SSC Maths 2026"])
+
+
+def test_discover_demand_reuses_fresh_cache(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append(kwargs["params"])
+        return FakeResponse(
+            body={
+                "items": [{
+                    "id": {"videoId": "cached123"},
+                    "snippet": {
+                        "title": "Cached result",
+                        "channelTitle": "Example Channel",
+                        "publishedAt": "2026-10-01T10:00:00Z",
+                        "description": "Cached demand result.",
+                    },
+                }]
+            }
+        )
+
+    monkeypatch.setattr(demand_discovery, "validate_config", lambda **_: None)
+    monkeypatch.setattr(demand_discovery, "YOUTUBE_API_KEY", "test-key")
+    monkeypatch.setattr(demand_discovery.requests, "get", fake_get)
+    cache_path = tmp_path / "demand_cache.json"
+
+    first = demand_discovery.discover_demand(
+        queries=["SSC Maths 2026"],
+        cache_path=cache_path,
+    )
+    second = demand_discovery.discover_demand(
+        queries=["SSC Maths 2026"],
+        cache_path=cache_path,
+    )
+
+    assert [signal.video_id for signal in first] == ["cached123", "cached123"]
+    assert [signal.video_id for signal in second] == ["cached123", "cached123"]
+    assert len(calls) == 2
