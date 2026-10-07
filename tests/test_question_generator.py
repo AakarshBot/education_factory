@@ -62,6 +62,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
 
     assert len(result) == 1
     assert result[0].correct_answer == "₹1,700"
+    assert result[0].explanation == ""
     assert len(calls) == 1
     assert calls[0][1]["json"]["generationConfig"]["responseMimeType"] == "application/json"
 
