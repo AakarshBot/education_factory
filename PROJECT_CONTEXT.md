@@ -1236,3 +1236,18 @@ Current verification:
 - The full suite has NOT yet been rerun after this batch.
 - Do not run factory.py yet.
 - Next manual action is one full python -m pytest -q run from the local checkout. If it is green, proceed to the real Gemini structured-output smoke test before the first production job.
+
+## Final pytest cleanup — 2026-10-08
+
+The next full-suite run reduced the remaining failures from 17 to 4.
+
+Resolved in main:
+- tests/test_editorial_adaptation.py now imports pytest for the approximate floating-point constant assertion.
+- tests/test_question_generator.py now follows the actual nested Gemini schema path: questions -> items -> properties -> choices.
+- visual_primitives.py now searches a small built-in list of Windows font locations for Devanagari and Latin fonts, including Nirmala UI, Mangal, Nirmala, Arial, and Segoe UI fallbacks. No font file or dependency is bundled.
+
+The four previous failures therefore represented two stale test expectations plus one genuine Windows font-path portability defect. All changes are committed to main.
+
+Current gate:
+- Do not run factory.py.
+- Run the full pytest suite once more after pulling main. A green result is required before the real Gemini smoke test.
