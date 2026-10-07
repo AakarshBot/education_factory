@@ -1331,3 +1331,16 @@ Important boundary:
 Next manual action:
 - Enable GitHub Pages for AakarshBot/education_factory from main branch `/docs` so the compliance pages become publicly reachable.
 - After the site is live, verify the homepage and privacy page in a browser before filling the corresponding audit-form URLs/evidence.
+## Compliance detour corrected — 2026-10-08
+
+The user correctly identified that viral-shorts-factory and Final-Shorts already use the normal YouTube `videos.insert` upload mechanism to publish public videos. The uploader implementation itself is not the reason public publishing is restricted.
+
+Official YouTube documentation confirms the restriction is attached to the API project: uploads made via `videos.insert` from an unverified API project created after July 28, 2020 are restricted to private. The `videos.insert` endpoint itself accepts the normal youtube.upload scope.
+
+Therefore:
+- Do not add a compliance website, compliance code, or special publishing wrapper to education_factory.
+- The compliance website detour has been fully removed from main.
+- The next task is to identify the existing audited/eligible Google Cloud API project used by the working Final-Shorts/legacy upload setup and determine whether the new channel can use that existing project/client instead of creating a new unverified project.
+- Do not submit the YouTube audit form or create any further compliance assets unless this existing-project route is unavailable.
+
+Factory architecture remains unchanged.
