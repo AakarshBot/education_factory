@@ -73,6 +73,45 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert choices_schema["maxItems"] == 4
 
 
+def test_normalizes_common_math_symbols(monkeypatch):
+    generated = {
+        "questions": [{
+            "subject": "maths",
+            "exam": "SSC CGL",
+            "topic": "powers",
+            "difficulty": "medium",
+            "question": "What is 2 squared?",
+            "choices": ["2", "4", "6", "8"],
+            "correct_choice_index": 1,
+            "explanation": "",
+            "shortcut": None,
+            "source_type": "original",
+            "source_reference": None,
+            "math_expression": "2 ^ 2",
+        }]
+    }
+
+    monkeypatch.setattr(question_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(question_generator, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        question_generator.requests,
+        "post",
+        lambda *args, **kwargs: FakeResponse(
+            body={"candidates": [{"content": {"parts": [{"text": json.dumps(generated)}]}}]}
+        ),
+    )
+
+    result = question_generator.generate_questions(
+        subject="maths",
+        exam="SSC CGL",
+        topic="powers",
+        difficulty="medium",
+        count=1,
+    )
+
+    assert result[0].correct_answer == "4"
+
+
 def test_generate_questions_rejects_unseen_visual_reference(monkeypatch):
     generated = {
         "questions": [

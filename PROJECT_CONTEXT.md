@@ -1511,6 +1511,20 @@ Corrections now present on main:
 - `question_generator.py` requires every generated question to be self-contained in text and explicitly forbids missing-visual references in the generation prompt.
 - `lesson_layouts.py` explanation scenes use the reclaimed lower area for the existing progress indicator instead of the orphan label.
 
+## Maths generation contract hardening — 2026-10-08
+
+A production run failed correctly during deterministic Maths validation because Gemini returned a `math_expression` using syntax outside the evaluator's supported arithmetic AST. The validator itself was not weakened.
+
+Correction committed to main:
+- `question_generator.py` now explicitly restricts generated Maths expressions to numbers, parentheses, +, -, *, /, and **.
+- Common unambiguous mathematical symbols `×`, `÷`, and `^` are normalized to `*`, `/`, and `**` before deterministic validation.
+- The evaluator remains fail-closed for functions, unsafe syntax, and unsupported operators.
+- Added regression coverage for caret exponent notation.
+
+This fixes the model/evaluator contract at the generation boundary while preserving deterministic answer verification.
+
+Next manual action: pull latest main and rerun `python factory.py --max-jobs 1`.
+
 ## Dual-audio production stage — 2026-10-08
 
 Dual-audio production is now wired for both published formats.
