@@ -250,3 +250,27 @@ def test_upload_rejects_missing_video(tmp_path):
             tmp_path / "missing.mp4",
             mode="public",
         )
+
+
+def test_upload_rejects_final_description_over_api_limit(monkeypatch, tmp_path):
+    patch_media(monkeypatch)
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"video")
+    oversized = metadata()
+    oversized = VideoMetadata(
+        primary_title=oversized.primary_title,
+        title_candidates=oversized.title_candidates,
+        description="अ" * 4999,
+        hashtags=oversized.hashtags,
+        tags=oversized.tags,
+        series_context=oversized.series_context,
+    )
+
+    with pytest.raises(RuntimeError, match="final YouTube description exceeds"):
+        youtube_uploader.upload_video(
+            FakeYouTube(response={"id": "x"}),
+            lesson(),
+            oversized,
+            video,
+            mode="public",
+        )
