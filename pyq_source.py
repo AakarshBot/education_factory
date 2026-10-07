@@ -68,6 +68,7 @@ class VerifiedPYQSource:
     question: Question
     source_reference: str
     rights_note: str
+    reuse_permitted: bool
 
     def __post_init__(self) -> None:
         if not isinstance(self.question, Question):
@@ -80,6 +81,11 @@ class VerifiedPYQSource:
             raise ValueError("source_reference must match the question")
         if not isinstance(self.rights_note, str) or not self.rights_note.strip():
             raise ValueError("rights_note must not be empty")
+        if not self.reuse_permitted:
+            raise ValueError("PYQ reuse permission is required")
+        parsed = urlparse(self.source_reference.strip())
+        if parsed.scheme != "https":
+            raise ValueError("PYQ source_reference must use HTTPS")
 
 
 def _official_url(exam: str, href: str) -> str | None:
