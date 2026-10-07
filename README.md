@@ -6,9 +6,7 @@ This repository builds the autonomous YouTube education factory defined in `PROJ
 
 ## Operating model
 
-The intended production workflow is:
-
-**Run the factory once or twice per day → the factory handles production, publishing, scheduling, and learning.**
+**Run the factory once or twice per day -> the factory handles production, publishing, scheduling, and learning.**
 
 The user should not perform routine backend work.
 
@@ -33,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 3.3 — Audio QA**
+**Step 4.1 — Visual primitives**
 
-The factory now validates generated audio with local FFmpeg/FFprobe before visual rendering. Visual primitives are next.
+The factory now has deterministic Pillow drawing primitives for question cards, choices, timers, answer reveals, worked-calculation steps, highlighted text, flow diagrams, progress, and score/result screens. The next step is lesson-specific visual composition.
