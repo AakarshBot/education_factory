@@ -29,15 +29,15 @@ class WordTiming:
 
 
 def _validate_timing(timings: list[WordTiming]) -> None:
-    previous_end = 0.0
-    for timing in timings:
+    previous_start = 0.0
+    for index, timing in enumerate(timings):
         if not timing.text.strip():
             raise RuntimeError("TTS returned an empty word timing")
-        if timing.start_seconds < previous_end:
+        if timing.start_seconds < previous_start:
             raise RuntimeError("TTS word timings are not monotonic")
         if timing.duration_seconds <= 0:
             raise RuntimeError("TTS returned a non-positive word duration")
-        previous_end = timing.start_seconds + timing.duration_seconds
+        previous_start = timing.start_seconds
 
 
 def _write_timing(
