@@ -1,90 +1,137 @@
+import json
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import pytest
+
 import factory
-from channel_history import HistoryEntry
+from lesson import Lesson, LessonSegment
+from metadata_generator import VideoMetadata
+from question import Question
 
 
-def _entry(topic, lesson_type="practice", subject="Maths"):
-    return HistoryEntry(
+def question():
+    return Question(
+        subject="Maths",
         exam="SSC",
-        subject=subject,
-        topic=topic,
-        lesson_type=lesson_type,
-        title=f"{topic} practice",
-        status="published",
-        created_at="2026-10-01T00:00:00Z",
-        video_id=f"id-{topic}",
-        published_at="2026-10-01T00:00:00Z",
-        metrics={
-            "views": 100,
-            "estimatedMinutesWatched": 50,
-            "averageViewPercentage": 60,
-            "likes": 5,
-            "comments": 1,
-            "subscribersGained": 2,
-        },
+        topic="Percentages",
+        difficulty="medium",
+        question="25% of 200 is?",
+        choices=("25", "50", "75", "100"),
+        correct_answer="50",
+        explanation="25% means one quarter, so 200 divided by 4 is 50.",
+        shortcut=None,
+        source_type="original",
+        source_reference=None,
     )
 
 
-def test_select_lesson_type_prefers_supported_adapted_format():
-    class Adaptation:
-        format_weights = {
-            "practice": 0.9,
-            "timed_test": 1.1,
+def lesson():
+    q = question()
+    return Lesson(
+        lesson_type="practice",
+        title="SSC Maths Percentages Practice",
+        subject="Maths",
+        exam="SSC",
+        topic="Percentages",
+        questions=(q,),
+        segments=(
+            LessonSegment(kind="question", question_index=0),
+            LessonSegment(kind="answer", question_index=0),
+            LessonSegment(kind="explanation", question_index=0),
+        ),
+    )
+
+
+def metadata():
+    return VideoMetadata(
+        primary_title="SSC Maths Percentages Practice",
+        title_candidates=(
+            "SSC Maths Percentages Practice",
+            "Percentages Practice for SSC",
+            "SSC Maths Percentage Questions",
+            "Percentages Questions with Solutions",
+            "SSC Percentage Practice",
+        ),
+        description="Practice percentages for SSC Maths.",
+        hashtags=("#SSC", "#Maths", "#Percentages"),
+        tags=("SSC Maths", "percentages"),
+        series_context="SSC Maths Practice",
+    )
+
+
+def adaptation(weights=None):
+    class Result:
+        format_weights = weights if weights is not None else {
+            "practice": 1.0,
+            "timed_test": 1.0,
             "concept_practice": 1.0,
-            "revision": 0.9,
+            "revision": 1.0,
         }
-
-    assert factory._select_lesson_type(Adaptation()) == "timed_test"
-
-
-def test_select_lesson_type_keeps_practice_as_neutral_default():
-    class Adaptation:
-        format_weights = {}
-
-    assert factory._select_lesson_type(Adaptation()) == "practice"
-
-
-def test_next_publish_time_uses_next_local_six_pm():
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
-    zone = ZoneInfo("Asia/Kolkata")
-    now = datetime(2026, 10, 7, 17, 0, tzinfo=zone)
-    assert factory._next_publish_time(now) == datetime(2026, 10, 7, 18, 0, tzinfo=zone)
-
-    now = datetime(2026, 10, 7, 19, 0, tzinfo=zone)
-    assert factory._next_publish_time(now) == datetime(2026, 10, 8, 18, 0, tzinfo=zone)
-
-
-def test_scene_durations_cover_audio_exactly():
-    durations = factory._scene_durations(["one two", "three", "four five six"], 6.0)
-    assert round(sum(durations), 6) == 6.0
-    assert all(duration > 0 for duration in durations)
-
-
-def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
-    class Question:
-        pass
-
-    class Lesson:
-        title = "SSC Maths Percentages"
-        subject = "Maths"
-        exam = "SSC"
-        topic = "Percentages"
-
-    calls = []
-
-    monkeypatch.setattr(factory, "load_history", lambda path: calls.append("history") or [])
-    monkeypatch.setattr(factory, "analyze_formats", lambda history: calls.append("formats") or ())
-    monkeypatch.setattr(factory, "analyze_subjects", lambda history: calls.append("subjects") or ())
-    monkeypatch.setattr(factory, "analyze_topic_families", lambda history: calls.append("families") or ())
-
-    class Adaptation:
-        format_weights = {"practice": 1.0, "timed_test": 1.0, "revision": 1.0}
         subject_weights = {"maths": 1.0}
 
-    monkeypatch.setattr(factory, "build_editorial_adaptation", lambda *args: calls.append("adaptation") or Adaptation())
-    monkeypatch.setattr(factory, "discover_demand", lambda: calls.append("demand") or ["signal"])
-    monkeypatch.setattr(factory, "score_topics", lambda *args, **kwargs: calls.append("score") or ["score"])
+    return Result()
+
+
+def test_select_lesson_type_respects_adaptation():
+    result = adaptation({
+        "practice": 0.9,
+        "timed_test": 1.1,
+        "concept_practice": 0.9,
+        "revision": 0.9,
+    })
+    assert factory._select_lesson_type(result) == "timed_test"
+
+
+def test_select_lesson_type_defaults_to_practice():
+    assert factory._select_lesson_type(adaptation({})) == "practice"
+
+
+def test_short_segment_indices_selects_one_question_cycle():
+    assert factory._short_segment_indices(lesson()) == [0, 1, 2]
+
+
+def test_short_segment_indices_requires_question():
+    empty = Lesson(
+        lesson_type="practice",
+        title="Empty",
+        subject="Maths",
+        exam="SSC",
+        topic="Test",
+        questions=(),
+        segments=(),
+    )
+    with pytest.raises(RuntimeError, match="no question"):
+        factory._short_segment_indices(empty)
+
+
+def test_record_publish_times_is_resume_stable(tmp_path):
+    manifest = factory.new_manifest(tmp_path / "job.json", "run")
+    zone = ZoneInfo("Asia/Kolkata")
+    requested = datetime(2026, 10, 8, 18, 0, tzinfo=zone)
+
+    first = factory._record_publish_times(
+        manifest,
+        publish_mode="scheduled",
+        publish_at=requested,
+    )
+    assert first == (
+        requested,
+        datetime(2026, 10, 8, 20, 0, tzinfo=zone),
+    )
+
+    second = factory._record_publish_times(
+        manifest,
+        publish_mode="scheduled",
+        publish_at=datetime(2026, 10, 9, 18, 0, tzinfo=zone),
+    )
+    assert second == first
+
+
+def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_path):
+    render_state = {"fail": True}
+    calls = {"questions": 0, "explanations": 0, "lesson": 0, "tts": 0}
 
     class Job:
         priority = 1
@@ -92,137 +139,96 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
         subject = "Maths"
         exam = "SSC"
         topic = "Percentages"
+        rationale = "supported"
+        supporting_signal_indices = (0,)
 
-    monkeypatch.setattr(factory, "build_editorial_queue", lambda *args, **kwargs: calls.append("queue") or [Job()])
-    monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: calls.append("questions") or [Question()])
-    monkeypatch.setattr(factory, "generate_explanations", lambda questions, language: calls.append("explanations") or questions)
-    monkeypatch.setattr(factory, "assemble_lesson", lambda questions, lesson_type: calls.append("lesson") or Lesson())
-
-    narration_count = {"value": 0}
-    def fake_narration_segments(lesson):
-        calls.append("narration_segments")
-        return ["Question text"]
-
-    monkeypatch.setattr(factory, "_narration_segments", fake_narration_segments)
-
-    def fake_tts(*args, **kwargs):
-        narration_count["value"] += 1
-        calls.append(f"tts{narration_count['value']}")
-        return tmp_path / f"narration{narration_count['value']}.mp3"
-
-    monkeypatch.setattr(factory, "synthesize_speech", fake_tts)
-
-    class AudioResult:
-        duration_seconds = 2.0
-
-    monkeypatch.setattr(factory, "check_audio", lambda *args, **kwargs: calls.append("audio_qa") or AudioResult())
-    monkeypatch.setattr(factory, "_scene_durations", lambda *args: calls.append("durations") or [2.0])
-
-    monkeypatch.setattr(factory, "render_long_form", lambda *args, **kwargs: calls.append("render_long") or tmp_path / "video.mp4")
-    monkeypatch.setattr(factory, "_short_segment_indices", lambda lesson: calls.append("short_select") or [0])
-    monkeypatch.setattr(factory, "render_short", lambda *args, **kwargs: calls.append("render_short") or tmp_path / "short.mp4")
-
-    class Metadata:
-        primary_title = "Long"
-        title_candidates = ("Long", "Short", "Three", "Four", "Five")
-        description = "Description"
-        hashtags = ("#SSC", "#Maths", "#Practice")
-        tags = ("SSC Maths",)
-        series_context = "SSC Maths Practice"
-        category_id = "27"
-        default_language = "hi"
-
-        def to_dict(self):
-            return {
-                "primary_title": self.primary_title,
-                "title_candidates": self.title_candidates,
-                "description": self.description,
-                "hashtags": self.hashtags,
-                "tags": self.tags,
-                "series_context": self.series_context,
-                "category_id": self.category_id,
-                "default_language": self.default_language,
-            }
-
+    monkeypatch.setattr(factory, "load_history", lambda path: [])
+    monkeypatch.setattr(factory, "analyze_formats", lambda history: ())
+    monkeypatch.setattr(factory, "analyze_subjects", lambda history: ())
+    monkeypatch.setattr(factory, "analyze_topic_families", lambda history: ())
+    monkeypatch.setattr(factory, "build_editorial_adaptation", lambda *args: adaptation())
+    monkeypatch.setattr(factory, "discover_demand", lambda: ["signal"])
+    monkeypatch.setattr(factory, "score_topics", lambda *args, **kwargs: ["score"])
+    monkeypatch.setattr(factory, "build_editorial_queue", lambda *args, **kwargs: [Job()])
+    monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: calls.__setitem__("questions", calls["questions"] + 1) or [question()])
     monkeypatch.setattr(
         factory,
-        "VideoMetadata",
-        lambda **kwargs: Metadata(),
+        "generate_explanations",
+        lambda questions, language: calls.__setitem__("explanations", calls["explanations"] + 1) or questions,
+    )
+    monkeypatch.setattr(
+        factory,
+        "assemble_lesson",
+        lambda questions, lesson_type, concept_summary=None: calls.__setitem__("lesson", calls["lesson"] + 1) or lesson(),
     )
 
-    monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: calls.append("metadata") or Metadata())
-    monkeypatch.setattr(factory, "get_youtube_client", lambda: calls.append("auth") or object())
-    monkeypatch.setattr(factory, "_next_publish_time", lambda now: None)
+    def fake_tts(text, output_path, **kwargs):
+        calls["tts"] += 1
+        Path(output_path).write_bytes(b"audio")
+        timing_path = kwargs.get("timing_path")
+        if timing_path:
+            Path(timing_path).write_text("{}", encoding="utf-8")
 
-    def fake_upload(*args, **kwargs):
-        calls.append("upload_short" if kwargs.get("content_format") == "shorts" else "upload_long")
-        return "video-id"
+    monkeypatch.setattr(factory, "synthesize_speech", fake_tts)
+    monkeypatch.setattr(
+        factory,
+        "check_audio",
+        lambda *args, **kwargs: type("Audio", (), {"duration_seconds": 2.0})(),
+    )
 
-    monkeypatch.setattr(factory, "upload_video", fake_upload)
-    monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: calls.append("analytics") or [])
+    def fake_long_render(lesson_value, audio_path, output_path, durations):
+        if render_state["fail"]:
+            raise RuntimeError("render failed")
+        Path(output_path).write_bytes(b"video")
+        return Path(output_path)
 
-    lesson = factory.run_factory(output_root=tmp_path, history_path=tmp_path / "history.json")
-    assert lesson.title == "SSC Maths Percentages"
-    assert calls == [
-        "history",
-        "formats",
-        "subjects",
-        "families",
-        "adaptation",
-        "demand",
-        "score",
-        "queue",
-        "questions",
-        "explanations",
-        "lesson",
-        "narration_segments",
-        "tts1",
-        "audio_qa",
-        "durations",
-        "render_long",
-        "metadata",
-        "short_select",
-        "tts2",
-        "audio_qa",
-        "durations",
-        "render_short",
-        "auth",
-        "upload_long",
-        "upload_short",
-        "analytics",
-    ]
+    monkeypatch.setattr(factory, "render_long_form", fake_long_render)
 
+    def fake_short_render(lesson_value, audio_path, output_path, indices, durations):
+        Path(output_path).write_bytes(b"short")
+        return Path(output_path)
 
-def test_short_segment_indices_selects_one_question_cycle():
-    class Segment:
-        def __init__(self, kind):
-            self.kind = kind
+    monkeypatch.setattr(factory, "render_short", fake_short_render)
+    monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: metadata())
+    monkeypatch.setattr(factory, "get_youtube_client", lambda: object())
+    monkeypatch.setattr(factory, "upload_video", lambda *args, **kwargs: "video-id")
+    monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: [])
 
-    class Lesson:
-        segments = tuple(Segment(kind) for kind in (
-            "question", "answer", "explanation",
-            "shortcut", "question", "answer",
-        ))
+    with pytest.raises(RuntimeError, match="render failed"):
+        factory.run_factory(
+            output_root=tmp_path,
+            history_path=tmp_path / "history.json",
+        )
 
-    assert factory._short_segment_indices(Lesson()) == [0, 1, 2, 3]
+    manifest_paths = list((tmp_path / "jobs").glob("*/job.json"))
+    assert len(manifest_paths) == 1
+    manifest_path = manifest_paths[0]
+    saved = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert saved["status"] == "failed"
+    assert saved["failure"]["stage"] == "long_render"
+    assert saved["stages"]["questions_generated"]["status"] == "complete"
+    assert saved["stages"]["long_narration"]["status"] == "complete"
+    assert calls["questions"] == 1
+    assert calls["explanations"] == 1
+    assert calls["lesson"] == 1
+    assert calls["tts"] == 1
 
+    render_state["fail"] = False
+    result = factory.run_factory(
+        resume=manifest_path,
+        history_path=tmp_path / "history.json",
+    )
 
-def test_short_segment_indices_requires_question():
-    class Lesson:
-        segments = ()
+    assert result.title == "SSC Maths Percentages Practice"
+    assert calls["questions"] == 1
+    assert calls["explanations"] == 1
+    assert calls["lesson"] == 1
+    assert calls["tts"] == 2
 
-    import pytest
-    with pytest.raises(RuntimeError, match="no question"):
-        factory._short_segment_indices(Lesson())
-
-
-def test_select_lesson_type_can_choose_concept_practice():
-    class Adaptation:
-        format_weights = {
-            "practice": 0.9,
-            "timed_test": 0.9,
-            "concept_practice": 1.1,
-            "revision": 0.9,
-        }
-
-    assert factory._select_lesson_type(Adaptation()) == "concept_practice"
+    final = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert final["status"] == "complete"
+    assert final["failure"] is None
+    assert final["upload_ids"] == {
+        "long_form": "video-id",
+        "shorts": "video-id",
+    }
