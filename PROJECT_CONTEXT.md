@@ -1411,3 +1411,24 @@ The failed production run stopped during narration before rendering or YouTube u
 
 Next manual action:
 - Pull latest main and rerun `python factory.py`. Do not install or change dependencies for this issue.
+
+
+## YouTube demand-search quota defect — 2026-10-08
+
+The next production run failed in `demand_discovery.py` because the YouTube API project exhausted its Search Queries daily quota (HTTP 429, project number 573156959102).
+
+Current discovery behavior had 9 default exam/subject queries and performed two `search.list` requests per query (`relevance` and `viewCount`), so one fresh discovery consumed 18 search calls. YouTube's current documentation confirms `search.list` has a dedicated default quota of 100 calls/day. Correction committed to main:
+- Added a direct 24-hour disk cache at `data/demand_cache.json` keyed by the discovery inputs.
+- A fresh successful discovery still collects the full 9-query × 2-order signal pool.
+- Repeated factory reruns within 24 hours reuse the cached result instead of consuming another 18 search calls.
+- Cache read/write failures fail open and do not become a new production dependency.
+- Added regression coverage for cache reuse.
+- No topic queries, result pool, or editorial scoring behavior was removed.
+
+Important immediate launch note:
+- The previous successful run already created pending editorial backlog entries before its later narration failure.
+- The current 429 occurred while trying to top up that backlog, not because no production job exists.
+- Run the next manual command with `--max-jobs 1` so the factory uses the existing pending backlog and does not call `discover_demand()`.
+
+Next manual action:
+- Pull latest main and run `python factory.py --max-jobs 1`.
