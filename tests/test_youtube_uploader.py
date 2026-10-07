@@ -147,6 +147,7 @@ def test_upload_public_video_uses_metadata_and_records_history(
             "tags": ["SSC CGL Maths", "percentages questions"],
             "categoryId": "27",
             "defaultLanguage": "hi",
+            "defaultAudioLanguage": "hi",
         },
         "status": {"privacyStatus": "public"},
         "localizations": {

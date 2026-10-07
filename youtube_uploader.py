@@ -85,6 +85,7 @@ def upload_video(
             "tags": list(metadata.tags),
             "categoryId": metadata.category_id,
             "defaultLanguage": metadata.default_language,
+            "defaultAudioLanguage": "hi",
         },
         "status": {
             "privacyStatus": "private" if scheduled_at else "public",

@@ -1542,6 +1542,7 @@ Current behavior:
 - No second video is uploaded and no English rendering pipeline was introduced.
 - The factory also generates one English metadata package from the same lesson and supplies it as YouTube's `localizations.en` at upload time for both long-form and Short videos; the English Short uses the second title candidate without another Gemini metadata call.
 - Localized title/description use the standard YouTube Data API upload resource; only the audio-track attachment remains a YouTube Studio-only operation.
+- The upload explicitly marks Hindi (`hi`) as the default spoken-audio language, matching the primary Hinglish narration; `defaultLanguage` continues to describe the metadata language.
 
 The remaining platform action is attaching the English MP3 as the additional audio track to each uploaded video in YouTube Studio. YouTube's official Multi-language Audio flow requires creator-side audio upload in Studio; the Data API does not expose that audio-track attachment operation.
 
