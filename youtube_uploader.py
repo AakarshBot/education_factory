@@ -10,6 +10,7 @@ from lesson import Lesson
 from metadata_generator import VideoMetadata
 
 ALLOWED_MODES = frozenset({"public", "scheduled"})
+ALLOWED_CONTENT_FORMATS = frozenset({"long_form", "shorts"})
 
 
 def _utc_iso(value: datetime) -> str:
@@ -37,6 +38,7 @@ def upload_video(
     publish_at: datetime | None = None,
     history_path: str | Path = DEFAULT_HISTORY_FILE,
     now: datetime | None = None,
+    content_format: str = "long_form",
 ) -> str:
     if not isinstance(lesson, Lesson):
         raise TypeError("lesson must be a Lesson")
@@ -46,6 +48,9 @@ def upload_video(
     selected_mode = mode.strip().lower()
     if selected_mode not in ALLOWED_MODES:
         raise ValueError("mode must be 'public' or 'scheduled'")
+    selected_format = content_format.strip().lower()
+    if selected_format not in ALLOWED_CONTENT_FORMATS:
+        raise ValueError("content_format must be 'long_form' or 'shorts'")
 
     video = Path(video_path).expanduser()
     if not video.exists() or not video.is_file() or video.stat().st_size == 0:
@@ -114,6 +119,7 @@ def upload_video(
         video_id=str(response["id"]),
         published_at=published_at,
         metrics={},
+        content_format=selected_format,
     )
 
     try:
