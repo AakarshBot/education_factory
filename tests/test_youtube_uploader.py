@@ -296,3 +296,19 @@ def test_upload_shorts_records_shorts_content_format(monkeypatch, tmp_path):
 
     assert result == "short123"
     assert '"content_format": "shorts"' in history.read_text(encoding="utf-8")
+
+
+def test_upload_rejects_invalid_content_format(monkeypatch, tmp_path):
+    patch_media(monkeypatch)
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"video")
+
+    with pytest.raises(ValueError, match="content_format"):
+        youtube_uploader.upload_video(
+            FakeYouTube(response={"id": "x"}),
+            lesson(),
+            metadata(),
+            video,
+            mode="public",
+            content_format="vertical",
+        )
