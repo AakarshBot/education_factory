@@ -999,23 +999,90 @@ Audit findings and corrections:
 - Confirmed analytics excludes Shorts from long-form performance comparisons through the persisted `content_format` field.
 - Confirmed resume manifests restore saved artifacts rather than regenerating completed stages and preserve selection/publish configuration.
 - Confirmed the persistent backlog deduplicates, claims, releases stale claims, and only removes a job after the production run reaches `backlog_complete`.
-- Fixed an integration gap: automatic topic-family adaptation was being computed but not applied to editorial job selection. `factory._select_job` now applies both subject and matching topic-family evidence.
-- Added a regression test proving a lower raw-score job from a stronger topic family can correctly outrank a higher raw-score job from a weaker family when the conservative adaptation weights justify it.
+- Fixed the final substantive integration gap: automatic topic-family adaptation was being computed but not applied to editorial job selection. `factory._select_job` now applies both subject and matching topic-family evidence.
+- Added a regression test proving topic-family adaptation can change the selected job when the evidence-supported weight justifies it.
 - Removed the unused `_slug` helper from `factory.py` and the unused `PIL.Image` import from `long_form_renderer.py`.
 - Reviewed the dependency list; no new dependency was needed.
 
 Testing state:
 - The repository contains focused tests covering the production modules and the new factory/backlog/cadence paths.
-- A full pytest run has still not been executed in this environment because the repository cannot be mounted as a normal local checkout and there is no configured GitHub Actions workflow to run it remotely.
-- Source and test contracts were reviewed directly against the current `main` tree; the final audit is therefore a code-level readiness review, not a claim of a green full-suite execution.
+- A full pytest run has **not** been executed in this environment because the repository cannot be mounted as a normal local checkout and there is no configured GitHub Actions workflow to run it remotely.
+- Source and test contracts were reviewed directly against the current `main` tree. This is a code-level readiness review, not a claim that the complete suite is green.
 
 Engineering completion:
-**The factory build itself is complete after this step.**
+**The factory build is complete.**
 
-Operational launch is intentionally separate from engineering completion. The dedicated YouTube channel/account has not been created or authorized yet, so the real OAuth/upload/analytics path has not been exercised against the live platform.
+Operational launch is intentionally separate from engineering completion.
+
+## 8.5 — CURRENT POST-BUILD STATE / LAUNCH GATE
+
+The engineering project is now finished. The repository is at the external-platform launch boundary.
+
+### Completed factory capabilities
+The factory now has one direct production pipeline covering:
+1. demand discovery
+2. topic scoring and editorial adaptation
+3. historical channel memory
+4. validated question generation
+5. verified explanations
+6. deterministic lesson assembly
+7. Hindi/Hinglish narration and word timing
+8. audio QA
+9. instructional long-form rendering
+10. Shorts derivation and rendering
+11. visual/video QA
+12. metadata generation
+13. YouTube OAuth/upload/scheduling
+14. analytics ingestion
+15. analytics-driven format/subject/topic-family adaptation
+16. persistent editorial backlog
+17. resume-safe production manifests
+18. persistent once/twice-daily cadence state
+
+### Current repository state
+- Current branch target: `main`
+- Final engineering audit committed to GitHub.
+- Latest known completion commits include the final audit/context/README updates plus the topic-family adaptation fix and its regression test.
+- `PROJECT_CONTEXT.md` remains the source of truth.
+- `README.md` reflects engineering completion and the external launch gate.
+- No dedicated YouTube channel has been created yet.
+- No YouTube OAuth authorization has been performed yet.
+- No real YouTube upload has been performed yet.
+- No real channel analytics have been ingested yet.
+- No `client_secrets.json` or `token.json` should be created/authorized until the launch setup chat explicitly reaches that point.
+- Local runtime files such as `data/` and `output/` remain intentionally Git-ignored.
+
+### Launch gate — what remains
+The remaining work is not factory engineering. It is external Google/YouTube account setup and first live execution.
+
+The next chat must walk the user through the complete setup from the beginning, starting with:
+1. creating a new dedicated Gmail/Google account for the channel
+2. setting up the dedicated YouTube channel
+3. choosing/locking the channel identity and basic public settings
+4. checking current YouTube Studio/channel settings relevant to a new education channel
+5. setting up the required Google Cloud project and YouTube API access
+6. creating the correct OAuth client/credentials
+7. placing the credential/config files in the local factory environment
+8. authorizing the factory with the exact scopes it needs
+9. verifying the local auth/token path without prematurely publishing
+10. performing the first real end-to-end factory test
+11. checking the generated lesson, audio, rendered long-form video, derived Short, metadata, scheduling, and YouTube result
+12. verifying analytics access
+13. handling any platform/account/API failure before scaling
+14. only after the first end-to-end run works, moving to the normal once/twice-daily operating model
+
+Important launch-workflow rule:
+- The new setup chat should use current official Google/YouTube documentation and current platform UI/API requirements because account, OAuth, verification, channel, and monetization procedures can change.
+- It should not assume a past UI layout or old Google Cloud wording.
+- The user should perform only the unavoidable browser/account actions. The assistant/factory should handle all reasoning, configuration guidance, verification, code-side checks, and launch decisions.
+- Do not ask the user to repeat repository context. Read this file and continue from the launch gate.
+- Do not modify the legacy `viral-shorts-factory` repository.
+- Do not create a second production pipeline.
+- Do not add manual editorial approval gates that contradict the locked autonomous operating model.
+- Keep the user-facing setup instructions focused on the exact manual action required at that moment, then wait for the user's confirmation before proceeding to the next external gate.
 
 ## NEXT STEP
 
-**Launch Gate — external account setup and first real end-to-end run.**
+**Launch Gate — start the complete external Google/YouTube setup from a brand-new Gmail account.**
 
-Manual action is required only for the external platform boundary: create the dedicated YouTube channel/Google Cloud OAuth credentials, place the required local credential/config files in the repo, authorize the factory, and run the first real production job. After that, the factory can operate under the locked once/twice-daily model.
+The engineering build should be treated as complete unless a real first-run test reveals an actual defect.
