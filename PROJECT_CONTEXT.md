@@ -1511,25 +1511,20 @@ Corrections now present on main:
 - `question_generator.py` requires every generated question to be self-contained in text and explicitly forbids missing-visual references in the generation prompt.
 - `lesson_layouts.py` explanation scenes use the reclaimed lower area for the existing progress indicator instead of the orphan label.
 
-## Final-render defect audit and current gate — 2026-10-08
+## Dual-audio design boundary — 2026-10-08
 
-The two objective defects found in the first successful production render are now fixed and regression-protected:
-- missing-visual question references are blocked at generation time
-- the long-form explanation scene no longer contains the orphan `Why it works` label
+YouTube currently supports adding additional language audio tracks to a single video or Short through YouTube Studio on desktop. The channel must have access to Advanced features, and the uploaded dubbed audio file should be roughly the same length as the video. YouTube describes this as multi-language audio, not automatic dubbing. citeturn363724search2
 
-A further code-level audit of the active long-form/Short render paths found no additional objective usability defect that can be justified without inventing a redesign. The audited technical constraints remain:
-- long-form output is 16:9 and retains aligned audio/video duration
-- Short output is 9:16 and is bounded to YouTube's 3-minute maximum
-- rendering uses the same verified Lesson content and direct stage handoffs
-- no new visual system, subtitle redesign, or decorative overlay changes are warranted from the currently recorded evidence
+The YouTube Data API's current `videos` resource supports the video's default audio language plus localized title/description metadata, but its documented video methods do not expose a multi-language-audio upload operation. The multi-language audio upload therefore remains a YouTube Studio action rather than a factory API call. citeturn382811search0turn363724search3
 
-The original binary MP4s are not currently available in the active file workspace, so no new visual claim is being made beyond the recorded first-run inspection and source-code audit.
+Factory decision:
+- Keep Hinglish as the primary/default audio.
+- Generate one English localization of the existing narration segments, preserving exact segment count, ordering, questions, answers, values, and instructional meaning.
+- Reuse the same English segments for both long-form and the derived Short; do not generate a different lesson.
+- Synthesize English with an India-English voice. The current Microsoft voice catalog includes `en-IN-PrabhatNeural` as an English (India) male neural voice. citeturn551721search0
+- Do not create a second video upload.
+- English localized title/description will be handled separately through YouTube's supported metadata-localization path rather than putting language labels into the main title.
 
-Current gate:
-- Question self-containment: hardened and regression-tested.
-- Explanation layout: corrected and regression-tested.
-- No additional render change is currently justified.
-- Next implementation batch: audit the dual-audio requirement against the current narration, manifest/checkpoint, metadata, and YouTube upload capabilities before implementing English audio.
 
 ## Long-form explanation layout verification — 2026-10-08
 
