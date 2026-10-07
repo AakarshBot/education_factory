@@ -22,6 +22,7 @@ class HistoryEntry:
     video_id: str | None = None
     published_at: str | None = None
     metrics: Mapping[str, float] = field(default_factory=dict)
+    content_format: str = "long_form"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -35,6 +36,7 @@ class HistoryEntry:
             "video_id": self.video_id,
             "published_at": self.published_at,
             "metrics": dict(self.metrics),
+            "content_format": self.content_format,
         }
 
     @classmethod
@@ -53,6 +55,7 @@ class HistoryEntry:
             video_id=data.get("video_id"),
             published_at=data.get("published_at"),
             metrics={str(key): float(value) for key, value in metrics.items()},
+            content_format=str(data.get("content_format", "long_form")),
         )
 
 
