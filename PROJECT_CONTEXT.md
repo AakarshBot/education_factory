@@ -416,14 +416,31 @@ Added `tests/test_demand_discovery.py` covering default query coverage, the two 
 
 The discovery layer intentionally does **not** score topics, call Gemini, infer search volume, or choose what to publish. Those decisions belong to Step 2.2.
 
-### Step 2.2 — Topic scoring
-Score:
-- demand
-- exam relevance
-- novelty relative to our channel
-- educational value
-- visual potential
-- production reliability
+### Step 2.2 — Topic scoring — **COMPLETE**
+Added `topic_scorer.py` as the scoring stage between raw demand discovery and editorial queue selection.
+
+The scorer:
+- accepts the raw `DemandSignal` records from Step 2.1
+- uses one structured Gemini batch call to identify concrete educational topic candidates and score five qualitative dimensions
+- computes `demand_score` itself from the supplied YouTube ranks, so the model cannot invent popularity data
+- combines six dimensions into one weighted `total_score`:
+  - demand 25%
+  - exam relevance 20%
+  - novelty 15%
+  - educational value 20%
+  - visual potential 10%
+  - production reliability 10%
+- supports recent channel titles as optional novelty context; when history is empty, novelty is forced to a neutral 50 rather than fabricated
+- validates exams, subjects, signal references, score ranges, duplicate candidates, and rationales before returning results
+- returns candidates sorted by total score
+- does not choose the publishing queue, generate questions, or modify channel history
+
+Added `tests/test_topic_scorer.py` covering demand/weighted-score calculation, context forwarding, neutral novelty without history, invalid inputs, invalid model candidates, duplicate candidates, and HTTP failures.
+
+---
+
+### Step 2.3 — Editorial queue
+Automatically choose the next jobs.
 
 ### Step 2.3 — Editorial queue
 Automatically choose the next jobs.
@@ -633,7 +650,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 2 / STEP 2.1 COMPLETE**
+Status: **PHASE 2 / STEP 2.2 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -650,6 +667,7 @@ Completed in Phase 1:
 
 Completed in Phase 2:
 - Step 2.1 — demand discovery
+- Step 2.2 — topic scoring
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -665,6 +683,7 @@ Current repository files:
 - `lesson.py`
 - `lesson_assembler.py`
 - `demand_discovery.py`
+- `topic_scorer.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
@@ -672,17 +691,24 @@ Current repository files:
 - `tests/test_explanation_generator.py`
 - `tests/test_lesson_assembler.py`
 - `tests/test_demand_discovery.py`
+- `tests/test_topic_scorer.py`
 
 Test status:
-- Step 2.1 dedicated tests: **5 passed locally**.
-- Input validation was specifically checked to occur before network calls.
+- Step 2.2 dedicated tests: **6 passed locally**.
+- Demand remains application-computed from the source ranks.
 - The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
 
 Architecture note:
-- Demand discovery collects raw external demand signals only.
-- It does not decide which topic wins; scoring and editorial selection remain in later steps.
-- Search uses direct HTTP and the existing `requests` dependency only.
+- Step 2.1 discovers raw demand signals.
+- Step 2.2 converts those signals into scored educational topic candidates.
+- Step 2.3 will decide what to produce from these scores.
+- Historical channel memory remains a later stage.
 
+## NEXT STEP
+
+**Step 2.3 — Editorial queue.**
+
+Automatically choose the next jobs from the scored topic candidates.
 ## NEXT STEP
 
 **Step 2.2 — Topic scoring.**

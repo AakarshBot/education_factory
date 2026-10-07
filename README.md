@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 2.1 — Demand discovery**
+**Step 2.2 — Topic scoring**
 
-The factory now has a deterministic YouTube demand-signal collector covering the locked exam/subject matrix. Topic scoring and editorial selection are the next layers.
+The factory now converts raw YouTube demand signals into scored educational topic candidates. Editorial queue selection is the next layer.
