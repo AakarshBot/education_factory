@@ -20,7 +20,7 @@ def test_default_queries_cover_locked_exams_and_subjects():
     assert "Railway English 2026" in demand_discovery.DEFAULT_DEMAND_QUERIES
 
 
-def test_discover_demand_collects_recent_and_popular_signals(monkeypatch):
+def test_discover_demand_collects_recent_and_popular_signals(monkeypatch, tmp_path):
     calls = []
 
     def fake_get(url, **kwargs):
