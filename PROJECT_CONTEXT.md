@@ -670,8 +670,26 @@ Security:
 
 Google's current YouTube documentation recommends a Desktop app OAuth client for command-line/installed applications and identifies `youtube.upload` as an authorization scope for video uploads. citeturn686940search0turn686940search1
 
-### Step 5.3 — Upload and scheduling
-Upload to YouTube and schedule publication.
+### Step 5.3 — Upload and scheduling — **COMPLETE**
+Added `youtube_uploader.py` as the direct video upload/scheduling stage.
+
+The upload stage:
+- consumes the completed `Lesson`, `VideoMetadata`, and rendered MP4 directly
+- uses the existing authenticated YouTube client and `videos.insert` with the minimum existing OAuth scope
+- uses one resumable upload request and does not add an SDK or wrapper layer
+- publishes immediately in `public` mode or schedules in `scheduled` mode
+- forces scheduled videos to `private` with an ISO 8601 `publishAt` value, as required by the YouTube API
+- appends the generated hashtags to the supplied description and passes the generated keyword tags, category, and Hindi default language directly to YouTube
+- validates the video file, mode, and schedule time before making a network request
+- fails closed on upload errors or responses without a YouTube video ID
+- records the returned video ID, publication/schedule status, lesson identity, and title in the local channel history
+- reports a history-write failure explicitly after a successful upload rather than silently treating the upload as complete
+
+Added `tests/test_youtube_uploader.py` covering immediate publish metadata, scheduled/private `publishAt`, invalid modes, missing schedule times, past schedule times, upload failures, missing video IDs, and missing video files.
+
+Current platform note:
+- YouTube's current `videos.insert` documentation supports the `youtube.upload` scope and `status.publishAt` for private, never-before-published videos. The current API revision history also states that video uploads use a separate upload quota bucket and the upload cost was reduced to 1 unit per call in the current documentation. citeturn706286search0turn706286search2
+- Unverified API projects created after July 28, 2020 have uploaded videos restricted to private viewing until the project completes YouTube's required audit. The factory therefore does not treat a requested public upload as proof that YouTube has made the video public. citeturn706286search0turn706286search1
 
 ### Step 5.4 — Shorts → long-form linking
 Add the relevant YouTube relationship where supported.
@@ -738,26 +756,30 @@ The factory should prefer original questions and original graphics.
 
 # 9. MANUAL ACTIONS CURRENTLY REQUIRED
 
-At the moment, the implementation does not require a manual production action from the user. The channel/account setup below becomes relevant only when the corresponding publishing stage is built:
+**No manual action now. The YouTube channel has not been created yet, and channel/OAuth setup is intentionally deferred until the factory implementation is complete.**
 
-### Required later
-1. Create the dedicated Google account/channel.
-2. Complete any YouTube/Google identity, phone, advanced-feature, or verification steps Google requires.
-3. Grant the factory the YouTube OAuth authorization once the uploader exists.
-4. Optionally provide any channel branding assets once the design is selected.
+The remaining external setup will be handled together at the end, when the factory is ready for its first real production run. At that point the user will need to:
+1. create the dedicated Google account and YouTube channel;
+2. complete any Google/YouTube identity, phone, advanced-feature, or verification steps required for that account/channel;
+3. create the Google Cloud OAuth client and authorize the factory against the dedicated channel account;
+4. provide any final channel branding assets that the completed design actually requires.
 
-The factory itself should perform everything else that is technically possible.
+Until that launch handoff, do not ask the user to create the channel, create OAuth credentials, run `youtube_auth.py`, or perform routine backend setup.
 
-**Do not ask the user to perform any of these until the corresponding implementation step actually needs it.**
+The factory should perform everything else that is technically possible.
 
 ---
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 5 / STEP 5.2 COMPLETE**
+Status: **PHASE 5 / STEP 5.3 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
+
+Channel status:
+- The dedicated YouTube channel/account has **not** been created yet.
+- This is intentional. Real OAuth authorization and real upload testing are deferred until the factory itself is complete.
 
 Completed:
 - Phase 0 — foundation and configuration
@@ -773,6 +795,7 @@ Completed:
 - Phase 4.5 — visual QA
 - Phase 5.1 — metadata generation
 - Phase 5.2 — YouTube OAuth
+- Phase 5.3 — YouTube upload and scheduling
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -803,6 +826,7 @@ Current repository files include:
 - `visual_qa.py`
 - `metadata_generator.py`
 - `youtube_auth.py`
+- `youtube_uploader.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -812,34 +836,26 @@ Step 5.1 test status:
 Step 5.2 test status:
 - Added focused tests for existing valid tokens, token refresh, first-time browser authorization, missing client secrets, and refresh failure.
 - Remote OAuth code was reviewed against the current Desktop/installed-app flow.
-- Real Google authorization was not run because the required client-secrets file does not yet exist in this environment.
+- Real Google authorization was deliberately not run because the dedicated channel/account does not exist yet.
 - No credential or token has been committed.
+
+Step 5.3 test status:
+- Added focused mocked-upload tests for public publishing, scheduled publishing, validation failures, API failures, missing IDs, and history persistence.
+- Real YouTube upload was deliberately not run because the dedicated channel/account and OAuth token do not exist yet.
 
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
-- The upload/scheduling stage will consume these contracts directly; no alternate authentication wrapper should be introduced.
+- `youtube_uploader.py` owns only direct video upload/scheduling and the required channel-history write; no alternate uploader or authentication wrapper should be introduced.
 
 ## MANUAL ACTION REQUIRED NOW
 
-This is the first build step that genuinely needs your external Google account.
+**None. The dedicated channel has not been created yet, so the external Google/YouTube setup is intentionally postponed until the factory is fully built.**
 
-1. In Google Cloud Console, enable **YouTube Data API v3** for the project used by this factory.
-2. Create an **OAuth 2.0 Client ID** with application type **Desktop app**.
-3. Download the client JSON.
-4. Save it in the repository root as **`client_secrets.json`**.
-5. Make sure the Google account you authorize is the dedicated channel account.
-
-Then run:
-
-`python youtube_auth.py`
-
-Complete the Google browser consent flow once. The factory will save `token.json` locally and future runs can refresh it without asking you to log in again.
-
-Do not upload either JSON file to GitHub; both are already ignored by `.gitignore`.
+Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_auth.py` yet. The repository is ready for that later launch step, and both credential files remain ignored by Git.
 
 ## NEXT STEP
 
-**Phase 5 / Step 5.3 — Upload and scheduling.**
+**Phase 5 / Step 5.4 — Shorts → long-form linking.**
 
-Build the direct YouTube upload/scheduling stage that consumes the rendered video plus `VideoMetadata`, publishes or schedules it, and records the returned YouTube video ID in channel history.
+Add the relevant YouTube relationship between a Short and its related long-form lesson where the platform/API supports it, without introducing a second publishing pipeline.
