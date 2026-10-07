@@ -772,8 +772,3 @@ Architecture note:
 **Step 3.2 — Timing contract.**
 
 Produce stable word/phrase timing data for rendering.
-## NEXT STEP
-
-**Step 3.1 — Hindi/Hinglish narration pipeline.**
-
-Generate speech using free/local tooling.
