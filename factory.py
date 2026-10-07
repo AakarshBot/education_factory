@@ -12,6 +12,7 @@ from channel_history import DEFAULT_HISTORY_FILE, load_history, recent_topic_key
 from concept_generator import generate_concept_summary
 from demand_discovery import discover_demand
 from editorial_adaptation import build_editorial_adaptation
+from factory_state import DEFAULT_STATE_FILE, load_state, record_run, save_state, validate_runs_per_day
 from editorial_queue import EditorialJob, build_editorial_queue
 from explanation_generator import generate_explanations
 from format_analysis import analyze_formats
@@ -294,6 +295,8 @@ def run_factory(
     publish_mode: str = "scheduled",
     publish_at: datetime | None = None,
     backlog_path: str | Path = DEFAULT_BACKLOG_FILE,
+    factory_state_path: str | Path = DEFAULT_STATE_FILE,
+    runs_per_day: int = 2,
     resume: str | Path | None = None,
 ) -> Lesson:
     if resume is None:
@@ -307,6 +310,7 @@ def run_factory(
             raise ValueError("language must not be empty")
         if publish_mode not in {"scheduled", "public"}:
             raise ValueError("publish_mode must be 'scheduled' or 'public'")
+        validate_runs_per_day(runs_per_day)
         manifest = _new_run(Path(output_root))
         manifest.selected["run_config"] = {
             "max_jobs": max_jobs,
@@ -316,6 +320,8 @@ def run_factory(
             "publish_mode": publish_mode,
             "history_path": str(Path(history_path).resolve()),
             "backlog_path": str(Path(backlog_path).resolve()),
+            "factory_state_path": str(Path(factory_state_path).resolve()),
+            "runs_per_day": runs_per_day,
         }
         manifest.save()
     else:
@@ -333,11 +339,16 @@ def run_factory(
         publish_mode = str(config["publish_mode"])
         history_path = config.get("history_path", history_path)
         backlog_path = config.get("backlog_path", backlog_path)
+        factory_state_path = config.get("factory_state_path", factory_state_path)
+        runs_per_day = int(config.get("runs_per_day", runs_per_day))
+        validate_runs_per_day(runs_per_day)
 
     current_stage = "initialization"
 
     try:
         history_file = Path(history_path)
+        factory_state_file = Path(factory_state_path)
+        load_state(factory_state_file)
 
         if stage_complete(manifest, "editorial_selection"):
             job = _job_from_manifest(manifest)
@@ -749,11 +760,35 @@ def run_factory(
                 save_backlog(backlog, Path(backlog_path))
             manifest.checkpoint("backlog_complete")
 
+        state = load_state(factory_state_file)
+        save_state(
+            record_run(
+                state,
+                run_id=manifest.run_id,
+                status="complete",
+                now=datetime.now(timezone.utc),
+                runs_per_day=runs_per_day,
+            ),
+            factory_state_file,
+        )
         manifest.complete()
         return lesson
 
     except Exception as exc:
-        manifest.fail(current_stage, exc)
+        try:
+            state = load_state(Path(factory_state_path))
+            save_state(
+                record_run(
+                    state,
+                    run_id=manifest.run_id,
+                    status="failed",
+                    now=datetime.now(timezone.utc),
+                    runs_per_day=runs_per_day,
+                ),
+                Path(factory_state_path),
+            )
+        finally:
+            manifest.fail(current_stage, exc)
         raise
 
 
@@ -773,6 +808,8 @@ def main() -> None:
         default="scheduled",
     )
     parser.add_argument("--backlog-path", default=str(DEFAULT_BACKLOG_FILE))
+    parser.add_argument("--factory-state-path", default=str(DEFAULT_STATE_FILE))
+    parser.add_argument("--runs-per-day", type=int, choices=(1, 2), default=2)
     parser.add_argument("--resume", default=None)
     args = parser.parse_args()
 
@@ -785,6 +822,8 @@ def main() -> None:
         language=args.language,
         publish_mode=args.publish_mode,
         backlog_path=args.backlog_path,
+        factory_state_path=args.factory_state_path,
+        runs_per_day=args.runs_per_day,
         resume=args.resume,
     )
     print(f"Completed: {lesson.title}")
