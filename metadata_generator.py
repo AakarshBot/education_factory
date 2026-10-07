@@ -66,6 +66,19 @@ class VideoMetadata:
             "default_language": self.default_language,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "VideoMetadata":
+        return cls(
+            primary_title=data["primary_title"],
+            title_candidates=tuple(data["title_candidates"]),
+            description=data["description"],
+            hashtags=tuple(data["hashtags"]),
+            tags=tuple(data["tags"]),
+            series_context=data["series_context"],
+            category_id=data.get("category_id", EDUCATION_CATEGORY_ID),
+            default_language=data.get("default_language", "hi"),
+        )
+
 
 def _request_metadata(lesson: Lesson, language: str) -> dict[str, Any]:
     source_references = sorted(
