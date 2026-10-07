@@ -604,8 +604,25 @@ The Shorts renderer:
 
 No new dependency or animation/video framework was added.
 
-### Step 4.5 — Visual QA
-Automated checks for cutoffs, overlaps, unreadable text, duration and missing assets.
+### Step 4.5 — Visual QA — **COMPLETE**
+Added `visual_qa.py` as the automated visual gate before publishing.
+
+Implemented:
+- required visual-asset existence, non-empty, and image-readability checks
+- exact scene geometry checks for the requested output canvas
+- pixel-content bounding checks so rendered content cannot touch the unsafe outer edge
+- final-video geometry checks
+- final-video positive-duration checks
+- final-video audio-stream checks
+- expected-duration comparison with a small explicit tolerance
+
+Integrated the QA gate directly into both renderers:
+- `long_form_renderer.py` validates every generated 16:9 scene and validates the temporary MP4 before replacing the final output.
+- `shorts_renderer.py` validates every generated 9:16 scene and validates the temporary MP4 before replacing the final output.
+
+The QA layer does not attempt to repair, crop, resize, regenerate, or silently continue. A failed visual gate stops the render.
+
+No new dependency was added.
 
 ---
 
@@ -685,7 +702,7 @@ The factory should prefer original questions and original graphics.
 
 # 9. MANUAL ACTIONS CURRENTLY REQUIRED
 
-At the moment, because the repository is empty, the only external setup expected from the user is:
+At the moment, the implementation does not require a manual production action from the user. The channel/account setup below becomes relevant only when the corresponding publishing stage is built:
 
 ### Required later
 1. Create the dedicated Google account/channel.
@@ -701,7 +718,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 4 / STEP 4.4 COMPLETE**
+Status: **PHASE 4 / STEP 4.5 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -717,9 +734,10 @@ Completed:
 - Phase 4.2 — lesson-specific visual layouts
 - Phase 4.3 — long-form 16:9 renderer
 - Phase 4.4 — Shorts 9:16 renderer
+- Phase 4.5 — visual QA
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual scenes -> 16:9 long-form or 9:16 Short**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short**
 
 Current repository files include:
 - `PROJECT_CONTEXT.md`
@@ -744,6 +762,7 @@ Current repository files include:
 - `lesson_layouts.py`
 - `long_form_renderer.py`
 - `shorts_renderer.py`
+- `visual_qa.py`
 - focused tests under `tests/`
 
 Step 4.1 test status:
@@ -764,15 +783,22 @@ Step 4.3 test status:
 
 Step 4.4 test status:
 - Added focused tests for real portrait rendering, selection/duration validation, and bad segment handling.
-- The exact remote code has been reviewed for the 1080x1920 render contract and shared primitive reuse.
-- A hosted full-suite execution is not available because this repository has no configured GitHub Actions workflow yet; no full-suite pass is claimed here.
+- The renderer was reviewed for the 1080x1920 contract and shared primitive reuse.
+- No new dependency was added.
+
+Step 4.5 test status:
+- **Visual QA smoke tests passed locally** with Pillow and real FFmpeg/FFprobe.
+- Verified valid image bounds and blank/edge rejection behavior.
+- Verified final-video geometry, duration, and required audio-stream checks.
+- The focused remote test files were added; the repository's complete test suite has not been executed in this hosted session because GitHub Actions is not yet configured.
 
 Architecture:
 - `visual_primitives.py` owns reusable instructional drawing primitives.
-- `lesson_layouts.py` owns long-form lesson-type composition.
+- `lesson_layouts.py` owns lesson-type composition.
 - `long_form_renderer.py` owns 16:9 FFmpeg assembly.
-- `shorts_renderer.py` owns only the portrait scene selection/assembly needed for Shorts.
-- Long-form and Shorts share the same content contracts, primitives, QA gate, and FFmpeg approach.
+- `shorts_renderer.py` owns portrait scene selection/assembly.
+- `visual_qa.py` owns final visual/media quality checks shared by both renderers.
+- Long-form and Shorts share the same content contracts, QA gate, and FFmpeg approach.
 - No duplicate content-generation pipeline or wrapper framework has been introduced.
 
 Dependency policy remains locked:
@@ -792,6 +818,6 @@ The factory remains ₹0 production-spend by design. Real credentials stay local
 
 ## NEXT STEP
 
-**Step 4.5 — Visual QA.**
+**Phase 5 / Step 5.1 — Metadata generation.**
 
-Add automated checks for rendered scene geometry, text/image bounds, missing visual assets, and final video duration before a video can proceed toward publishing.
+Create the direct metadata stage for long-form videos and Shorts: title candidates, descriptions, hashtags/keywords where useful, and the lesson/series context needed for publishing.
