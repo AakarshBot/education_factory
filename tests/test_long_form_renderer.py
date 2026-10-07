@@ -58,7 +58,14 @@ def test_render_long_form_creates_real_mp4(monkeypatch, tmp_path):
     _audio(audio)
 
     def fake_scene(_lesson, index, *, size):
-        image = Image.new("RGB", size, (255 if index == 0 else 240, 255, 255))
+        image = Image.new("RGB", size, BACKGROUND)
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(image)
+        inset = 12
+        draw.rectangle(
+            (inset, inset, size[0] - inset, size[1] - inset),
+            fill=(255 if index == 0 else 240, 255, 255),
+        )
         return image
 
     monkeypatch.setattr(long_form_renderer, "render_lesson_scene", fake_scene)
