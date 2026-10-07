@@ -6,10 +6,11 @@ import youtube_auth
 
 
 class FakeCredentials:
-    def __init__(self, *, valid=True, expired=False, refresh_token=True):
+    def __init__(self, *, valid=True, expired=False, refresh_token=True, scopes=None):
         self.valid = valid
         self.expired = expired
         self.refresh_token = refresh_token
+        self.scopes = scopes
         self.refreshed = False
 
     def refresh(self, request):
@@ -33,6 +34,33 @@ def test_authenticate_uses_existing_valid_token(monkeypatch, tmp_path):
     )
     assert result is credentials
     assert not credentials.refreshed
+
+
+def test_authenticate_reauthorizes_token_missing_required_scope(monkeypatch, tmp_path):
+    client = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    client.write_text("client", encoding="utf-8")
+    credentials = FakeCredentials(
+        valid=True,
+        scopes=("https://www.googleapis.com/auth/youtube.upload",),
+    )
+    monkeypatch.setattr(youtube_auth, "_load_credentials", lambda path: credentials)
+
+    class FakeFlow:
+        def run_local_server(self, port):
+            return FakeCredentials(valid=True, scopes=youtube_auth.SCOPES)
+
+    monkeypatch.setattr(
+        youtube_auth.InstalledAppFlow,
+        "from_client_secrets_file",
+        lambda path, scopes: FakeFlow(),
+    )
+    result = youtube_auth.authenticate_youtube(
+        client_secrets_file=client,
+        token_file=token,
+    )
+
+    assert result.scopes == youtube_auth.SCOPES
 
 
 def test_authenticate_refreshes_expired_token(monkeypatch, tmp_path):
