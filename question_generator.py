@@ -1,0 +1,150 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import requests
+
+from config import GEMINI_API_KEY, GEMINI_MODEL, validate_config
+from question import Question
+from validators import validate_question
+
+_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "questions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "subject": {"type": "string"},
+                    "exam": {"type": "string"},
+                    "topic": {"type": "string"},
+                    "difficulty": {"type": "string"},
+                    "question": {"type": "string"},
+                    "choices": {
+                        "type": ["array", "null"],
+                        "items": {"type": "string"},
+                    },
+                    "correct_answer": {"type": "string"},
+                    "explanation": {"type": "string"},
+                    "shortcut": {"type": ["string", "null"]},
+                    "source_type": {"type": "string"},
+                    "source_reference": {"type": ["string", "null"]},
+                    "math_expression": {"type": ["string", "null"]},
+                },
+                "required": [
+                    "subject",
+                    "exam",
+                    "topic",
+                    "difficulty",
+                    "question",
+                    "choices",
+                    "correct_answer",
+                    "explanation",
+                    "shortcut",
+                    "source_type",
+                    "source_reference",
+                    "math_expression",
+                ],
+            },
+        }
+    },
+    "required": ["questions"],
+}
+
+
+def generate_questions(
+    *,
+    subject: str,
+    exam: str,
+    topic: str,
+    difficulty: str,
+    count: int,
+    language: str = "Hinglish",
+) -> list[Question]:
+    if count < 1:
+        raise ValueError("count must be at least 1")
+    validate_config(require_gemini=True)
+
+    prompt = f"""
+Create exactly {count} original competitive-exam practice questions.
+
+Exam: {exam}
+Subject: {subject}
+Topic: {topic}
+Difficulty: {difficulty}
+Output language: {language}
+
+Rules:
+- Create original questions, not copied previous-year questions.
+- Every question must have exactly one defensible correct answer.
+- Use four unique choices for multiple-choice questions; use null choices only when the question genuinely requires a different answer format.
+- Keep the requested exam, subject, topic, and difficulty faithful.
+- Explanations must be concise, accurate, and teach the solution.
+- A shortcut may be null when no useful shortcut exists.
+- source_type must be "original" and source_reference must be null.
+- For Maths, math_expression is REQUIRED and must evaluate to exactly correct_answer using ordinary arithmetic notation.
+- For non-Maths questions, math_expression must be null.
+- Do not put explanations or extra commentary outside the JSON object.
+
+Return only the requested structured JSON.
+""".strip()
+
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": (
+                        "You are the question-writing engine for an Indian competitive-exam "
+                        "education channel. Accuracy is more important than creativity. "
+                        "Never invent an answer. Follow the requested schema exactly."
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": _RESPONSE_SCHEMA,
+        },
+    }
+
+    response = requests.post(
+        _GEMINI_URL.format(model=GEMINI_MODEL),
+        headers={
+            "x-goog-api-key": GEMINI_API_KEY,
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=60,
+    )
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Gemini question generation failed ({response.status_code}): "
+            f"{response.text[:500]}"
+        )
+
+    body = response.json()
+    try:
+        text = body["candidates"][0]["content"]["parts"][0]["text"]
+        data = json.loads(text)
+        items = data["questions"]
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Gemini returned an invalid structured question response") from exc
+
+    if len(items) != count:
+        raise RuntimeError(
+            f"Gemini returned {len(items)} questions; expected exactly {count}"
+        )
+
+    questions: list[Question] = []
+    for item in items:
+        math_expression = item.pop("math_expression", None)
+        question = Question.from_dict(item)
+        validate_question(question, math_expression=math_expression)
+        questions.append(question)
+
+    return questions
