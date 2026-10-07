@@ -787,8 +787,9 @@ def run_factory(
                 ),
                 Path(factory_state_path),
             )
-        finally:
-            manifest.fail(current_stage, exc)
+        except Exception:
+            pass
+        manifest.fail(current_stage, exc)
         raise
 
 
