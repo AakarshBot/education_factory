@@ -1301,3 +1301,18 @@ Current gate:
 - The next required check is the real one-question Gemini structured-output smoke test against the configured production API key/model.
 - Do not run factory.py yet.
 - If the real smoke test succeeds, the next platform gate is YouTube API compliance/public-publication status before the first complete production run.
+## Real Gemini smoke test passed — 2026-10-08
+
+The user's real live Gemini structured-output smoke test succeeded after the APPLICATION_JSON correction.
+- One Maths/SSC CGL/Percentages question was generated successfully.
+- The response contained four choices and a valid correct answer.
+- The machine-checkable Maths expression validation passed inside the generation stage.
+- No factory production run has been started from this successful smoke test.
+
+Current launch gate:
+- Engineering regression suite: 183 passed.
+- Real Gemini generation: verified.
+- YouTube Data API and Analytics API: previously verified.
+- Remaining platform gate: YouTube API compliance audit/public-upload restriction.
+
+Next manual action: open the official YouTube Data API Services Audit and Quota Extension Form and begin the compliance-audit request. Do not submit anything until the factory supplies the exact answers/evidence for each field.
