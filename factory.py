@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -17,6 +18,7 @@ from format_analysis import analyze_formats
 from lesson import Lesson
 from lesson_assembler import assemble_lesson
 from long_form_renderer import render_long_form
+from shorts_renderer import render_short
 from metadata_generator import generate_metadata
 from narration import synthesize_speech
 from question_generator import generate_questions
@@ -34,6 +36,7 @@ DEFAULT_LANGUAGE = "Hinglish"
 DEFAULT_LESSON_TYPE = "practice"
 AUTO_LESSON_TYPES = ("practice", "timed_test", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
+SHORT_MAX_DURATION_SECONDS = 180.0
 
 
 def _slug(value: str) -> str:
@@ -90,6 +93,19 @@ def _narration_segments(lesson: Lesson) -> list[str]:
         texts.append(text.strip())
 
     return texts
+
+
+def _short_segment_indices(lesson: Lesson) -> list[int]:
+    for start, segment in enumerate(lesson.segments):
+        if segment.kind != "question":
+            continue
+        indices = [start]
+        for index in range(start + 1, len(lesson.segments)):
+            if lesson.segments[index].kind == "question":
+                break
+            indices.append(index)
+        return indices
+    raise RuntimeError("lesson contains no question segment")
 
 
 def _scene_durations(texts: list[str], total_duration: float) -> list[float]:
@@ -212,6 +228,10 @@ def run_factory(
     timing_path = lesson_dir / "word_timings.json"
     video_path = lesson_dir / "long_form.mp4"
     metadata_path = lesson_dir / "metadata.json"
+    short_audio_path = lesson_dir / "short_narration.mp3"
+    short_timing_path = lesson_dir / "short_word_timings.json"
+    short_video_path = lesson_dir / "short.mp4"
+    short_metadata_path = lesson_dir / "short_metadata.json"
 
     narration_segments = _narration_segments(lesson)
     narration_text = "\n\n".join(narration_segments)
@@ -235,6 +255,37 @@ def run_factory(
         encoding="utf-8",
     )
 
+    short_indices = _short_segment_indices(lesson)
+    short_narration_segments = [narration_segments[index] for index in short_indices]
+    synthesize_speech(
+        "\n\n".join(short_narration_segments),
+        short_audio_path,
+        timing_path=short_timing_path,
+    )
+    short_audio_result = check_audio(short_audio_path)
+    if short_audio_result.duration_seconds > SHORT_MAX_DURATION_SECONDS:
+        raise RuntimeError("derived Short exceeds YouTube's 3-minute limit")
+    short_durations = _scene_durations(
+        short_narration_segments,
+        short_audio_result.duration_seconds,
+    )
+    render_short(
+        lesson,
+        short_audio_path,
+        short_video_path,
+        short_indices,
+        short_durations,
+    )
+
+    short_metadata = replace(
+        metadata,
+        primary_title=metadata.title_candidates[1],
+    )
+    short_metadata_path.write_text(
+        json.dumps(short_metadata.to_dict(), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
     if publish_mode not in {"scheduled", "public"}:
         raise ValueError("publish_mode must be 'scheduled' or 'public'")
 
@@ -251,6 +302,23 @@ def run_factory(
         mode=publish_mode,
         publish_at=selected_publish_at,
         history_path=history_file,
+        content_format="long_form",
+    )
+
+    short_publish_at = (
+        selected_publish_at + timedelta(hours=2)
+        if publish_mode == "scheduled" and selected_publish_at is not None
+        else None
+    )
+    upload_video(
+        youtube,
+        lesson,
+        short_metadata,
+        short_video_path,
+        mode=publish_mode,
+        publish_at=short_publish_at,
+        history_path=history_file,
+        content_format="shorts",
     )
 
     try:
