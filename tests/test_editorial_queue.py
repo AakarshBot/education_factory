@@ -1,5 +1,6 @@
 import pytest
 
+from channel_history import HistoryEntry
 from editorial_queue import build_editorial_queue
 from topic_scorer import TopicScore
 
@@ -24,6 +25,18 @@ def make_score(
         total_score=total_score,
         supporting_signal_indices=signals,
         rationale="Strong educational opportunity.",
+    )
+
+
+def history(topic, status="published"):
+    return HistoryEntry(
+        exam="SSC",
+        subject="Maths",
+        topic=topic,
+        lesson_type="practice",
+        title=f"{topic} Practice",
+        status=status,
+        created_at="2026-10-01T00:00:00Z",
     )
 
 
@@ -77,6 +90,29 @@ def test_queue_deduplicates_exact_topic_keys():
     jobs = build_editorial_queue(scores, max_jobs=3)
 
     assert [job.topic for job in jobs] == ["Percentages", "Profit and Loss"]
+
+
+def test_queue_skips_recent_published_topics():
+    scores = [
+        make_score(topic="Percentages", total_score=95.0),
+        make_score(topic="Profit and Loss", total_score=80.0),
+    ]
+
+    jobs = build_editorial_queue(
+        scores,
+        history=[history("Percentages")],
+    )
+
+    assert [job.topic for job in jobs] == ["Profit and Loss"]
+
+
+def test_queue_does_not_skip_failed_topics():
+    jobs = build_editorial_queue(
+        [make_score(topic="Percentages")],
+        history=[history("Percentages", status="failed")],
+    )
+
+    assert [job.topic for job in jobs] == ["Percentages"]
 
 
 def test_queue_rejects_invalid_input():

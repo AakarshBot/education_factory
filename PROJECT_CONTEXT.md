@@ -455,8 +455,26 @@ Added `tests/test_editorial_queue.py` covering score-first ordering, evidence pr
 
 Because historical channel memory is deliberately deferred to Step 2.4, this queue does not pretend to know what has already been published.
 
-### Step 2.4 — Historical memory
-Store enough local channel history to avoid repetitive publishing and support learning from prior results.
+### Step 2.4 — Historical memory — **COMPLETE**
+Added `channel_history.py` as a lightweight local JSON history store.
+
+The history layer:
+- stores exam, subject, topic, lesson type, title, status, timestamps, optional YouTube video ID/publication time, and optional numeric metrics
+- loads a missing history file as empty history
+- writes under the ignored `data/` directory without adding a dependency
+- supports appending new production records
+- identifies recent active topics from `published` and `scheduled` entries
+- ignores failed entries when deciding whether a topic should be avoided
+- fails closed on malformed history or invalid time windows
+
+Updated `editorial_queue.py` so it can directly receive history and exclude recently published/scheduled topics while preserving the existing score-first ordering.
+
+Added `tests/test_channel_history.py` and expanded `tests/test_editorial_queue.py` for persistence, recent-topic filtering, failed-topic recovery, and existing queue behavior.
+
+The history store is deliberately local and small. Analytics-specific interpretation remains in Phase 6; the `metrics` field is only a persistence slot for later measurements.
+
+### Step 2.5 — Concept / educational angle selection
+Determine the educational angle and lesson type for each selected job before question generation.
 
 ### Step 2.3 — Editorial queue
 Automatically choose the next jobs.
@@ -666,7 +684,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 2 / STEP 2.3 COMPLETE**
+Status: **PHASE 2 / STEP 2.4 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -685,6 +703,7 @@ Completed in Phase 2:
 - Step 2.1 — demand discovery
 - Step 2.2 — topic scoring
 - Step 2.3 — editorial queue
+- Step 2.4 — historical memory
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -702,6 +721,7 @@ Current repository files:
 - `demand_discovery.py`
 - `topic_scorer.py`
 - `editorial_queue.py`
+- `channel_history.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
@@ -711,18 +731,25 @@ Current repository files:
 - `tests/test_demand_discovery.py`
 - `tests/test_topic_scorer.py`
 - `tests/test_editorial_queue.py`
+- `tests/test_channel_history.py`
 
 Test status:
-- Step 2.3 dedicated tests: **5 passed locally**.
-- Queue ordering is deterministic and score-first.
+- Step 2.4 dedicated tests: **6 passed locally**.
+- Editorial queue history-filter tests: **2 additional tests passed locally**.
 - The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
 
 Architecture note:
 - Step 2.1 discovers raw demand signals.
-- Step 2.2 turns those signals into scored topic candidates.
-- Step 2.3 converts candidates into bounded editorial jobs without inventing strategy beyond the locked scoring system.
-- Step 2.4 will add persistent channel history before the queue learns from past publishing.
+- Step 2.2 scores educational candidates.
+- Step 2.3 creates bounded jobs.
+- Step 2.4 persists lightweight channel history and gives the queue enough information to avoid recent published/scheduled topics.
+- Analytics interpretation remains deferred to Phase 6.
 
+## NEXT STEP
+
+**Step 2.5 — Concept / educational angle selection.**
+
+Determine the educational angle and lesson type for each selected job before question generation.
 ## NEXT STEP
 
 **Step 2.4 — Historical memory.**

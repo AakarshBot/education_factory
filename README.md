@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 2.3 — Editorial queue**
+**Step 2.4 — Historical memory**
 
-The factory now converts scored educational topic candidates into bounded, deterministic production jobs. Historical memory is the next layer.
+The factory now persists lightweight local channel history and can exclude recently published or scheduled topics from the editorial queue.

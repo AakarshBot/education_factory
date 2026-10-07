@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Sequence
 
+from channel_history import HistoryEntry, recent_topic_keys
 from topic_scorer import TopicScore
 
 
@@ -32,11 +33,14 @@ def build_editorial_queue(
     scores: Sequence[TopicScore],
     *,
     max_jobs: int = 5,
+    history: Sequence[HistoryEntry] = (),
+    history_days: int = 30,
 ) -> list[EditorialJob]:
     if not scores:
         raise ValueError("scores must not be empty")
     if max_jobs < 1:
         raise ValueError("max_jobs must be at least 1")
+    excluded_topics = recent_topic_keys(history, days=history_days)
 
     ranked = sorted(
         scores,
@@ -57,7 +61,7 @@ def build_editorial_queue(
             score.subject.strip().lower(),
             score.topic.strip().lower(),
         )
-        if key in seen:
+        if key in seen or key in excluded_topics:
             continue
         seen.add(key)
 
