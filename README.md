@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 4.2 — Lesson-specific layouts**
+**Step 4.3 — Long-form renderer**
 
-The factory now composes different visual scenes for practice, timed tests, concept + practice, PYQ analysis, and revision lessons while reusing the deterministic visual primitives.
+The factory now renders the assembled 16:9 lesson scenes into an MP4 with validated narration audio, local FFmpeg, and no new dependency.
