@@ -5,8 +5,6 @@ import tempfile
 import wave
 from pathlib import Path
 
-from PIL import Image
-
 from audio_qa import check_audio
 from lesson import Lesson
 from lesson_layouts import render_lesson_scene
