@@ -78,7 +78,6 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
         subject_weights = {"maths": 1.0}
 
     monkeypatch.setattr(factory, "build_editorial_adaptation", lambda *args: calls.append("adaptation") or Adaptation())
-
     monkeypatch.setattr(factory, "discover_demand", lambda: calls.append("demand") or ["signal"])
     monkeypatch.setattr(factory, "score_topics", lambda *args, **kwargs: calls.append("score") or ["score"])
 
@@ -93,19 +92,45 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
     monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: calls.append("questions") or [Question()])
     monkeypatch.setattr(factory, "generate_explanations", lambda questions, language: calls.append("explanations") or questions)
     monkeypatch.setattr(factory, "assemble_lesson", lambda questions, lesson_type: calls.append("lesson") or Lesson())
-    monkeypatch.setattr(factory, "_narration_segments", lambda lesson: calls.append("narration_segments") or ["Question text"])
-    monkeypatch.setattr(factory, "synthesize_speech", lambda *args, **kwargs: calls.append("tts") or tmp_path / "narration.mp3")
+
+    narration_count = {"value": 0}
+    def fake_narration_segments(lesson):
+        calls.append("narration_segments")
+        return ["Question text"]
+
+    monkeypatch.setattr(factory, "_narration_segments", fake_narration_segments)
+
+    def fake_tts(*args, **kwargs):
+        narration_count["value"] += 1
+        calls.append(f"tts{narration_count['value']}")
+        return tmp_path / f"narration{narration_count['value']}.mp3"
+
+    monkeypatch.setattr(factory, "synthesize_speech", fake_tts)
 
     class AudioResult:
         duration_seconds = 2.0
 
     monkeypatch.setattr(factory, "check_audio", lambda *args, **kwargs: calls.append("audio_qa") or AudioResult())
     monkeypatch.setattr(factory, "_scene_durations", lambda *args: calls.append("durations") or [2.0])
-    monkeypatch.setattr(factory, "render_long_form", lambda *args, **kwargs: calls.append("render") or tmp_path / "video.mp4")
-    monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: calls.append("metadata") or type("Meta", (), {"to_dict": lambda self: {}})())
+
+    monkeypatch.setattr(factory, "render_long_form", lambda *args, **kwargs: calls.append("render_long") or tmp_path / "video.mp4")
+    monkeypatch.setattr(factory, "_short_segment_indices", lambda lesson: calls.append("short_select") or [0])
+    monkeypatch.setattr(factory, "render_short", lambda *args, **kwargs: calls.append("render_short") or tmp_path / "short.mp4")
+
+    class Metadata:
+        title_candidates = ("Long", "Short", "Three", "Four", "Five")
+        def to_dict(self):
+            return {}
+
+    monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: calls.append("metadata") or Metadata())
     monkeypatch.setattr(factory, "get_youtube_client", lambda: calls.append("auth") or object())
     monkeypatch.setattr(factory, "_next_publish_time", lambda now: None)
-    monkeypatch.setattr(factory, "upload_video", lambda *args, **kwargs: calls.append("upload") or "video-id")
+
+    def fake_upload(*args, **kwargs):
+        calls.append("upload_short" if kwargs.get("content_format") == "shorts" else "upload_long")
+        return "video-id"
+
+    monkeypatch.setattr(factory, "upload_video", fake_upload)
     monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: calls.append("analytics") or [])
 
     lesson = factory.run_factory(output_root=tmp_path, history_path=tmp_path / "history.json")
@@ -123,13 +148,19 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
         "explanations",
         "lesson",
         "narration_segments",
-        "tts",
+        "tts1",
         "audio_qa",
         "durations",
-        "render",
+        "render_long",
         "metadata",
+        "short_select",
+        "tts2",
+        "audio_qa",
+        "durations",
+        "render_short",
         "auth",
-        "upload",
+        "upload_long",
+        "upload_short",
         "analytics",
     ]
 
