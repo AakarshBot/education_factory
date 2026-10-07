@@ -364,6 +364,12 @@ def run_factory(
             )
             manifest.checkpoint("editorial_selection")
 
+        long_publish_at, short_publish_at = _record_publish_times(
+            manifest,
+            publish_mode=publish_mode,
+            publish_at=publish_at,
+        )
+
         if stage_complete(manifest, "concept"):
             concept_summary = read_json(_stored_output(manifest, "concept"))["concept_summary"]
         elif lesson_type == "concept_practice":
@@ -619,12 +625,6 @@ def run_factory(
                 "short_metadata",
                 outputs={"short_metadata": str(short_metadata_path.resolve())},
             )
-
-        long_publish_at, short_publish_at = _record_publish_times(
-            manifest,
-            publish_mode=publish_mode,
-            publish_at=publish_at,
-        )
 
         if not stage_complete(manifest, "youtube_auth"):
             current_stage = "youtube_auth"
