@@ -2,18 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import median
-from typing import Mapping, Sequence
+from typing import Sequence
 
 from channel_history import HistoryEntry
 
 MIN_COMPARISON_SAMPLES = 3
-SUPPORTED_FORMATS = (
-    "practice",
-    "timed_test",
-    "concept_practice",
-    "pyq_analysis",
-    "revision",
-)
 
 
 @dataclass(frozen=True)
