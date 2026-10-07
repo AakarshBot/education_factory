@@ -44,3 +44,24 @@ class Lesson:
             "questions": [question.to_dict() for question in self.questions],
             "segments": [segment.to_dict() for segment in self.segments],
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Lesson":
+        return cls(
+            lesson_type=data["lesson_type"],
+            title=data["title"],
+            subject=data["subject"],
+            exam=data["exam"],
+            topic=data["topic"],
+            questions=tuple(Question.from_dict(item) for item in data["questions"]),
+            segments=tuple(
+                LessonSegment(
+                    kind=item["kind"],
+                    question_index=item.get("question_index"),
+                    text=item.get("text"),
+                    duration_seconds=item.get("duration_seconds"),
+                    source_reference=item.get("source_reference"),
+                )
+                for item in data["segments"]
+            ),
+        )
