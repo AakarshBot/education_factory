@@ -1194,3 +1194,16 @@ Current YouTube/Google launch status remains:
 Do not ask the user to rerun `factory.py` until the focused/full pytest pass and one real Gemini structured-output smoke test are clean.
 
 Full pytest has still not been claimed as green because the repository is not available as a directly executable local checkout in this environment; the user's local checkout is the authoritative runtime copy.
+
+## Pytest collection fix — 2026-10-08
+
+After adding the root pytest.ini, the user's full-suite run progressed past the earlier repository-path import failure. The next collection error exposed one stale test import:
+- tests/test_editorial_adaptation.py imported the old module name adaptation.
+- Production code correctly uses editorial_adaptation.py.
+- Updated the test to import from editorial_adaptation.
+- Searched the repository for remaining from adaptation import and import adaptation references; none remain.
+
+Current state:
+- This was a test-suite naming mismatch, not a production runtime defect.
+- The full pytest suite has still not been rerun after this correction.
+- Do not run factory.py yet; rerun the full pytest suite first.
