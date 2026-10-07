@@ -777,8 +777,3 @@ Architecture note:
 **Step 4.1 — Visual primitives.**
 
 Create a small set of deterministic educational primitives:
-## NEXT STEP
-
-**Step 3.3 — Audio QA.**
-
-Verify duration, silence, missing audio, and basic output integrity.
