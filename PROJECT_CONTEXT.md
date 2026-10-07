@@ -344,8 +344,26 @@ Model/cost note:
 - The active Google pricing page currently lists `gemini-3.8-flash` as free-tier for standard text input/output. citeturn875388search0
 - The generator therefore remains within the locked ₹0 production constraint, subject to the provider's active free-tier limits.
 
-### Step 1.4 — Explanation generation
-Create explanations from verified answers rather than allowing the model to invent the final answer.
+### Step 1.4 — Explanation generation — **COMPLETE**
+Added `explanation_generator.py` with one direct batch function, `generate_explanations()`.
+
+The stage:
+- accepts only the existing `Question` objects and treats `correct_answer` as immutable
+- sends the question, choices, and verified answer to Gemini
+- requests only indexed explanation strings through structured JSON
+- returns new `Question` objects with only `explanation` changed
+- ignores any unexpected model fields such as attempted answer changes
+- rejects missing, duplicate, out-of-range, or empty explanations
+- uses one model call for the whole batch
+- does not add a retry/rewrite loop
+
+Efficiency correction made during Step 1.4:
+- `question_generator.py` no longer asks Gemini to write explanations. It now sets `explanation` to an empty string so explanation generation occurs exactly once in the dedicated stage.
+- `tests/test_question_generator.py` now asserts that the question stage leaves explanation empty.
+
+Added `tests/test_explanation_generator.py` covering answer preservation, structured request handling, rejection of missing explanations, and empty-input handling.
+
+Current Gemini REST implementation remains based on the documented `generateContent` endpoint and structured JSON response configuration. Google's current API documentation explicitly recommends validating structured output values in application code. citeturn723793search1turn723793search4
 
 ### Step 1.5 — Lesson assembler
 Turn verified questions into one of the approved learning experiences:
@@ -579,7 +597,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 1 / STEP 1.3 COMPLETE**
+Status: **PHASE 1 / STEP 1.4 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -591,6 +609,7 @@ Completed in Phase 1:
 - Step 1.1 — canonical question schema
 - Step 1.2 — deterministic Maths/question validators
 - Step 1.3 — structured original question generation
+- Step 1.4 — answer-locked explanation generation
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -602,22 +621,33 @@ Current repository files:
 - `question.py`
 - `validators.py`
 - `question_generator.py`
+- `explanation_generator.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
 - `tests/test_question_generator.py`
+- `tests/test_explanation_generator.py`
 
 Test status:
-- Focused Step 1.3 tests are committed.
+- Focused Step 1.4 tests are committed.
 - They have not been executed in this hosted GitHub-only session; no test pass is claimed.
-- The HTTP mock was corrected before completion so the test does not depend on Python method binding behavior.
+- The earlier question generator test was updated to enforce the new separation between question creation and explanation creation.
 - No CI workflow has been added yet.
 
-Important implementation note:
-- The current generator is intentionally a single network path with no automatic rewrite/retry. A future generation policy can add bounded retries only when a concrete failure mode and requirement justify them.
+Architecture note:
+- Question generation is now responsible for producing/validating the question and answer package.
+- Explanation generation is a separate single-call stage.
+- This separation reduces wasted model output and prevents explanation writing from being coupled to answer generation.
 
 ## NEXT STEP
 
-**Step 1.4 — Explanation generation.**
+**Step 1.5 — Lesson assembler.**
 
-Build the explanation stage so it consumes only verified question data and never invents or changes the verified answer. The explanation output must remain attached to the canonical question contract and should minimize additional LLM calls.
+Build the deterministic assembler that turns verified questions + verified explanations into the five locked learning experiences:
+- practice
+- timed test
+- concept + practice
+- PYQ analysis
+- revision/marathon
+
+This stage should define the lesson contract and sequencing rules without adding rendering, audio, publishing, or topic-discovery code yet.
