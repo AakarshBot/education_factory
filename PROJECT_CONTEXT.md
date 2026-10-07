@@ -1511,19 +1511,21 @@ Corrections now present on main:
 - `question_generator.py` requires every generated question to be self-contained in text and explicitly forbids missing-visual references in the generation prompt.
 - `lesson_layouts.py` explanation scenes use the reclaimed lower area for the existing progress indicator instead of the orphan label.
 
-## Dual-audio design boundary — 2026-10-08
+## Dual-audio production stage — 2026-10-08
 
-YouTube currently supports adding additional language audio tracks to a single video or Short through YouTube Studio on desktop. The channel must have access to Advanced features, and the uploaded dubbed audio file should be roughly the same length as the video. YouTube describes this as multi-language audio, not automatic dubbing. citeturn363724search2
+The first production integration of dual audio is now implemented.
 
-The YouTube Data API's current `videos` resource supports the video's default audio language plus localized title/description metadata, but its documented video methods do not expose a multi-language-audio upload operation. The multi-language audio upload therefore remains a YouTube Studio action rather than a factory API call. citeturn382811search0turn363724search3
+Current behavior:
+- Hinglish remains the primary/default narration and is unchanged.
+- After the existing Hinglish narration is checkpointed, the factory localizes the exact same narration segments into English through `english_narration_generator.py`.
+- The English localization is checkpointed as `english_narration.json`, so resume does not repeat the translation call.
+- After long-form rendering succeeds, the factory synthesizes one full English narration track using `ENGLISH_TTS_VOICE` (default `en-IN-PrabhatNeural`) and checkpoints the MP3 plus word timings as `english_narration.mp3` and `english_word_timings.json`.
+- English audio is QA-checked before metadata generation/upload continues.
+- No second video is uploaded and no English rendering pipeline was introduced.
 
-Factory decision:
-- Keep Hinglish as the primary/default audio.
-- Generate one English localization of the existing narration segments, preserving exact segment count, ordering, questions, answers, values, and instructional meaning.
-- Reuse the same English segments for both long-form and the derived Short; do not generate a different lesson.
-- Synthesize English with an India-English voice. The current Microsoft voice catalog includes `en-IN-PrabhatNeural` as an English (India) male neural voice. citeturn551721search0
-- Do not create a second video upload.
-- English localized title/description will be handled separately through YouTube's supported metadata-localization path rather than putting language labels into the main title.
+Short English audio is intentionally not yet wired. It will reuse the already-localized full lesson segments and derive only the same Short segment subset in a later batch.
+
+YouTube Studio remains the manual platform step for attaching `english_narration.mp3` as the English additional audio track to the already-uploaded video. The Data API does not expose that attachment operation.
 
 
 ## Long-form explanation layout verification — 2026-10-08

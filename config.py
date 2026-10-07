@@ -19,6 +19,7 @@ YOUTUBE_TOKEN_FILE = Path(
 ).expanduser()
 
 TTS_VOICE = os.getenv("TTS_VOICE", "hi-IN-MadhurNeural").strip()
+ENGLISH_TTS_VOICE = os.getenv("ENGLISH_TTS_VOICE", "en-IN-PrabhatNeural").strip()
 
 
 def validate_config(

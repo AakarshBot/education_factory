@@ -15,6 +15,7 @@ from editorial_adaptation import build_editorial_adaptation
 from factory_state import DEFAULT_STATE_FILE, load_state, record_run, save_state, validate_runs_per_day
 from editorial_queue import EditorialJob, build_editorial_queue
 from explanation_generator import generate_explanations
+from english_narration_generator import generate_english_narration_segments
 from format_analysis import analyze_formats
 from job_manifest import (
     JobManifest,
@@ -28,6 +29,7 @@ from lesson import Lesson
 from lesson_assembler import assemble_lesson
 from long_form_renderer import render_long_form
 from metadata_generator import VideoMetadata, generate_metadata
+from config import ENGLISH_TTS_VOICE
 from narration import synthesize_speech
 from question import Question
 from question_generator import generate_questions
@@ -541,6 +543,26 @@ def run_factory(
                 },
             )
 
+        english_segments_path = _output_path(manifest, "english_narration.json")
+        if stage_complete(manifest, "english_localization"):
+            english_narration_segments = list(
+                read_json(english_segments_path)["segments"]
+            )
+        else:
+            current_stage = "english_localization"
+            english_narration_segments = generate_english_narration_segments(
+                narration_segments,
+                source_language=language,
+            )
+            write_json(
+                english_segments_path,
+                {"segments": english_narration_segments},
+            )
+            manifest.checkpoint(
+                "english_localization",
+                outputs={"english_narration": str(english_segments_path.resolve())},
+            )
+
         audio_path = _stored_output(manifest, "narration_audio")
         if not stage_complete(manifest, "long_audio_qa"):
             current_stage = "long_audio_qa"
@@ -576,6 +598,38 @@ def run_factory(
             manifest.checkpoint(
                 "long_render",
                 outputs={"long_video": str(video_path.resolve())},
+            )
+
+        english_audio_path = _output_path(manifest, "english_narration.mp3")
+        english_timing_path = _output_path(manifest, "english_word_timings.json")
+        if not stage_complete(manifest, "english_audio"):
+            current_stage = "english_audio"
+            synthesize_speech(
+                "\n\n".join(english_narration_segments),
+                english_audio_path,
+                voice=ENGLISH_TTS_VOICE,
+                timing_path=english_timing_path,
+            )
+            manifest.checkpoint(
+                "english_audio",
+                outputs={
+                    "english_audio": str(english_audio_path.resolve()),
+                    "english_timing": str(english_timing_path.resolve()),
+                },
+            )
+        else:
+            english_audio_path = _stored_output(manifest, "english_audio")
+
+        if not stage_complete(manifest, "english_audio_qa"):
+            current_stage = "english_audio_qa"
+            english_audio_result = check_audio(english_audio_path)
+            manifest.selected["english_duration"] = english_audio_result.duration_seconds
+            manifest.checkpoint("english_audio_qa")
+        else:
+            english_duration = float(manifest.selected["english_duration"])
+            check_audio(
+                english_audio_path,
+                expected_duration_seconds=english_duration,
             )
 
         metadata_path = _output_path(manifest, "metadata.json")
