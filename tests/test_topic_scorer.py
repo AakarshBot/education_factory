@@ -118,7 +118,9 @@ def test_score_topics_calculates_demand_and_weighted_total(monkeypatch):
     assert result[0].demand_score == 100.0
     assert result[0].total_score == 93.8
     assert result[1].demand_score == 33.33
-    assert captured["payload"]["generationConfig"]["responseMimeType"] == "application/json"
+    config = captured["payload"]["generationConfig"]
+    assert config["responseFormat"]["text"]["mimeType"] == "application/json"
+    assert "responseSchema" not in config
     prompt = captured["payload"]["contents"][0]["parts"][0]["text"]
     assert "Old SSC Percentage Video" in prompt
 
