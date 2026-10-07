@@ -224,8 +224,8 @@ def render_short(
                 raise RuntimeError(f"Short render failed: {detail[:500]}")
             if not temp_output.exists() or temp_output.stat().st_size == 0:
                 raise RuntimeError("Short render produced no video")
+            check_video(temp_output, expected_size=SHORT_SIZE, expected_duration_seconds=total_duration)
             temp_output.replace(output)
-            check_video(output, expected_size=SHORT_SIZE, expected_duration_seconds=total_duration)
     except OSError as exc:
         raise RuntimeError("Could not run FFmpeg for Shorts rendering") from exc
 
