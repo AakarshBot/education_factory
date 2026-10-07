@@ -1117,3 +1117,17 @@ Current external launch status:
 - real analytics ingestion: pending
 
 The full repository pytest suite remains unclaimed as green, consistent with the final engineering audit.
+
+## Launch incident — transient Gemini API 503
+
+The first real factory launch run reached `topic_scorer.py` and received HTTP 503 `UNAVAILABLE` from Gemini with the provider message that the model was experiencing high demand. This was a transient provider-side failure, not an account, API-key, OAuth, or YouTube configuration failure. Google’s current Gemini troubleshooting guidance recommends exponential backoff for transient 503/429 responses.
+
+Launch fix completed on 2026-10-08:
+- `topic_scorer._request_candidates` now retries transient HTTP 429/503 responses up to three times with 1s, 2s, and 4s delays.
+- Non-transient HTTP errors still fail immediately.
+- Added a focused regression test proving a pair of 503 responses can recover on the next successful request.
+- No new dependency, wrapper, pipeline, or editorial gate was added.
+
+Current next action:
+- Pull the latest `main` into the local factory and rerun the same first real factory command.
+- If another real launch defect appears at a later stage, diagnose and fix only that defect.
