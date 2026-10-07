@@ -215,6 +215,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     monkeypatch.setattr(factory, "build_editorial_queue", lambda *args, **kwargs: [Job()])
     monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: calls.__setitem__("questions", calls["questions"] + 1) or [question()])
     monkeypatch.setattr(factory, "generate_english_narration_segments", lambda segments, source_language: list(segments))
+    monkeypatch.setattr(factory, "generate_metadata", lambda lesson_value, language: metadata())
     monkeypatch.setattr(
         factory,
         "generate_explanations",
@@ -305,6 +306,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     final = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert final["status"] == "complete"
     assert final["failure"] is None
+    assert final["stages"]["english_metadata"]["status"] == "complete"
     assert final["stages"]["english_localization"]["status"] == "complete"
     assert final["stages"]["english_audio"]["status"] == "complete"
     assert final["stages"]["english_audio_qa"]["status"] == "complete"

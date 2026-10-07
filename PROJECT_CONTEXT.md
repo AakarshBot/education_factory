@@ -1526,8 +1526,10 @@ Current behavior:
 - The English Short track is synthesized with the same `ENGLISH_TTS_VOICE` and checkpointed as `english_short_narration.mp3` plus `english_short_word_timings.json`.
 - English Short audio is QA-checked and fails closed if it exceeds YouTube's 3-minute limit.
 - No second video is uploaded and no English rendering pipeline was introduced.
+- The factory also generates one English metadata package from the same lesson and supplies it as YouTube's `localizations.en` at upload time for both long-form and Short videos; the English Short uses the second title candidate without another Gemini metadata call.
+- Localized title/description use the standard YouTube Data API upload resource; only the audio-track attachment remains a YouTube Studio-only operation.
 
-The remaining platform action is attaching the English MP3 as the additional audio track to each already-uploaded video in YouTube Studio. The Data API does not expose that attachment operation.
+The remaining platform action is attaching the English MP3 as the additional audio track to each uploaded video in YouTube Studio. YouTube's official Multi-language Audio flow requires creator-side audio upload in Studio; the Data API does not expose that audio-track attachment operation.
 
 Next implementation step: verify the finished dual-audio artifacts and then lock the exact YouTube Studio attachment workflow.
 

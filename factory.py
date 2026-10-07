@@ -644,6 +644,18 @@ def run_factory(
                 outputs={"metadata": str(metadata_path.resolve())},
             )
 
+        english_metadata_path = _output_path(manifest, "english_metadata.json")
+        if stage_complete(manifest, "english_metadata"):
+            english_metadata = VideoMetadata.from_dict(read_json(english_metadata_path))
+        else:
+            current_stage = "english_metadata"
+            english_metadata = generate_metadata(lesson, language="English")
+            write_json(english_metadata_path, english_metadata.to_dict())
+            manifest.checkpoint(
+                "english_metadata",
+                outputs={"english_metadata": str(english_metadata_path.resolve())},
+            )
+
         short_indices = _short_segment_indices(lesson)
         short_narration_segments = [
             narration_segments[index] for index in short_indices
@@ -812,6 +824,7 @@ def run_factory(
                     publish_at=long_publish_at,
                     history_path=history_file,
                     content_format="long_form",
+                    english_metadata=english_metadata,
                 )
             manifest.upload_ids["long_form"] = long_video_id
             manifest.checkpoint("long_upload")
@@ -838,6 +851,16 @@ def run_factory(
                     publish_at=short_publish_at,
                     history_path=history_file,
                     content_format="shorts",
+                    english_metadata=VideoMetadata(
+                        primary_title=english_metadata.title_candidates[1],
+                        title_candidates=english_metadata.title_candidates,
+                        description=english_metadata.description,
+                        hashtags=english_metadata.hashtags,
+                        tags=english_metadata.tags,
+                        series_context=english_metadata.series_context,
+                        category_id=english_metadata.category_id,
+                        default_language=english_metadata.default_language,
+                    ),
                 )
             manifest.upload_ids["shorts"] = short_video_id
             manifest.checkpoint("short_upload")

@@ -13,6 +13,15 @@ ALLOWED_MODES = frozenset({"public", "scheduled"})
 ALLOWED_CONTENT_FORMATS = frozenset({"long_form", "shorts"})
 
 
+def _youtube_description(metadata: VideoMetadata) -> str:
+    description = metadata.description
+    if metadata.hashtags:
+        description = f"{description}\n\n{' '.join(metadata.hashtags)}"
+    if len(description.encode("utf-8")) > 5000:
+        raise RuntimeError("final YouTube description exceeds 5000 UTF-8 bytes")
+    return description
+
+
 def _utc_iso(value: datetime) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("datetime must be timezone-aware")
@@ -39,11 +48,14 @@ def upload_video(
     history_path: str | Path = DEFAULT_HISTORY_FILE,
     now: datetime | None = None,
     content_format: str = "long_form",
+    english_metadata: VideoMetadata | None = None,
 ) -> str:
     if not isinstance(lesson, Lesson):
         raise TypeError("lesson must be a Lesson")
     if not isinstance(metadata, VideoMetadata):
         raise TypeError("metadata must be VideoMetadata")
+    if english_metadata is not None and not isinstance(english_metadata, VideoMetadata):
+        raise TypeError("english_metadata must be VideoMetadata or None")
 
     selected_mode = mode.strip().lower()
     if selected_mode not in ALLOWED_MODES:
@@ -65,12 +77,7 @@ def upload_video(
     created_at = _utc_iso(current_time)
     scheduled_at = _scheduled_iso(publish_at) if publish_at is not None else None
 
-    description = metadata.description
-    if metadata.hashtags:
-        description = f"{description}\n\n{' '.join(metadata.hashtags)}"
-    if len(description.encode("utf-8")) > 5000:
-        raise RuntimeError("final YouTube description exceeds 5000 UTF-8 bytes")
-
+    description = _youtube_description(metadata)
     body = {
         "snippet": {
             "title": metadata.primary_title,
@@ -85,10 +92,17 @@ def upload_video(
     }
     if scheduled_at:
         body["status"]["publishAt"] = scheduled_at
+    if english_metadata is not None:
+        body["localizations"] = {
+            "en": {
+                "title": english_metadata.primary_title,
+                "description": _youtube_description(english_metadata),
+            }
+        }
 
     try:
         request = youtube.videos().insert(
-            part="snippet,status",
+            part="snippet,status" + (",localizations" if english_metadata is not None else ""),
             body=body,
             media_body=MediaFileUpload(
                 str(video),

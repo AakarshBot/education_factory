@@ -88,6 +88,23 @@ def metadata():
     )
 
 
+def english_metadata():
+    return VideoMetadata(
+        primary_title="SSC CGL Percentages Practice in English",
+        title_candidates=(
+            "SSC CGL Percentages Practice in English",
+            "Percentages Practice for SSC CGL",
+            "SSC CGL Maths Percentage Questions",
+            "Master Percentages with SSC CGL Practice",
+            "SSC CGL Percentage Questions",
+        ),
+        description="Practice percentages for SSC CGL Maths in clear English.",
+        hashtags=("#SSCCGL", "#SSCMaths", "#Percentages"),
+        tags=("SSC CGL Maths", "percentages questions"),
+        series_context="SSC Maths Practice",
+    )
+
+
 def patch_media(monkeypatch):
     class FakeMediaFileUpload:
         def __init__(self, filename, **kwargs):
@@ -115,10 +132,11 @@ def test_upload_public_video_uses_metadata_and_records_history(
         mode="public",
         history_path=history,
         now=datetime(2026, 10, 7, 12, tzinfo=timezone.utc),
+        english_metadata=english_metadata(),
     )
 
     assert result == "video123"
-    assert youtube.videos_api.part == "snippet,status"
+    assert youtube.videos_api.part == "snippet,status,localizations"
     assert youtube.videos_api.body == {
         "snippet": {
             "title": "SSC CGL Percentages Practice",
@@ -131,6 +149,15 @@ def test_upload_public_video_uses_metadata_and_records_history(
             "defaultLanguage": "hi",
         },
         "status": {"privacyStatus": "public"},
+        "localizations": {
+            "en": {
+                "title": "SSC CGL Percentages Practice in English",
+                "description": (
+                    "Practice percentages for SSC CGL Maths in clear English.\n\n"
+                    "#SSCCGL #SSCMaths #Percentages"
+                ),
+            }
+        },
     }
 
     stored = history.read_text(encoding="utf-8")
