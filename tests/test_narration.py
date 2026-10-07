@@ -144,3 +144,30 @@ def test_synthesize_speech_fails_when_no_word_boundaries(monkeypatch, tmp_path):
             tmp_path / "audio.mp3",
             timing_path=tmp_path / "timing.json",
         )
+
+
+def test_synthesize_speech_allows_overlapping_word_spans(monkeypatch, tmp_path):
+    events = [
+        {"type": "WordBoundary", "offset": 0, "duration": 4_000_000, "text": "Aaj"},
+        {"type": "WordBoundary", "offset": 3_000_000, "duration": 3_000_000, "text": "test"},
+    ]
+
+    class StreamingCommunicate:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def stream(self):
+            for event in events:
+                yield event
+
+    monkeypatch.setattr(narration.edge_tts, "Communicate", StreamingCommunicate)
+
+    output = narration.synthesize_speech(
+        "Aaj test",
+        tmp_path / "audio.mp3",
+        timing_path=tmp_path / "timing.json",
+    )
+
+    assert output.exists()
+    payload = json.loads((tmp_path / "timing.json").read_text(encoding="utf-8"))
+    assert payload["words"][1]["start_seconds"] == 0.3
