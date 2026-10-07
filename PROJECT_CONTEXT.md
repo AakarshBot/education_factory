@@ -1354,6 +1354,9 @@ Architecture decision:
 - Keep the new education_factory Google Cloud project for Gemini and the existing Analytics OAuth setup unless the existing upload project can safely cover Analytics without triggering unrelated verification changes.
 - No production pipeline duplication or wrapper layer is required.
 
+Completed external gate:
+- In Google Auth Platform -> Audience for project `amazing-sunset-504916-c4`, the OAuth app is in Testing and `education.factory.india@gmail.com` was added as a test user.
+
 Next manual action:
-- In Google Cloud Console, open project `amazing-sunset-504916-c4` and inspect Google Auth Platform -> Audience. If the app is in Testing, add `education.factory.india@gmail.com` as a test user. If it is In production, make no change.
-- Do not change scopes, publishing status, or other settings yet.
+- Copy the proven Final-Shorts desktop OAuth client secret into the education_factory repo as `client_secrets.json`, and remove the education_factory `token.json` so it authorizes cleanly against the existing project/client on the next run.
+- Do not send any secret contents.
