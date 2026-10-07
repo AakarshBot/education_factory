@@ -728,8 +728,3 @@ Architecture note:
 **Step 2.4 — Historical memory.**
 
 Store enough local channel history to avoid repetitive publishing and support learning from prior results.
-## NEXT STEP
-
-**Step 2.3 — Editorial queue.**
-
-Automatically choose the next jobs from the scored topic candidates.
