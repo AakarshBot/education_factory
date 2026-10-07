@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 6 / Step 6.4 — Deterministic topic-family analysis**
+**Phase 6 / Step 6.5 — Conservative automatic editorial adaptation**
 
-The factory now has direct YouTube upload/scheduling, analytics ingestion, format comparison, subject comparison, and topic-family analysis stages, with production state stored in local channel history.
+The factory now has direct YouTube upload/scheduling, analytics ingestion, format comparison, subject comparison, topic-family analysis, and conservative editorial-adaptation stages, with production state stored in local channel history.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
