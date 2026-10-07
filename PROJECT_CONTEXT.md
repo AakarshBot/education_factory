@@ -1262,3 +1262,15 @@ Correction committed to main:
 - No font file, dependency, or manual installation was added to the repository.
 
 The latest suite result before this correction was 181 passed, 2 failed. Do not run factory.py yet. Pull main and rerun the full pytest suite; this is the final test gate before the real Gemini smoke test.
+
+## Full pytest green — 2026-10-08
+
+The user's local full suite completed successfully after the final Windows font-discovery correction:
+- 183 passed in 19.57s.
+- No pytest failures remain.
+- The full engineering regression gate is now green.
+
+Next gate:
+- Run one real Gemini structured-output smoke test locally using the configured production API key/model.
+- Do not run the full factory yet.
+- After the Gemini smoke test is clean, resolve the documented YouTube API compliance-audit boundary before declaring public/scheduled publication operational.
