@@ -1,3 +1,5 @@
+import pytest
+
 from editorial_adaptation import (
     MAX_WEIGHT,
     MIN_WEIGHT,
