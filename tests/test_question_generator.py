@@ -65,7 +65,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert result[0].explanation == ""
     assert len(calls) == 1
     config = calls[0][1]["json"]["generationConfig"]
-    assert config["responseFormat"]["text"]["mimeType"] == "application/json"
+    assert config["responseFormat"]["text"]["mimeType"] == "APPLICATION_JSON"
     assert "responseSchema" not in config
     choices_schema = config["responseFormat"]["text"]["schema"]["properties"]["questions"]["items"]["properties"]["choices"]
     assert choices_schema["type"] == "array"
