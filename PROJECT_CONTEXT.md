@@ -1392,3 +1392,22 @@ The failed run produced no evidence of a YouTube upload; failure occurred before
 
 Next manual action:
 - From `C:\\Users\\aakar\\Desktop\\education_factory`, upgrade the installed edge-tts version with the command supplied in chat, then rerun `python factory.py`.
+
+## TTS timing validator correction — 2026-10-08
+
+The first production run failed in `narration.py` with `TTS word timings are not monotonic` even though the installed edge-tts requirement was already satisfied.
+
+Root cause found in factory code:
+- `_validate_timing()` incorrectly required each word's `start_seconds` to be at or after the previous word's `start + duration`.
+- Edge TTS word-boundary data provides an offset and duration for each word; overlapping spans are not by themselves invalid. The relevant ordering invariant is that word start offsets are nondecreasing. citeturn613786search1
+
+Correction committed to main:
+- `narration.py` now validates nondecreasing word starts and positive durations.
+- Added a regression test proving overlapping word spans are accepted when starts remain ordered.
+- Reverted the unnecessary `edge-tts` minimum-version change; `requirements.txt` remains `edge-tts>=7,<8`.
+- No wrapper, dependency, or fallback timing algorithm was added.
+
+The failed production run stopped during narration before rendering or YouTube upload.
+
+Next manual action:
+- Pull latest main and rerun `python factory.py`. Do not install or change dependencies for this issue.
