@@ -199,6 +199,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
             output_root=tmp_path,
             history_path=tmp_path / "history.json",
             backlog_path=tmp_path / "backlog.json",
+            factory_state_path=tmp_path / "factory_state.json",
         )
 
     manifest_paths = list((tmp_path / "jobs").glob("*/job.json"))
@@ -211,6 +212,8 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert saved["stages"]["long_narration"]["status"] == "complete"
     assert saved["selected"]["run_config"]["history_path"] == str((tmp_path / "history.json").resolve())
     assert saved["selected"]["run_config"]["backlog_path"] == str((tmp_path / "backlog.json").resolve())
+    assert saved["selected"]["run_config"]["factory_state_path"] == str((tmp_path / "factory_state.json").resolve())
+    assert saved["selected"]["run_config"]["runs_per_day"] == 2
     assert calls["questions"] == 1
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
@@ -221,6 +224,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
         resume=manifest_path,
         history_path=tmp_path / "history.json",
         backlog_path=tmp_path / "backlog.json",
+        factory_state_path=tmp_path / "factory_state.json",
     )
 
     assert result.title == "SSC Maths Percentages Practice"
@@ -233,6 +237,10 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert final["status"] == "complete"
     assert final["failure"] is None
     assert final["stages"]["backlog_complete"]["status"] == "complete"
+    state = json.loads((tmp_path / "factory_state.json").read_text(encoding="utf-8"))
+    assert state["last_status"] == "complete"
+    assert state["last_run_id"] == final["run_id"]
+    assert state["runs_per_day"] == 2
     assert json.loads((tmp_path / "backlog.json").read_text(encoding="utf-8")) == []
     assert final["upload_ids"] == {
         "long_form": "video-id",
