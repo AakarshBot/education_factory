@@ -74,7 +74,7 @@ def test_generate_explanations_updates_only_explanation(monkeypatch):
     assert result[0].question == question.question
     assert result[0].shortcut == question.shortcut
     config = captured["payload"]["generationConfig"]
-    assert config["responseFormat"]["text"]["mimeType"] == "application/json"
+    assert config["responseFormat"]["text"]["mimeType"] == "APPLICATION_JSON"
     assert "responseSchema" not in config
     sent_question = captured["payload"]["contents"][0]["parts"][0]["text"]
     assert '"verified_answer": "\u20b91,700"' in sent_question
