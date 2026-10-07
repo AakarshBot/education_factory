@@ -107,3 +107,9 @@ def test_analyze_subjects_requires_three_measured_videos():
     assert result.measured_videos == 2
     assert result.comparison_ready is False
     assert MIN_COMPARISON_SAMPLES == 3
+
+
+def test_analyze_subjects_excludes_shorts():
+    short = entry("Maths", "s1", views=999)
+    short = __import__("dataclasses").replace(short, content_format="shorts")
+    assert analyze_subjects([short])[0].measured_videos == 0
