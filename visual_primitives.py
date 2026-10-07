@@ -4,18 +4,23 @@ from PIL import Image, ImageDraw, ImageFont
 DEFAULT_SIZE=(1920,1080)
 BACKGROUND=(245,247,250); SURFACE=(255,255,255); INK=(18,28,45); MUTED=(91,105,122)
 ACCENT=(37,99,235); SUCCESS=(22,163,74); DANGER=(220,38,38); BORDER=(221,227,235); HIGHLIGHT=(219,234,254)
-DEV="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf" if os.name!="nt" else "C:/Windows/Fonts/Nirmala.ttf"
-DEV_B="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if os.name!="nt" else "C:/Windows/Fonts/Nirmalab.ttf"
+DEV="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf" if os.name!="nt" else "C:/Windows/Fonts/NirmalaUI.ttf"
+DEV_B="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if os.name!="nt" else "C:/Windows/Fonts/NirmalaUI-Bold.ttf"
 LAT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" if os.name!="nt" else "C:/Windows/Fonts/arial.ttf"
 LAT_B="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.name!="nt" else "C:/Windows/Fonts/arialbd.ttf"
+DEV_FONTS=(DEV, "C:/Windows/Fonts/Mangal.ttf", "C:/Windows/Fonts/Nirmala.ttf")
+DEV_B_FONTS=(DEV_B, "C:/Windows/Fonts/Mangalb.ttf", "C:/Windows/Fonts/Nirmalab.ttf", *DEV_FONTS)
+LAT_FONTS=(LAT, "C:/Windows/Fonts/segoeui.ttf")
+LAT_B_FONTS=(LAT_B, "C:/Windows/Fonts/segoeuib.ttf", *LAT_FONTS)
 
 def _dev(text): return any("\u0900"<=c<="\u097f" for c in text)
 
 def _font(size,bold=False,dev=False):
-    path = DEV_B if dev and bold else DEV if dev else LAT_B if bold else LAT
-    if not os.path.exists(path):
-        path = DEV if dev else LAT
-    return ImageFont.truetype(path,size)
+    candidates = DEV_B_FONTS if dev and bold else DEV_FONTS if dev else LAT_B_FONTS if bold else LAT_FONTS
+    for path in candidates:
+        if os.path.exists(path):
+            return ImageFont.truetype(path,size)
+    raise OSError("No suitable font is installed for the requested text")
 
 def _measure(draw,text,size,bold):
     words=text.split()
