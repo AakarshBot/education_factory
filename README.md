@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 4 — Visual engine complete**
+**Phase 5 / Step 5.1 — Metadata generation**
 
-The factory now has deterministic visual primitives, lesson-specific layouts, a 16:9 long-form renderer, a 9:16 Shorts renderer, and a shared visual/media QA gate.
+The factory now generates five grounded title candidates, a unique description, directly relevant hashtags and tags, and series context from the finished lesson contract. Metadata is validated against current YouTube limits before publishing.
