@@ -1356,7 +1356,9 @@ Architecture decision:
 
 Completed external gate:
 - In Google Auth Platform -> Audience for project `amazing-sunset-504916-c4`, the OAuth app is in Testing and `education.factory.india@gmail.com` was added as a test user.
+- The proven Final-Shorts desktop OAuth client secret was copied locally into education_factory as `client_secrets.json`.
+- education_factory `token.json` was removed locally so the new channel account will authorize against the existing project/client instead of reusing another channel's token.
 
 Next manual action:
-- Copy the proven Final-Shorts desktop OAuth client secret into the education_factory repo as `client_secrets.json`, and remove the education_factory `token.json` so it authorizes cleanly against the existing project/client on the next run.
-- Do not send any secret contents.
+- From `C:\Users\aakar\Desktop\education_factory`, run the YouTube identity/auth smoke test below. It will open the Google authorization page if needed. Approve the requested YouTube scopes for `education.factory.india@gmail.com` and confirm the printed channel is `Exam Session India`.
+- Do not send credentials or secret file contents.
