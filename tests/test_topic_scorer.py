@@ -185,7 +185,7 @@ def test_score_topics_rejects_bad_inputs(monkeypatch):
 
     with pytest.raises(ValueError, match="positive"):
         topic_scorer.score_topics(
-            [DemandSignal("q", "relevance", "v", "t", "c", "d", 0)]
+            [DemandSignal("q", "relevance", "v", "t", "c", "d", 0, 0)]
         )
 
     with pytest.raises(ValueError, match="empty values"):
