@@ -271,14 +271,14 @@ The build must happen in direct, independently testable steps.
 
 ## Phase 0 — Foundation
 
-### Step 0.1 — Project context
-Create and maintain this file as the single source of truth.
+### Step 0.1 — Project context — **COMPLETE**
+Created and maintained as the single source of truth for the factory.
 
 ### Step 0.2 — Minimal repository skeleton — **COMPLETE**
 Created only repository-level hygiene/documentation needed before production code: `.gitignore`, `.env.example`, and `README.md`. No placeholder application code or speculative dependencies were added.
 
-### Step 0.3 — Local/free dependency policy
-Define the minimum dependency set. Avoid the heavyweight ML stack used by Final-Shorts unless a later feature demonstrably requires it.
+### Step 0.3 — Local/free dependency policy — **COMPLETE**
+Locked the minimum dependency set to the current direct Python stack; no heavyweight ML stack or unnecessary dependency was added.
 
 ### Step 0.4 — Config and secret handling — **COMPLETE**
 Added one direct `config.py` boundary that loads `.env`, exposes the small set of runtime settings currently needed, and validates secrets only when a concrete stage requires them. Updated `.env.example` with Gemini, YouTube OAuth, and TTS settings. Added focused `tests/test_config.py` coverage for defaults, environment overrides, and required-setting failures. No credentials are committed.
@@ -852,8 +852,8 @@ Testing:
 - Added focused orchestration tests covering lesson-format selection, default behavior, publish-time calculation, scene-duration accounting, and end-to-end mocked stage ordering.
 - The factory source was syntax-checked and core helper logic was executed successfully in isolation.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
-### Step 7.2 — Daily queue generation
-This queue requirement is now implemented as the persistent production backlog in Phase 8 / Step 8.2. The Phase 7 label is retained only as the original roadmap reference.
+### Step 7.2 — Daily queue generation — **COMPLETE**
+Implemented by the persistent production backlog in Phase 8 / Step 8.2; future jobs are now separated from current production execution.
 
 ### Step 7.3 — Complete the remaining locked lesson products — **COMPLETE**
 
@@ -985,8 +985,37 @@ Testing:
 - Extended factory resume/failure coverage to verify cadence configuration persistence and failed/complete state recording.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell; focused tests and source paths were reviewed for this step.
 
+### Step 8.4 — Final factory audit and launch readiness — **COMPLETE**
+
+Audited the repository as one production system instead of adding another pipeline.
+
+Audit findings and corrections:
+- Confirmed there are no TODO, FIXME, placeholder, legacy-wrapper, compatibility-layer, or NotImplemented remnants.
+- Confirmed the repository has one production entry point: `factory.py`.
+- Confirmed there is no GitHub Actions workflow currently providing a hidden second runner; the factory remains intentionally operator-invoked once or twice per day until the external account is ready.
+- Confirmed long-form and Shorts renderers both execute audio and video QA before the upload boundary.
+- Confirmed question, explanation, and metadata generation use structured Gemini responses and existing deterministic validation/contract checks.
+- Confirmed YouTube OAuth requests both required scopes: upload and Analytics read-only.
+- Confirmed analytics excludes Shorts from long-form performance comparisons through the persisted `content_format` field.
+- Confirmed resume manifests restore saved artifacts rather than regenerating completed stages and preserve selection/publish configuration.
+- Confirmed the persistent backlog deduplicates, claims, releases stale claims, and only removes a job after the production run reaches `backlog_complete`.
+- Fixed an integration gap: automatic topic-family adaptation was being computed but not applied to editorial job selection. `factory._select_job` now applies both subject and matching topic-family evidence.
+- Added a regression test proving a lower raw-score job from a stronger topic family can correctly outrank a higher raw-score job from a weaker family when the conservative adaptation weights justify it.
+- Removed the unused `_slug` helper from `factory.py` and the unused `PIL.Image` import from `long_form_renderer.py`.
+- Reviewed the dependency list; no new dependency was needed.
+
+Testing state:
+- The repository contains focused tests covering the production modules and the new factory/backlog/cadence paths.
+- A full pytest run has still not been executed in this environment because the repository cannot be mounted as a normal local checkout and there is no configured GitHub Actions workflow to run it remotely.
+- Source and test contracts were reviewed directly against the current `main` tree; the final audit is therefore a code-level readiness review, not a claim of a green full-suite execution.
+
+Engineering completion:
+**The factory build itself is complete after this step.**
+
+Operational launch is intentionally separate from engineering completion. The dedicated YouTube channel/account has not been created or authorized yet, so the real OAuth/upload/analytics path has not been exercised against the live platform.
+
 ## NEXT STEP
 
-**Phase 8 / Step 8.4 — Final factory audit and launch readiness.**
+**Launch Gate — external account setup and first real end-to-end run.**
 
-Review the complete repository as one system, remove any remaining dead/scaffolding code, verify cross-stage contracts and fail-closed boundaries, then produce the final external-account launch gate.
+Manual action is required only for the external platform boundary: create the dedicated YouTube channel/Google Cloud OAuth credentials, place the required local credential/config files in the repo, authorize the factory, and run the first real production job. After that, the factory can operate under the locked once/twice-daily model.
