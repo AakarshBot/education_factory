@@ -473,8 +473,7 @@ Added `tests/test_channel_history.py` and expanded `tests/test_editorial_queue.p
 
 The history store is deliberately local and small. Analytics-specific interpretation remains in Phase 6; the `metrics` field is only a persistence slot for later measurements.
 
-### Step 2.5 — Concept / educational angle selection
-Determine the educational angle and lesson type for each selected job before question generation.
+
 
 ### Step 2.3 — Editorial queue
 Automatically choose the next jobs.
@@ -734,24 +733,19 @@ Current repository files:
 - `tests/test_channel_history.py`
 
 Test status:
-- Step 2.4 dedicated tests: **6 passed locally**.
-- Editorial queue history-filter tests: **2 additional tests passed locally**.
-- The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
+- Step 2.4 tests were written for history persistence and queue filtering.
+- The hosted environment cannot clone the repository because outbound GitHub access is unavailable, so no local test pass is claimed for this step.
+- Repository reads and the final `main` tree have been verified after the commit.
 
 Architecture note:
 - Step 2.1 discovers raw demand signals.
 - Step 2.2 scores educational candidates.
 - Step 2.3 creates bounded jobs.
-- Step 2.4 persists lightweight channel history and gives the queue enough information to avoid recent published/scheduled topics.
+- Step 2.4 persists lightweight channel history and lets the queue exclude recent published/scheduled topics.
 - Analytics interpretation remains deferred to Phase 6.
 
 ## NEXT STEP
 
-**Step 2.5 — Concept / educational angle selection.**
+**Step 3.1 — Hindi/Hinglish narration pipeline.**
 
-Determine the educational angle and lesson type for each selected job before question generation.
-## NEXT STEP
-
-**Step 2.4 — Historical memory.**
-
-Store enough local channel history to avoid repetitive publishing and support learning from prior results.
+Generate speech using free/local tooling.
