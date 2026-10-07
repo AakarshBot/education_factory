@@ -1,6 +1,8 @@
 import importlib
 from pathlib import Path
 
+import dotenv
+
 import pytest
 
 import config
@@ -13,11 +15,12 @@ def test_defaults(monkeypatch):
     monkeypatch.delenv("YOUTUBE_CLIENT_SECRETS_FILE", raising=False)
     monkeypatch.delenv("YOUTUBE_TOKEN_FILE", raising=False)
     monkeypatch.delenv("TTS_VOICE", raising=False)
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *args, **kwargs: False)
 
     importlib.reload(config)
 
     assert config.GEMINI_API_KEY == ""
-    assert config.GEMINI_MODEL == "gemini-3.8-flash"
+    assert config.GEMINI_MODEL == "gemini-3.1-flash-lite"
     assert config.YOUTUBE_API_KEY == ""
     assert config.YOUTUBE_CLIENT_SECRETS_FILE == Path("client_secrets.json")
     assert config.YOUTUBE_TOKEN_FILE == Path("token.json")
