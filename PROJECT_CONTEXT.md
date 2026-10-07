@@ -1511,16 +1511,25 @@ Corrections now present on main:
 - `question_generator.py` requires every generated question to be self-contained in text and explicitly forbids missing-visual references in the generation prompt.
 - `lesson_layouts.py` explanation scenes use the reclaimed lower area for the existing progress indicator instead of the orphan label.
 
-## Self-contained question guard — 2026-10-08
+## Final-render defect audit and current gate — 2026-10-08
 
-The visual-dependency correction is hardened in the generation stage.
+The two objective defects found in the first successful production render are now fixed and regression-protected:
+- missing-visual question references are blocked at generation time
+- the long-form explanation scene no longer contains the orphan `Why it works` label
 
-Current behavior:
-- Gemini is instructed to generate fully self-contained, text-only questions.
-- A deterministic post-generation guard rejects common references to an unseen figure, diagram, chart, image, map, table, or externally shown arrangement before a `Question` is created.
-- The guard checks the question and all four choices.
-- It remains conservative enough to allow genuinely self-contained statements that describe a figure entirely in text.
-- Regression coverage includes both rejection of an unseen diagram reference and acceptance of a self-contained figure statement.
+A further code-level audit of the active long-form/Short render paths found no additional objective usability defect that can be justified without inventing a redesign. The audited technical constraints remain:
+- long-form output is 16:9 and retains aligned audio/video duration
+- Short output is 9:16 and is bounded to YouTube's 3-minute maximum
+- rendering uses the same verified Lesson content and direct stage handoffs
+- no new visual system, subtitle redesign, or decorative overlay changes are warranted from the currently recorded evidence
+
+The original binary MP4s are not currently available in the active file workspace, so no new visual claim is being made beyond the recorded first-run inspection and source-code audit.
+
+Current gate:
+- Question self-containment: hardened and regression-tested.
+- Explanation layout: corrected and regression-tested.
+- No additional render change is currently justified.
+- Next implementation batch: audit the dual-audio requirement against the current narration, manifest/checkpoint, metadata, and YouTube upload capabilities before implementing English audio.
 
 ## Long-form explanation layout verification — 2026-10-08
 
