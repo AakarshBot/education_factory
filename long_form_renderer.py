@@ -116,8 +116,8 @@ def render_long_form(
             if not temp_output.exists() or temp_output.stat().st_size == 0:
                 raise RuntimeError("Long-form render produced no video")
 
+            check_video(temp_output, expected_size=size, expected_duration_seconds=total_duration)
             temp_output.replace(output)
-            check_video(output, expected_size=size, expected_duration_seconds=total_duration)
     except OSError as exc:
         raise RuntimeError("Could not run FFmpeg for long-form rendering") from exc
 
