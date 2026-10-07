@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 
 from audio_qa import check_audio
 from lesson import Lesson
+from visual_qa import check_image, check_video
 from visual_primitives import (
     ACCENT,
     BACKGROUND,
@@ -185,6 +186,7 @@ def render_short(
                 scene = _portrait_scene(lesson, index)
                 scene_path = work_dir / f"scene_{position:04d}.png"
                 scene.save(scene_path, format="PNG", optimize=False)
+                check_image(scene_path, expected_size=SHORT_SIZE)
                 lines.append(f"file '{scene_path.as_posix()}'")
                 lines.append(f"duration {scene_durations[position]:.6f}")
 
@@ -223,6 +225,7 @@ def render_short(
             if not temp_output.exists() or temp_output.stat().st_size == 0:
                 raise RuntimeError("Short render produced no video")
             temp_output.replace(output)
+            check_video(output, expected_size=SHORT_SIZE, expected_duration_seconds=total_duration)
     except OSError as exc:
         raise RuntimeError("Could not run FFmpeg for Shorts rendering") from exc
 
