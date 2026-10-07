@@ -58,7 +58,9 @@ def _analyze_entries(
         if entry.content_format != "long_form" or entry.status.strip().lower() != "published" or not entry.video_id:
             continue
         views = _metric(entry, "views")
-        if views is None or views < 0:
+        if views is None:
+            continue
+        if views < 0:
             raise RuntimeError("history metrics must contain non-negative views")
         valid.append(entry)
 
@@ -135,8 +137,9 @@ def analyze_formats(
         lesson_type = _format_name(entry.lesson_type)
         groups.setdefault(lesson_type, []).append(entry)
 
-    results = [
-        _analyze_entries(lesson_type, groups[lesson_type])
-        for lesson_type in sorted(groups)
-    ]
+    results = []
+    for lesson_type in sorted(groups):
+        result = _analyze_entries(lesson_type, groups[lesson_type])
+        if result.measured_videos:
+            results.append(result)
     return tuple(results)
