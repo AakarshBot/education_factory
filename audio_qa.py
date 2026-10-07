@@ -65,8 +65,8 @@ def _volume_levels(path: Path) -> tuple[float, float]:
         "ffmpeg", "-hide_banner", "-nostats", "-i", str(path),
         "-af", "volumedetect", "-f", "null", "-",
     ])
-    mean_match = re.search(r"mean_volume:s*(-?d+(?:.d+)?)s*dB", output)
-    max_match = re.search(r"max_volume:s*(-?d+(?:.d+)?)s*dB", output)
+    mean_match = re.search(r"mean_volume:\s*(-?\d+(?:\.\d+)?)\s*dB", output)
+    max_match = re.search(r"max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB", output)
     if not mean_match or not max_match:
         raise RuntimeError("ffmpeg returned incomplete volume analysis")
     return float(mean_match.group(1)), float(max_match.group(1))
