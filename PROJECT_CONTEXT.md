@@ -1497,3 +1497,22 @@ Current launch status:
 
 Next manual action:
 - Open YouTube Studio -> Content -> Scheduled and confirm the newly scheduled long-form video and Short are present. Do not change their visibility or edit metadata yet.
+
+
+## Final-file visual/content audit — 2026-10-08
+
+The first successful production files (`long_form.mp4` and `short.mp4`) were inspected directly.
+
+Confirmed defects:
+- Several generated Counting of Figures questions refer to a figure/diagram or a specific shape arrangement that is not actually rendered in the final video. This creates a content usability problem even when the question is technically valid JSON.
+- The long-form explanation scene rendered an orphan `Why it works` label with no content beneath it, leaving unnecessary dead space.
+
+Corrections committed to main:
+- `question_generator.py` now requires every generated question to be fully self-contained in text and explicitly forbids references to missing visuals such as a given figure, shown-below diagram, or image.
+- `lesson_layouts.py` explanation scenes now use the reclaimed lower area for the existing progress indicator instead of the orphan label.
+- No new visual framework, dependency, wrapper, or broad redesign was added.
+
+The supplied videos also confirm the basic technical outputs are correct: long-form is 1920x1080 with matching video/audio duration, and Short is 1080x1920 within the 3-minute limit.
+
+Next production gate:
+- Do not rerun the factory until the user confirms whether any additional final-file defects remain beyond the two confirmed issues above.
