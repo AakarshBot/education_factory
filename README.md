@@ -31,8 +31,10 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 5 / Step 5.3 — YouTube upload and scheduling**
+**Phase 6 / Step 6.1 — YouTube Analytics metrics ingestion**
 
-The factory now has a direct upload/scheduling stage that consumes a rendered MP4 plus `VideoMetadata`, publishes immediately or schedules privately with `publishAt`, and records the returned YouTube video ID in local channel history.
+The factory now has direct YouTube upload/scheduling and analytics-ingestion stages, with production state stored in local channel history.
 
-The dedicated YouTube channel has not been created yet, so real OAuth and upload execution remain intentionally deferred until the factory is fully built.
+The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
+
+The native Shorts “Related Video” control was also checked against the supported API surface and is not exposed by the YouTube Data API, so no undocumented automation was added.
