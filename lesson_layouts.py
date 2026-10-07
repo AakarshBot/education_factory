@@ -8,10 +8,9 @@ from visual_primitives import (
     BACKGROUND,
     BORDER,
     DEFAULT_SIZE,
-    INK,
     MUTED,
-    SURFACE,
     draw_answer_reveal,
+    _font,
     draw_calculation_step,
     draw_choices,
     draw_highlighted_text,
@@ -37,7 +36,7 @@ def _explanation_lines(text):
     return parts or [text]
 
 def _draw_label(draw, text, xy, size=28, fill=ACCENT):
-    draw.text(xy, text, fill=fill, font=__import__("visual_primitives")._font(size, True))
+    draw.text(xy, text, fill=fill, font=_font(size, True))
 
 def _question_scene(lesson: Lesson, segment: LessonSegment, size):
     image = _canvas(size)
@@ -99,7 +98,10 @@ def _shortcut_scene(lesson: Lesson, segment: LessonSegment, size):
 
 def _concept_scene(lesson: Lesson, segment: LessonSegment, size):
     image = _canvas(size)
-    draw_question_card(image, segment.text or "", (130, 150, size[0] - 130, 760))
+    d = ImageDraw.Draw(image)
+    d.rounded_rectangle((130, 150, size[0] - 130, 760), 28, fill=SURFACE, outline=BORDER, width=2)
+    _draw_label(d, "CONCEPT", (172, 188), 28, ACCENT)
+    draw_highlighted_text(image, ((segment.text or "", False),), (172, 265, size[0] - 172, 700), font_size=52)
     draw_highlighted_text(image, (("Concept first -> then practice", False),), (300, 850, 1620, 930), font_size=32)
     return image
 
