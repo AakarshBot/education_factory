@@ -85,6 +85,9 @@ def validate_question(question: Question, *, math_expression: str | None = None)
     if question.subject.lower() == "maths" and math_expression is None:
         raise ValidationError("Maths questions require a machine-checkable expression")
 
+    if question.subject.lower() == "maths":
+        validate_math_answer(math_expression, question.correct_answer)
+
     if question.choices is not None:
         if len(question.choices) < 2:
             raise ValidationError("multiple-choice questions require at least two choices")
@@ -92,6 +95,3 @@ def validate_question(question: Question, *, math_expression: str | None = None)
             raise ValidationError("multiple-choice choices must be unique")
         if question.correct_answer not in question.choices:
             raise ValidationError("correct answer must be one of the choices")
-
-    if question.subject.lower() == "maths":
-        validate_math_answer(math_expression, question.correct_answer)
