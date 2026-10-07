@@ -64,7 +64,10 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert result[0].correct_answer == "₹1,700"
     assert result[0].explanation == ""
     assert len(calls) == 1
-    assert calls[0][1]["json"]["generationConfig"]["responseMimeType"] == "application/json"
+    config = calls[0][1]["json"]["generationConfig"]
+    assert config["responseFormat"]["text"]["mimeType"] == "application/json"
+    assert "responseSchema" not in config
+    assert config["responseFormat"]["text"]["schema"]["properties"]["choices"]["type"] == ["array", "null"]
 
 
 def test_generate_questions_rejects_wrong_math_answer(monkeypatch):
