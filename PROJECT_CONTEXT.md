@@ -1546,7 +1546,17 @@ Current behavior:
 
 The remaining platform action is attaching the English MP3 as the additional audio track to each uploaded video in YouTube Studio. YouTube's official Multi-language Audio flow requires creator-side audio upload in Studio; the Data API does not expose that audio-track attachment operation.
 
-Next implementation step: verify the finished dual-audio artifacts and then lock the exact YouTube Studio attachment workflow.
+## Dual-audio production run verification — 2026-10-08
+
+A real local production run was completed successfully after the dual-audio implementation:
+- Command: `python factory.py --max-jobs 1`
+- Lesson: `Banking Reasoning — Syllogism: Practice`
+- The factory returned `Completed`.
+- This verifies the integrated production path reached its normal completion path with English localization, long-form English audio, Short English audio, metadata localization, scheduled uploads, analytics ingestion, and backlog completion.
+- No code defect was observed in this run.
+- The remaining manual platform gate is attaching each generated English MP3 as the additional audio track in YouTube Studio while the uploaded video remains private/scheduled.
+
+Next implementation step: lock the exact YouTube Studio attachment workflow and then perform that one manual platform action.
 
 
 ## Long-form explanation layout verification — 2026-10-08
