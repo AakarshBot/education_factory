@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Sequence
 
+import json
 import requests
 
 from config import YOUTUBE_API_KEY, validate_config
 
 _YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+_DEFAULT_CACHE_PATH = "data/demand_cache.json"
+_CACHE_TTL = timedelta(hours=24)
 
 EXAMS = ("SSC", "Banking", "Railway")
 SUBJECTS = ("Maths", "Reasoning", "English")
@@ -103,8 +107,82 @@ def _search(
             )
         )
 
+    _save_cache(cache_file, key=key, signals=signals, now=now)
     return signals
 
+
+def _cache_key(
+    queries: tuple[str, ...],
+    *,
+    days: int,
+    max_results: int,
+    region_code: str,
+) -> str:
+    return json.dumps(
+        {
+            "queries": queries,
+            "days": days,
+            "max_results": max_results,
+            "region_code": region_code,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def _load_cache(
+    path: Path,
+    *,
+    key: str,
+    now: datetime,
+) -> list[DemandSignal] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        cached_at = datetime.fromisoformat(payload["cached_at"])
+        if now - cached_at >= _CACHE_TTL or now < cached_at:
+            return None
+        if payload["key"] != key or not isinstance(payload["signals"], list):
+            return None
+
+        return [
+            DemandSignal(
+                query=str(item["query"]),
+                order=str(item["order"]),
+                video_id=str(item["video_id"]),
+                title=str(item["title"]),
+                channel_title=str(item["channel_title"]),
+                published_at=str(item["published_at"]),
+                description=str(item["description"]),
+                rank=int(item["rank"]),
+            )
+            for item in payload["signals"]
+        ]
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _save_cache(
+    path: Path,
+    *,
+    key: str,
+    signals: list[DemandSignal],
+    now: datetime,
+) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "cached_at": now.isoformat(),
+            "key": key,
+            "signals": [signal.to_dict() for signal in signals],
+        }
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        return
 
 def discover_demand(
     queries: Sequence[str] = DEFAULT_DEMAND_QUERIES,
@@ -112,6 +190,7 @@ def discover_demand(
     days: int = 30,
     max_results: int = 10,
     region_code: str = "IN",
+    cache_path: str | Path = _DEFAULT_CACHE_PATH,
 ) -> list[DemandSignal]:
     if not queries:
         raise ValueError("queries must not be empty")
@@ -127,6 +206,18 @@ def discover_demand(
     validate_config(require_youtube_api=True)
 
     published_after = _published_after(days)
+    cache_file = Path(cache_path).expanduser()
+    now = datetime.now(timezone.utc)
+    key = _cache_key(
+        clean_queries,
+        days=days,
+        max_results=max_results,
+        region_code=region_code,
+    )
+    cached = _load_cache(cache_file, key=key, now=now)
+    if cached is not None:
+        return cached
+
     signals: list[DemandSignal] = []
 
     for query in clean_queries:
