@@ -138,7 +138,6 @@ Do not include URLs.
         },
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "responseMimeType": "application/json",
             "responseFormat": {
                 "text": {
                     "mimeType": "application/json",
