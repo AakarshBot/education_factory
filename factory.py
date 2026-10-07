@@ -694,6 +694,43 @@ def run_factory(
                 expected_duration_seconds=short_duration,
             )
 
+        english_short_audio_path = _output_path(manifest, "english_short_narration.mp3")
+        english_short_timing_path = _output_path(manifest, "english_short_word_timings.json")
+        english_short_narration_segments = [
+            english_narration_segments[index] for index in short_indices
+        ]
+        if not stage_complete(manifest, "english_short_audio"):
+            current_stage = "english_short_audio"
+            synthesize_speech(
+                "\n\n".join(english_short_narration_segments),
+                english_short_audio_path,
+                voice=ENGLISH_TTS_VOICE,
+                timing_path=english_short_timing_path,
+            )
+            manifest.checkpoint(
+                "english_short_audio",
+                outputs={
+                    "english_short_audio": str(english_short_audio_path.resolve()),
+                    "english_short_timing": str(english_short_timing_path.resolve()),
+                },
+            )
+        else:
+            english_short_audio_path = _stored_output(manifest, "english_short_audio")
+
+        if not stage_complete(manifest, "english_short_audio_qa"):
+            current_stage = "english_short_audio_qa"
+            english_short_audio_result = check_audio(english_short_audio_path)
+            if english_short_audio_result.duration_seconds > SHORT_MAX_DURATION_SECONDS:
+                raise RuntimeError("English Short audio exceeds YouTube's 3-minute limit")
+            manifest.selected["english_short_duration"] = english_short_audio_result.duration_seconds
+            manifest.checkpoint("english_short_audio_qa")
+        else:
+            english_short_duration = float(manifest.selected["english_short_duration"])
+            check_audio(
+                english_short_audio_path,
+                expected_duration_seconds=english_short_duration,
+            )
+
         short_duration = float(manifest.selected["short_duration"])
         short_duration_path = _output_path(manifest, "short_scene_durations.json")
         if stage_complete(manifest, "short_scene_durations"):

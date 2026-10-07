@@ -194,7 +194,7 @@ def test_record_publish_times_is_resume_stable(tmp_path):
 
 def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_path):
     render_state = {"fail": True}
-    calls = {"questions": 0, "explanations": 0, "lesson": 0, "tts": 0}
+    calls = {"questions": 0, "explanations": 0, "lesson": 0, "tts": 0, "tts_voices": []}
 
     class Job:
         priority = 1
@@ -214,6 +214,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     monkeypatch.setattr(factory, "score_topics", lambda *args, **kwargs: ["score"])
     monkeypatch.setattr(factory, "build_editorial_queue", lambda *args, **kwargs: [Job()])
     monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: calls.__setitem__("questions", calls["questions"] + 1) or [question()])
+    monkeypatch.setattr(factory, "generate_english_narration_segments", lambda segments, source_language: list(segments))
     monkeypatch.setattr(
         factory,
         "generate_explanations",
@@ -227,6 +228,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
 
     def fake_tts(text, output_path, **kwargs):
         calls["tts"] += 1
+        calls["tts_voices"].append(kwargs.get("voice"))
         Path(output_path).write_bytes(b"audio")
         timing_path = kwargs.get("timing_path")
         if timing_path:
@@ -297,11 +299,17 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert calls["questions"] == 1
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
-    assert calls["tts"] == 2
+    assert calls["tts"] == 4
+    assert calls["tts_voices"] == [None, factory.ENGLISH_TTS_VOICE, None, factory.ENGLISH_TTS_VOICE]
 
     final = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert final["status"] == "complete"
     assert final["failure"] is None
+    assert final["stages"]["english_localization"]["status"] == "complete"
+    assert final["stages"]["english_audio"]["status"] == "complete"
+    assert final["stages"]["english_audio_qa"]["status"] == "complete"
+    assert final["stages"]["english_short_audio"]["status"] == "complete"
+    assert final["stages"]["english_short_audio_qa"]["status"] == "complete"
     assert final["stages"]["backlog_complete"]["status"] == "complete"
     state = json.loads((tmp_path / "factory_state.json").read_text(encoding="utf-8"))
     assert state["last_status"] == "complete"

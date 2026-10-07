@@ -1513,7 +1513,7 @@ Corrections now present on main:
 
 ## Dual-audio production stage — 2026-10-08
 
-The first production integration of dual audio is now implemented.
+Dual-audio production is now wired for both published formats.
 
 Current behavior:
 - Hinglish remains the primary/default narration and is unchanged.
@@ -1521,12 +1521,15 @@ Current behavior:
 - The English localization is checkpointed as `english_narration.json`, so resume does not repeat the translation call.
 - The localization stage deterministically rejects changed numeric content, changed explicit answer text, and removed option structure before English audio is synthesized.
 - After long-form rendering succeeds, the factory synthesizes one full English narration track using `ENGLISH_TTS_VOICE` (default `en-IN-PrabhatNeural`) and checkpoints the MP3 plus word timings as `english_narration.mp3` and `english_word_timings.json`.
-- English audio is QA-checked before metadata generation/upload continues.
+- English long-form audio is QA-checked before metadata generation/upload continues.
+- The Short derives its English narration from the same already-localized full-lesson segments and the exact same Short segment indices; it does not call Gemini again for translation.
+- The English Short track is synthesized with the same `ENGLISH_TTS_VOICE` and checkpointed as `english_short_narration.mp3` plus `english_short_word_timings.json`.
+- English Short audio is QA-checked and fails closed if it exceeds YouTube's 3-minute limit.
 - No second video is uploaded and no English rendering pipeline was introduced.
 
-Short English audio is intentionally not yet wired. It will reuse the already-localized full lesson segments and derive only the same Short segment subset in a later batch.
+The remaining platform action is attaching the English MP3 as the additional audio track to each already-uploaded video in YouTube Studio. The Data API does not expose that attachment operation.
 
-YouTube Studio remains the manual platform step for attaching `english_narration.mp3` as the English additional audio track to the already-uploaded video. The Data API does not expose that attachment operation.
+Next implementation step: verify the finished dual-audio artifacts and then lock the exact YouTube Studio attachment workflow.
 
 
 ## Long-form explanation layout verification — 2026-10-08
