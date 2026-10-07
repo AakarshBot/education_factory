@@ -1207,3 +1207,32 @@ Current state:
 - This was a test-suite naming mismatch, not a production runtime defect.
 - The full pytest suite has still not been rerun after this correction.
 - Do not run factory.py yet; rerun the full pytest suite first.
+
+## Full pytest audit — 17 failures resolved — 2026-10-08
+
+The user's full local pytest run reached 183 tests and reported 17 failures. All failures were traced individually.
+
+Production corrections:
+- format_analysis.py: published long-form entries with missing view metrics are treated as unmeasured and skipped; negative views remain a hard error. Result groups with zero measured videos are omitted.
+- topic_family_analysis.py: only measured published long-form entries participate in topic-family grouping; scheduled, Shorts, empty-topic, and missing-view entries no longer create empty analysis groups. Negative views remain a hard error.
+- metadata_generator.py: title length is checked before duplicate-title validation so an oversized title reliably fails with the intended limit error.
+- pyq_source.py: exam input normalization is now case-insensitive and maps user input to canonical SSC, Railway, or Banking names.
+- question_generator.py: the separate explanation stage remains authoritative; any explanation returned by the question-generation model is discarded and stored as an empty string. The existing exact-four-choice contract remains unchanged.
+- validators.py: Maths answer validation runs before choice-membership validation, so a machine-checkable answer mismatch is detected deterministically even when the bad answer is absent from the choices.
+- visual_primitives.py: missing Windows bold-font files now fall back to the regular font instead of failing render-time font loading. No new dependency was added.
+
+Test corrections:
+- tests/test_config.py: isolates the default-value test from the local .env and updates the expected Gemini default to gemini-3.1-flash-lite.
+- tests/test_editorial_adaptation.py: uses pytest.approx for the floating-point constant comparison.
+- tests/test_long_form_renderer.py: fake scenes now leave a safe visual margin so they exercise the renderer without violating the real edge-safety QA rule.
+- tests/test_pyq_source.py: verified-source fixtures now use valid HTTPS official SSC URLs.
+- tests/test_topic_scorer.py: the DemandSignal fixture now supplies its required rank field.
+- tests/test_validators.py: numeric answer fixture matches the formatted choice representation.
+
+The root pytest.ini remains in place with pythonpath = ., resolving the earlier Windows collection-path problem.
+
+Current verification:
+- These fixes are committed to main.
+- The full suite has NOT yet been rerun after this batch.
+- Do not run factory.py yet.
+- Next manual action is one full python -m pytest -q run from the local checkout. If it is green, proceed to the real Gemini structured-output smoke test before the first production job.
