@@ -8,7 +8,7 @@ import requests
 
 from config import GEMINI_API_KEY, GEMINI_MODEL, validate_config
 from question import Question
-from validators import validate_question
+from validators import ValidationError, validate_question
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -45,7 +45,7 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
                     "difficulty",
                     "question",
                     "choices",
-                    "correct_answer",
+                    "correct_choice_index",
                     "explanation",
                     "shortcut",
                     "source_type",
