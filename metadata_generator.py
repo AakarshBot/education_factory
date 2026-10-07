@@ -202,7 +202,13 @@ def generate_metadata(lesson: Lesson, *, language: str = "Hinglish") -> VideoMet
     validate_config(require_gemini=True)
     data = _request_metadata(lesson, language.strip())
 
-    titles = _clean_values(data.get("title_candidates"), field="title_candidates")
+    raw_titles = data.get("title_candidates")
+    if isinstance(raw_titles, list) and any(
+        isinstance(title, str) and len(title.strip()) > 100
+        for title in raw_titles
+    ):
+        raise RuntimeError("metadata title exceeds 100 characters")
+    titles = _clean_values(raw_titles, field="title_candidates")
     if len(titles) != 5:
         raise RuntimeError("metadata must contain exactly 5 title candidates")
     if any(len(title) > 100 for title in titles):
