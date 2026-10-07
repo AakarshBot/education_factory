@@ -729,8 +729,22 @@ Added `tests/test_youtube_analytics.py` covering normal metric retrieval, 500-ID
 
 The real Analytics API cannot be exercised yet because the dedicated YouTube channel/account has not been created.
 
-### Step 6.2 — Format analysis
-Compare practice, test, lesson, PYQ, and revision formats.
+### Step 6.2 — Format analysis — **COMPLETE**
+Added `format_analysis.py` as the deterministic comparison layer for the five locked learning formats.
+
+The analysis:
+- reads existing `HistoryEntry` records and uses only published videos with a video ID and measured view data
+- groups results by lesson format and normalizes the canonical names for timed test, concept + practice, and PYQ analysis
+- reports measured-video count, total/average/median views, total/average/median watch minutes, average view percentage, engagement rate, and subscribers gained per 1,000 views
+- uses median per-video values alongside totals so one unusually large or small video does not dominate the descriptive comparison
+- marks a format `comparison_ready` only after 3 measured videos; smaller samples remain visible but are explicitly insufficient for a format-level conclusion
+- performs no ranking, reweighting, topic selection, or strategy change
+
+YouTube Analytics supports video-level dimensions and metrics including views, estimated minutes watched, average view duration, average view percentage, likes, comments, and subscribers gained, which are the measurements already persisted by Step 6.1. citeturn484122search0turn484122search4
+
+Added `tests/test_format_analysis.py` covering grouping, median handling, exclusion of scheduled/unmeasured entries, engagement/subscriber rates, lesson-type normalization, empty history, and insufficient-sample handling.
+
+The real channel has no analytics data yet, so this remains a ready-to-run analysis contract rather than a live format verdict.
 
 ### Step 6.3 — Subject analysis
 Compare Maths, Reasoning, and English.
@@ -791,7 +805,7 @@ The remaining external setup will be handled together at the end, when the facto
 2. complete any Google/YouTube identity, phone, advanced-feature, or verification steps required for that account/channel;
 3. enable the required Google APIs for the finished factory, including **YouTube Data API v3** and **YouTube Analytics API**;
 4. create the Google Cloud OAuth client and authorize the factory against the dedicated channel account using the finished scope set;
-4. provide any final channel branding assets that the completed design actually requires.
+5. provide any final channel branding assets that the completed design actually requires.
 
 Until that launch handoff, do not ask the user to create the channel, create OAuth credentials, run `youtube_auth.py`, or perform routine backend setup.
 
@@ -801,7 +815,7 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 6 / STEP 6.1 COMPLETE**
+Status: **PHASE 6 / STEP 6.2 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -827,6 +841,7 @@ Completed:
 - Phase 5.3 — YouTube upload and scheduling
 - Phase 5.4 — Shorts → long-form linking capability boundary
 - Phase 6.1 — YouTube Analytics metrics ingestion
+- Phase 6.2 — deterministic format analysis
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -859,6 +874,7 @@ Current repository files include:
 - `youtube_auth.py`
 - `youtube_uploader.py`
 - `youtube_analytics.py`
+- `format_analysis.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -883,6 +899,11 @@ Step 6.1 test status:
 - Added focused mocked Analytics API tests for report construction, metric parsing, 500-ID batching, history updates, default windows, empty histories, invalid dates/IDs, API failures, and malformed reports.
 - Real Analytics execution was deliberately not run because the dedicated channel/account and OAuth grant do not exist yet.
 
+Step 6.2 test status:
+- Added focused deterministic format-analysis tests for grouping, medians, measured-video filtering, rate calculations, canonical lesson-type names, empty history, and the 3-video comparison threshold.
+- The format-analysis source and tests compile, and representative calculations were checked in the execution environment.
+- A full repository pytest run was not available because this GitHub-connected environment does not expose the repository as a local checkout.
+
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
@@ -896,6 +917,6 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 6 / Step 6.2 — Format analysis.**
+**Phase 6 / Step 6.3 — Subject analysis.**
 
-Compare the completed video's learning formats using the persisted production history and metrics, without changing editorial strategy based on a single anomalous video.
+Compare Maths, Reasoning, and English using the same persisted history/metrics model, without changing editorial strategy based on a single anomalous video.
