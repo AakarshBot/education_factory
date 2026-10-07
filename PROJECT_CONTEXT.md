@@ -88,19 +88,20 @@ Shorts should normally connect viewers to a relevant long-form session when appr
 The finished videos should feel like a credible digital exam/practice product, not an AI slideshow.
 
 Core visual language:
-- clean digital examination interface
-- large readable question
-- visible progress such as Q1/20 when appropriate
-- short timed-answer phase when useful
-- answer reveal
-- worked solution
-- highlighted numbers, words, or reasoning steps
-- diagrams/flows for reasoning
-- score/progress moments
-- occasional "common mistake" and "shortcut" treatment
-- varied layouts driven by lesson type
+- premium digital examination-product aesthetic
+- deep navy examination canvas with a subtle grid and restrained green/blue signals
+- strong information hierarchy rather than oversized generic cards
+- readable question typography with compact question/progress rails
+- exam-style answer rows with explicit correct/incorrect states
+- worked solutions with numbered reasoning steps
+- progress and result indicators that feel native to the learning product
+- lesson-type-specific composition rather than one universal frame
+- subtle depth, borders, and spacing instead of decorative clutter
+- visuals should support the teaching task, not merely fill the frame
 
 Avoid:
+- generic white-and-blue quiz templates
+- excessive rounded-card stacking
 - stock-photo filler
 - generic AI-generated images for decoration
 - fake classroom backgrounds
@@ -109,7 +110,7 @@ Avoid:
 - identical frame choreography in every upload
 - permanent decorative UI that adds no instructional value
 
-The design system may be consistent, but the instructional composition must vary with the content.
+The design system may be consistent, but the instructional composition and visual hierarchy must vary with the content. Visual variation is not a substitute for substantive educational variation.
 
 ---
 
@@ -230,6 +231,9 @@ The factory optimizes for:
 Do NOT optimize solely for upload volume.
 
 High frequency is useful in this market, but repetitive low-value output is a liability.
+
+### YouTube YPP authenticity guard — LOCKED 2026-10-08
+YouTube's current monetization policy states that channels must be original/authentic and not mass-produced, generic, or repetitive. Similar formats are allowed when the substance is materially varied and provides educational or other value; AI-assisted production is not itself disqualifying. The factory therefore must optimize for genuine instructional differentiation, not cosmetic randomness. Source: https://support.google.com/youtube/answer/1311392
 
 The unit of production is an **educational experience**, not a video template.
 
