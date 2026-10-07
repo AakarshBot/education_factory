@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 4.3 — Long-form renderer**
+**Step 4.4 — Shorts renderer**
 
-The factory now renders the assembled 16:9 lesson scenes into an MP4 with validated narration audio, local FFmpeg, and no new dependency.
+The factory now renders selected educational lesson segments as 9:16 Shorts using the same Pillow visual primitives, portrait compositions, validated audio, and local FFmpeg.
