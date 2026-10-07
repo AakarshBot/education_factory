@@ -956,8 +956,37 @@ Testing:
 - Extended factory resume coverage to persist the backlog path and require the final `backlog_complete` checkpoint.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
 
+### Step 8.3 — Autonomous scheduling cadence and daily operating state — **COMPLETE**
+
+Added `factory_state.py` as the single operational cadence state for the existing factory.
+
+The state:
+- persists the last run time, last run status, run ID, next run time, and configured runs-per-day
+- supports exactly **1 or 2 runs per day**, matching the locked operating model
+- computes the next run as a 24-hour or 12-hour interval from the completed/failed run
+- uses timezone-aware timestamps and stores state atomically
+- is local under `data/factory_state.json`, alongside the existing local backlog/history; it is intentionally not Git-tracked
+- records both successful and failed runs without blocking an operator from starting another run early
+
+Factory behavior:
+- `run_factory` loads the state before production so a malformed state file fails closed at initialization
+- the selected cadence and state-file path are persisted in the job manifest and restored on resume
+- successful completion records the next eligible run state
+- failures record a failed run and next cadence window while preserving the original production exception
+- CLI now exposes `--runs-per-day 1|2` and `--factory-state-path`
+- no second runner, duplicate production path, or external scheduler was introduced; the same `factory.py` remains the only production entry point
+
+Important scope boundary:
+- this step makes the cadence explicit and durable for the user's once/twice-daily operating model
+- it does **not** prevent an intentional early run and does not silently create a hosted scheduler before the factory is fully built and the external YouTube account exists
+
+Testing:
+- Added `tests/test_factory_state.py` for persistence, 1/day and 2/day cadence, invalid cadence, timezone-aware timestamps, and required run/status fields.
+- Extended factory resume/failure coverage to verify cadence configuration persistence and failed/complete state recording.
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell; focused tests and source paths were reviewed for this step.
+
 ## NEXT STEP
 
-**Phase 8 / Step 8.3 — Autonomous scheduling cadence and daily operating state.**
+**Phase 8 / Step 8.4 — Final factory audit and launch readiness.**
 
-Make twice-daily execution explicit at the factory level: persist the next-run state and schedule production opportunities without introducing a second runner or duplicated orchestration path.
+Review the complete repository as one system, remove any remaining dead/scaffolding code, verify cross-stage contracts and fail-closed boundaries, then produce the final external-account launch gate.
