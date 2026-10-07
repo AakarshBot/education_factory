@@ -118,3 +118,9 @@ def test_analyze_formats_flags_small_samples():
     assert result.measured_videos == 2
     assert result.comparison_ready is False
     assert MIN_COMPARISON_SAMPLES == 3
+
+
+def test_analyze_formats_excludes_shorts():
+    short = entry("practice", "s1", views=999)
+    short = __import__("dataclasses").replace(short, content_format="shorts")
+    assert analyze_formats([short]) == ()
