@@ -651,8 +651,24 @@ Current platform constraints reflected in the stage:
 - Video keyword tags have a 500-character total limit.
 - YouTube warns against misleading metadata and excessive/unrelated tags/hashtags. citeturn127069search0turn127069search2turn290784search1turn290784search2turn127069search3
 
-### Step 5.2 — YouTube OAuth
-Connect the dedicated Google account/channel.
+### Step 5.2 — YouTube OAuth — **COMPLETE**
+Added `youtube_auth.py` as the direct authentication boundary for the publishing client.
+
+The OAuth stage:
+- uses Google's installed/desktop OAuth flow through the already-locked `google-auth-oauthlib` dependency
+- requests only `https://www.googleapis.com/auth/youtube.upload`, the minimum scope required for the planned video-upload/scheduling stage
+- loads an existing authorized-user token from the configured token file when it is still valid
+- refreshes an expired token locally when a refresh token is available
+- opens a local browser authorization flow only when a usable token is unavailable
+- saves the resulting authorized-user credentials to the ignored token file for future unattended runs
+- builds the YouTube Data API v3 client through the existing `google-api-python-client` dependency
+- exposes a direct `python youtube_auth.py` setup command without adding a wrapper application
+
+Security:
+- OAuth client secrets and the authorized-user token remain local and are already ignored by Git.
+- No credentials are printed, committed, or embedded in repository source.
+
+Google's current YouTube documentation recommends a Desktop app OAuth client for command-line/installed applications and identifies `youtube.upload` as an authorization scope for video uploads. citeturn686940search0turn686940search1
 
 ### Step 5.3 — Upload and scheduling
 Upload to YouTube and schedule publication.
@@ -738,7 +754,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 5 / STEP 5.1 COMPLETE**
+Status: **PHASE 5 / STEP 5.2 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -756,9 +772,10 @@ Completed:
 - Phase 4.4 — Shorts 9:16 renderer
 - Phase 4.5 — visual QA
 - Phase 5.1 — metadata generation
+- Phase 5.2 — YouTube OAuth
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded publishing metadata**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
 
 Current repository files include:
 - `PROJECT_CONTEXT.md`
@@ -785,41 +802,44 @@ Current repository files include:
 - `shorts_renderer.py`
 - `visual_qa.py`
 - `metadata_generator.py`
+- `youtube_auth.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
-- Added focused tests for primary-title selection, title-size rejection, description-size rejection, hashtag-format rejection, URL rejection, and HTTP failure handling.
-- Remote test code has been reviewed against the current metadata contract.
-- The repository does not yet have a GitHub Actions test workflow, so no hosted full-suite pass is claimed.
+- Added focused metadata tests for title selection and important malformed/oversized metadata cases.
+- The metadata contract is grounded in the finished Lesson and fails closed on unsafe output.
+
+Step 5.2 test status:
+- Added focused tests for existing valid tokens, token refresh, first-time browser authorization, missing client secrets, and refresh failure.
+- Remote OAuth code was reviewed against the current Desktop/installed-app flow.
+- Real Google authorization was not run because the required client-secrets file does not yet exist in this environment.
+- No credential or token has been committed.
 
 Architecture:
-- metadata generation is one direct stage after rendering
-- the primary title is deterministic: the first model-provided title candidate
-- metadata validation is local and fail-closed
-- publishing is not implemented yet; no OAuth or upload code has been added in Step 5.1
+- `metadata_generator.py` owns metadata generation and local validation.
+- `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
+- The upload/scheduling stage will consume these contracts directly; no alternate authentication wrapper should be introduced.
 
-Current platform note:
-- YouTube's current API permits setting title, description, tags, category, language, and other status fields through `videos.insert`. The uploader will therefore consume this metadata contract directly rather than reformatting it through another metadata layer. citeturn290784search0turn127069search10
-- YouTube currently documents title max 100 characters, description max 5,000 bytes, and video tags max 500 characters. citeturn127069search0turn127069search2
-- YouTube's current policy guidance says titles/descriptions should not mislead and warns against unrelated/excessive tags or hashtags. citeturn290784search1turn290784search2turn127069search3
+## MANUAL ACTION REQUIRED NOW
 
-Dependency policy remains locked:
-- Pillow
-- edge-tts
-- requests
-- python-dotenv
-- google-api-python-client
-- google-auth
-- google-auth-oauthlib
-- pytest
-- local FFmpeg/ffprobe executables
+This is the first build step that genuinely needs your external Google account.
 
-Do not add a package unless a later implemented stage proves it necessary.
+1. In Google Cloud Console, enable **YouTube Data API v3** for the project used by this factory.
+2. Create an **OAuth 2.0 Client ID** with application type **Desktop app**.
+3. Download the client JSON.
+4. Save it in the repository root as **`client_secrets.json`**.
+5. Make sure the Google account you authorize is the dedicated channel account.
 
-The factory remains ₹0 production-spend by design. Real credentials stay local and ignored by Git.
+Then run:
+
+`python youtube_auth.py`
+
+Complete the Google browser consent flow once. The factory will save `token.json` locally and future runs can refresh it without asking you to log in again.
+
+Do not upload either JSON file to GitHub; both are already ignored by `.gitignore`.
 
 ## NEXT STEP
 
-**Phase 5 / Step 5.2 — YouTube OAuth.**
+**Phase 5 / Step 5.3 — Upload and scheduling.**
 
-Connect the dedicated Google/YouTube account through the existing OAuth dependencies so the factory can authenticate an upload/scheduling client without embedding credentials in the repository.
+Build the direct YouTube upload/scheduling stage that consumes the rendered video plus `VideoMetadata`, publishes or schedules it, and records the returned YouTube video ID in channel history.
