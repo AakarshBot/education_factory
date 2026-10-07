@@ -274,8 +274,8 @@ The build must happen in direct, independently testable steps.
 ### Step 0.1 — Project context
 Create and maintain this file as the single source of truth.
 
-### Step 0.2 — Minimal repository skeleton
-Create only the files required for the first runnable slice. No scaffolding for future stages unless it is immediately required.
+### Step 0.2 — Minimal repository skeleton — **COMPLETE**
+Created only repository-level hygiene/documentation needed before production code: `.gitignore`, `.env.example`, and `README.md`. No placeholder application code or speculative dependencies were added.
 
 ### Step 0.3 — Local/free dependency policy
 Define the minimum dependency set. Avoid the heavyweight ML stack used by Final-Shorts unless a later feature demonstrably requires it.
@@ -479,7 +479,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **FOUNDATION / CONTEXT CREATED**
+Status: **FOUNDATION / STEP 0.2 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -488,6 +488,10 @@ The repository was empty at the start of this project.
 
 Completed:
 - locked channel strategy recorded
+- minimal repository skeleton created
+- `.gitignore` added for Python caches, local environments, runtime output, and credentials
+- `.env.example` added with YouTube credential placeholders only
+- `README.md` added with the locked strategy and development rule
 - India/Hindi-Hinglish market locked
 - SSC + Banking + Railway focus locked
 - Maths + Reasoning + English initial subjects locked
@@ -498,7 +502,7 @@ Completed:
 - manual external actions documented
 
 Not yet implemented:
-- repository code
+- production application code
 - dependency file
 - question schema
 - validators
@@ -510,8 +514,6 @@ Not yet implemented:
 
 ## NEXT STEP
 
-**Step 0.2 — Create the minimal repository skeleton.**
+**Step 0.3 — Lock the local/free dependency policy and choose the minimum build stack.**
 
-The skeleton will be intentionally small and will contain only what the first runnable slice requires. No speculative wrappers, compatibility layers, duplicate pipelines, or dead scaffolding.
-
-When Step 0.2 is complete, update this context file again with the exact files created, test status, and the next step.
+Before adding production dependencies, inspect what can be done with Python standard library plus a minimal set of free/open-source packages. The dependency list must be justified by an immediate factory requirement; avoid inheriting Final-Shorts' heavyweight ML stack.
