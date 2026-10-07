@@ -87,6 +87,8 @@ def save_state(
 
 def next_run_at(now: datetime, runs_per_day: int) -> datetime:
     validate_runs_per_day(runs_per_day)
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
     reference = now.astimezone(timezone.utc)
     interval = timedelta(hours=24 / runs_per_day)
     return reference + interval
@@ -101,6 +103,12 @@ def record_run(
     runs_per_day: int,
 ) -> FactoryState:
     validate_runs_per_day(runs_per_day)
+    if not run_id.strip():
+        raise ValueError("run_id must not be empty")
+    if not status.strip():
+        raise ValueError("status must not be empty")
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
     timestamp = now.astimezone(timezone.utc)
     return FactoryState(
         last_run_at=timestamp.isoformat(),
