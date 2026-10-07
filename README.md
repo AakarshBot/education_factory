@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 8 / Step 8.2 — Persistent production backlog and resume-safe execution**
+**Phase 8 / Step 8.3 — Persistent backlog, resume-safe execution, and cadence state**
 
-The factory now has a direct one-command production path, a resume-safe job manifest, and a persistent ranked production backlog. Normal runs consume the backlog first and only refresh demand research when the pending queue falls below the configured target.
+The factory now has a direct one-command production path, a resume-safe job manifest, a persistent ranked production backlog, and local once/twice-daily cadence state. Normal runs consume the backlog first, refresh demand only when needed, and record the next operating window.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
