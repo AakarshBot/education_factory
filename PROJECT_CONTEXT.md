@@ -536,17 +536,23 @@ Added `tests/test_audio_qa.py`, using real generated WAV files and real FFmpeg/F
 
 ## Phase 4 — Visual engine
 
-### Step 4.1 — Visual primitives
-Create a small set of deterministic educational primitives:
-- question card
-- choices
-- timer
-- answer reveal
-- calculation step
+### Step 4.1 — Visual primitives — **COMPLETE**
+Added `visual_primitives.py` using the locked Pillow dependency.
+
+The module provides direct deterministic drawing primitives for:
+- question cards with question numbering
+- choices with selected/correct states
+- timers
+- answer reveals
+- worked calculation / solution steps
 - highlighted text
-- diagram/flow
-- progress indicator
-- score/result screen
+- simple instructional flow diagrams
+- progress indicators
+- score/result screens
+
+The primitives share one visual language: clean exam-product cards, readable type, neutral surfaces, and restrained instructional accents. Text rendering supports Devanagari and Latin text so Hindi/Hinglish content can be rendered without adding a font package to the project.
+
+The primitives draw onto caller-provided Pillow images so later renderers can compose lesson-specific scenes without adding a wrapper framework or duplicate visual pipeline.
 
 ### Step 4.2 — Lesson-specific layouts
 Create several compositions that reuse primitives but are not identical templates.
@@ -654,80 +660,22 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 3 / STEP 3.3 COMPLETE**
+Status: **PHASE 4 / STEP 4.1 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
 
 Completed:
-- Phase 0 — foundation through configuration
-- Phase 1 — question schema, validation, generation, explanations, lesson assembly
+- Phase 0 — foundation and configuration
+- Phase 1 — question schema, deterministic validation, generation, explanations, lesson assembly
 - Phase 2 — demand discovery, topic scoring, editorial queue, historical memory
 - Phase 3.1 — Hindi/Hinglish narration
 - Phase 3.2 — word timing contract
 - Phase 3.3 — audio QA
+- Phase 4.1 — deterministic visual primitives
 
-The current production chain reaches a validated audio asset before visual rendering.
-
-## STEP 0.3 — LOCAL/FREE DEPENDENCY POLICY — **COMPLETE**
-
-The factory uses a deliberately small Python stack. Production code should use the standard library wherever practical and add a package only for a concrete capability.
-
-Locked direct dependencies:
-- `Pillow` — deterministic educational graphics and image operations.
-- `edge-tts` — free Microsoft Edge online TTS access without an API key; it also exposes speech timing/subtitle support. citeturn785269search1
-- `requests` — direct HTTP access so we do not add an SDK merely to call a simple API.
-- `python-dotenv` — local `.env` loading without embedding secrets in code.
-- `google-api-python-client` — YouTube Data API upload, scheduling, metadata and channel operations.
-- `google-auth` and `google-auth-oauthlib` — YouTube OAuth authorization.
-- `pytest` — focused automated tests.
-
-LLM policy:
-- Use the Gemini API through direct HTTP rather than adding the Gemini Python SDK unless a later concrete capability requires the SDK.
-- Default model for the initial text-generation implementation: `gemini-3.8-flash`, subject to the then-active free-tier availability. Google's current pricing page lists a free tier for this model, while current model documentation identifies it as stable. citeturn307393search0turn307393search1
-- The factory must track and fail clearly on rate limits rather than silently switching to paid usage. Gemini limits are project/account dependent and can vary; the active limits are shown in AI Studio. citeturn202704search2
-- Google Search grounding is not assumed for free production because current pricing states it is unavailable for Gemini 3.x free-tier requests. citeturn307393search0
-
-Media policy:
-- FFmpeg/ffprobe are required local executables for final audio/video assembly and duration checks. FFmpeg is free/open source; use only standard components so the default LGPL licensing remains applicable. citeturn785269search11
-- Do not add MoviePy, OpenCV, Torch, Transformers, browser automation, image-generation libraries, or other heavyweight media/ML stacks unless an implemented stage proves the dependency necessary.
-
-YouTube API policy:
-- The production target is far below YouTube's default quota allocation. Current official documentation lists a default 10,000-unit/day allocation, plus specific limits around `search.list` and `videos.insert`. The uploader must still minimize calls and handle quota errors explicitly. citeturn785269search2
-
-Security policy:
-- Real credentials stay in `.env` or local OAuth files and are ignored by Git.
-- Never print, commit, or persist API secrets in repository source.
-
-The dependency file is now `requirements.txt`. No heavyweight Final-Shorts dependency set was carried over.
-
-## CURRENT BUILD STATE — UPDATED
-
-Status: **PHASE 3 / STEP 3.3 COMPLETE**
-
-Completed in Phase 0:
-- Step 0.1 — master project context
-- Step 0.2 — minimal repository skeleton
-- Step 0.3 — minimum local/free dependency policy and build stack
-- Step 0.4 — configuration and secret handling
-
-Completed in Phase 1:
-- Step 1.1 — canonical question schema
-- Step 1.2 — deterministic Maths/question validators
-- Step 1.3 — structured original question generation
-- Step 1.4 — answer-locked explanation generation
-- Step 1.5 — deterministic lesson assembly
-
-Completed in Phase 2:
-- Step 2.1 — demand discovery
-- Step 2.2 — topic scoring
-- Step 2.3 — editorial queue
-- Step 2.4 — historical memory
-
-Completed in Phase 3:
-- Step 3.1 — Hindi/Hinglish narration pipeline
-- Step 3.2 — word timing contract
-- Step 3.3 — audio QA
+Current production chain:
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual primitives**
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -748,32 +696,33 @@ Current repository files:
 - `channel_history.py`
 - `narration.py`
 - `audio_qa.py`
-- `tests/test_config.py`
-- `tests/test_question.py`
-- `tests/test_validators.py`
-- `tests/test_question_generator.py`
-- `tests/test_explanation_generator.py`
-- `tests/test_lesson_assembler.py`
-- `tests/test_demand_discovery.py`
-- `tests/test_topic_scorer.py`
-- `tests/test_editorial_queue.py`
-- `tests/test_channel_history.py`
-- `tests/test_narration.py`
-- `tests/test_audio_qa.py`
+- `visual_primitives.py`
+- focused tests under `tests/`
 
-Test status:
-- Step 3.3 tests: **7 passed locally** against real generated WAV files with real FFmpeg/FFprobe.
-- Live Edge-TTS synthesis was not run in the hosted session.
-- The full repository suite was not executed; no broader full-suite pass is claimed.
+Step 4.1 test status:
+- **2 focused tests passed locally.**
+- Verified multilingual rendering with Hindi text in a 1920x1080 Pillow scene.
+- Verified deterministic repeated drawing for the same inputs.
+- No visual-generation dependency was added.
+- The full repository suite has not been executed in this hosted session.
 
-Architecture note:
-- Step 3.1 generates narration audio.
-- Step 3.2 derives word timings from the same synthesis stream.
-- Step 3.3 validates the resulting audio before the visual engine.
-- No automatic audio repair or regeneration is performed by QA.
+Dependency policy remains locked:
+- Pillow
+- edge-tts
+- requests
+- python-dotenv
+- google-api-python-client
+- google-auth
+- google-auth-oauthlib
+- pytest
+- local FFmpeg/ffprobe executables
+
+Do not add a package unless a later implemented stage proves it necessary.
+
+The factory remains ₹0 production-spend by design. Real credentials stay local and ignored by Git.
 
 ## NEXT STEP
 
-**Step 4.1 — Visual primitives.**
+**Step 4.2 — Lesson-specific layouts.**
 
-Create a small set of deterministic educational primitives:
+Create several educational compositions that reuse the primitives but are meaningfully different by lesson type rather than becoming one rigid template.
