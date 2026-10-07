@@ -1344,3 +1344,16 @@ Therefore:
 - Do not submit the YouTube audit form or create any further compliance assets unless this existing-project route is unavailable.
 
 Factory architecture remains unchanged.
+## Existing YouTube upload project identified — 2026-10-08
+
+The working Final-Shorts and legacy factory use the standard YouTube videos.insert path with public privacy status. Final-Shorts client_secrets.json identifies the existing Google Cloud project `amazing-sunset-504916-c4` and client ID `930842317060-mpfhnnc9jm748mvcg3m945dfqo6bubrs.apps.googleusercontent.com`.
+
+Architecture decision:
+- Do not build or submit a new YouTube compliance website/audit workflow.
+- Reuse the existing working YouTube project/client for video upload authorization rather than creating a new upload project.
+- Keep the new education_factory Google Cloud project for Gemini and the existing Analytics OAuth setup unless the existing upload project can safely cover Analytics without triggering unrelated verification changes.
+- No production pipeline duplication or wrapper layer is required.
+
+Next manual action:
+- In Google Cloud Console, open project `amazing-sunset-504916-c4` and inspect Google Auth Platform -> Audience. If the app is in Testing, add `education.factory.india@gmail.com` as a test user. If it is In production, make no change.
+- Do not change scopes, publishing status, or other settings yet.
