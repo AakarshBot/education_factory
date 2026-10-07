@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 0.2 — Minimal repository skeleton**
+**Step 2.1 — Demand discovery**
 
-The repository contains only project documentation and development/secret hygiene at this stage. Production code and dependencies have not yet been introduced.
+The factory now has a deterministic YouTube demand-signal collector covering the locked exam/subject matrix. Topic scoring and editorial selection are the next layers.

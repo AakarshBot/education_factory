@@ -391,8 +391,30 @@ Important architecture decision:
 
 ## Phase 2 — Research and topic selection
 
-### Step 2.1 — Demand discovery
-Build free/low-cost topic discovery around exam-related search intent and current learning needs.
+### Step 2.1 — Demand discovery — **COMPLETE**
+Added `demand_discovery.py` as the first research-stage module.
+
+The discovery stage:
+- uses the public YouTube Data API directly over HTTP; no SDK or new dependency
+- searches the locked exam/subject matrix: SSC, Banking, Railway × Maths, Reasoning, English
+- adds the current year to the default queries
+- collects two independent signals per query: YouTube relevance ordering and recent-video view-count ordering
+- restricts results to videos published within the requested recent window
+- records raw video/title/channel/date/description/rank/query/order data without assigning an editorial score
+- uses the India region by default
+- makes two `search.list` calls per query and no extra statistics calls
+- validates all inputs before any network request
+- fails clearly on missing API configuration, invalid arguments, HTTP errors, and malformed responses
+
+The YouTube Data API documentation currently lists `search.list` at 1 quota unit per request in its dedicated search quota bucket and supports `relevance`, `date`, and `viewCount` ordering. Public searches require an API key but not OAuth.  citeturn342974search0turn342974search4
+
+Configuration:
+- Added `YOUTUBE_API_KEY` to `config.py` and `.env.example`.
+- OAuth credentials remain separate and are still reserved for authenticated channel operations.
+
+Added `tests/test_demand_discovery.py` covering default query coverage, the two discovery signals, configuration errors, invalid inputs, and HTTP failures.
+
+The discovery layer intentionally does **not** score topics, call Gemini, infer search volume, or choose what to publish. Those decisions belong to Step 2.2.
 
 ### Step 2.2 — Topic scoring
 Score:
@@ -611,7 +633,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 1 / STEP 1.5 COMPLETE**
+Status: **PHASE 2 / STEP 2.1 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -626,6 +648,9 @@ Completed in Phase 1:
 - Step 1.4 — answer-locked explanation generation
 - Step 1.5 — deterministic lesson assembly
 
+Completed in Phase 2:
+- Step 2.1 — demand discovery
+
 Current repository files:
 - `PROJECT_CONTEXT.md`
 - `README.md`
@@ -639,24 +664,30 @@ Current repository files:
 - `explanation_generator.py`
 - `lesson.py`
 - `lesson_assembler.py`
+- `demand_discovery.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
 - `tests/test_question_generator.py`
 - `tests/test_explanation_generator.py`
 - `tests/test_lesson_assembler.py`
+- `tests/test_demand_discovery.py`
 
 Test status:
-- Step 1.5 dedicated tests: **9 passed locally**.
-- The new lesson contract and assembler also passed Python syntax compilation.
-- The full repository suite was not executed in this hosted session because the environment could not clone the GitHub repository; no broader full-suite pass is claimed.
+- Step 2.1 dedicated tests: **5 passed locally**.
+- Input validation was specifically checked to occur before network calls.
+- The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
 
 Architecture note:
-- Question generation creates and deterministically verifies the question/answer package.
-- Explanation generation separately creates explanations from the verified answers.
-- Lesson assembly then sequences those verified question/explanation packages into a selected learning experience.
-- Rendering, audio, publishing, and topic discovery remain outside the lesson assembler.
+- Demand discovery collects raw external demand signals only.
+- It does not decide which topic wins; scoring and editorial selection remain in later steps.
+- Search uses direct HTTP and the existing `requests` dependency only.
 
+## NEXT STEP
+
+**Step 2.2 — Topic scoring.**
+
+Score demand, exam relevance, novelty relative to our channel, educational value, visual potential, and production reliability.
 ## NEXT STEP
 
 **Step 2.1 — Demand discovery.**
