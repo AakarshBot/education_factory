@@ -9,11 +9,7 @@ from googleapiclient.discovery import build
 
 from config import YOUTUBE_CLIENT_SECRETS_FILE, YOUTUBE_TOKEN_FILE, validate_config
 
-SCOPES = (
-    "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube.readonly",
-    "https://www.googleapis.com/auth/youtube.force-ssl",
-)
+SCOPES = ("https://www.googleapis.com/auth/youtube.upload",)
 
 
 def _load_credentials(token_file: Path) -> Credentials | None:
@@ -86,19 +82,6 @@ def get_youtube_client(
         raise RuntimeError("Could not create YouTube Data API client") from exc
 
 
-def validate_youtube_oauth_files() -> None:
-    validate_config(require_youtube=True)
-    if YOUTUBE_TOKEN_FILE.exists():
-        try:
-            credentials = Credentials.from_authorized_user_file(
-                str(YOUTUBE_TOKEN_FILE),
-                SCOPES,
-            )
-        except (ValueError, OSError) as exc:
-            raise RuntimeError(
-                f"Invalid YouTube OAuth token file: {YOUTUBE_TOKEN_FILE}"
-            ) from exc
-        if not credentials.valid and not credentials.refresh_token:
-            raise RuntimeError(
-                f"YouTube OAuth token needs reauthorization: {YOUTUBE_TOKEN_FILE}"
-            )
+
+if __name__ == "__main__":
+    get_youtube_client()
