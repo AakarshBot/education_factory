@@ -145,7 +145,8 @@ def discover_official_pyq_documents(
     if not exams:
         raise ValueError("exams must not be empty")
 
-    cleaned = tuple(exam.strip().title() for exam in exams)
+    canonical = {name.casefold(): name for name in OFFICIAL_SOURCE_PAGES}
+    cleaned = tuple(canonical.get(exam.strip().casefold(), exam.strip()) for exam in exams)
     if any(exam not in OFFICIAL_SOURCE_PAGES for exam in cleaned):
         raise ValueError("exams contains an unsupported source")
 
