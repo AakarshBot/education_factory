@@ -688,8 +688,3 @@ Architecture note:
 **Step 2.2 — Topic scoring.**
 
 Score demand, exam relevance, novelty relative to our channel, educational value, visual potential, and production reliability.
-## NEXT STEP
-
-**Step 2.1 — Demand discovery.**
-
-Build free/low-cost topic discovery around exam-related search intent and current learning needs.
