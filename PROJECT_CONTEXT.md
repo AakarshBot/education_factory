@@ -113,6 +113,9 @@ Avoid:
 The design system may be consistent, but the instructional composition and visual hierarchy must vary with the content. Visual variation is not a substitute for substantive educational variation.
 
 Current visual implementation: the v2 product palette and scene background treatment are now active in both long-form and Shorts canvases. The next visual batch should refine lesson-specific compositions rather than create a parallel renderer.
+
+Developer visual QA tool — 2026-10-08
+Added `visual_preview.py`, a zero-dependency local preview utility that calls the real long-form and Shorts renderers with representative lesson types and state scenes. It produces `output/visual_preview/visual_preview_long.png` and `visual_preview_short.png`. This is development-only and is not part of the production pipeline.
 ---
 
 # 2. MONETIZATION STRATEGY
