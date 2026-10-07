@@ -554,8 +554,19 @@ The primitives share one visual language: clean exam-product cards, readable typ
 
 The primitives draw onto caller-provided Pillow images so later renderers can compose lesson-specific scenes without adding a wrapper framework or duplicate visual pipeline.
 
-### Step 4.2 — Lesson-specific layouts
-Create several compositions that reuse primitives but are not identical templates.
+### Step 4.2 — Lesson-specific layouts — **COMPLETE**
+Added `lesson_layouts.py` as the direct composition layer between lesson segments and the future renderers.
+
+Implemented distinct question compositions for:
+- practice — question-first card with choices underneath
+- timed test — progress + question + timer + choices
+- concept + practice — question/choice layout reserved below the concept segment
+- PYQ analysis — source context plus a two-column question/choice treatment
+- revision — compact centered question with progress
+
+Also implemented segment scenes for concept text, source attribution, answer reveal, explanation/solution, shortcut, timer, and score/result.
+
+The layouts reuse the Step 4.1 primitives rather than creating a second visual system. No animation engine, media dependency, or template framework was added.
 
 ### Step 4.3 — Long-form renderer
 Render 16:9 educational sessions.
@@ -660,7 +671,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 4 / STEP 4.1 COMPLETE**
+Status: **PHASE 4 / STEP 4.2 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -673,11 +684,12 @@ Completed:
 - Phase 3.2 — word timing contract
 - Phase 3.3 — audio QA
 - Phase 4.1 — deterministic visual primitives
+- Phase 4.2 — lesson-specific visual layouts
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual primitives**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual primitives -> lesson-specific scenes**
 
-Current repository files:
+Current repository files include:
 - `PROJECT_CONTEXT.md`
 - `README.md`
 - `.gitignore`
@@ -697,14 +709,25 @@ Current repository files:
 - `narration.py`
 - `audio_qa.py`
 - `visual_primitives.py`
+- `lesson_layouts.py`
 - focused tests under `tests/`
 
 Step 4.1 test status:
-- **2 focused tests passed locally.**
-- Verified multilingual rendering with Hindi text in a 1920x1080 Pillow scene.
-- Verified deterministic repeated drawing for the same inputs.
-- No visual-generation dependency was added.
-- The full repository suite has not been executed in this hosted session.
+- 2 focused visual primitive tests were added.
+- The primitive layer was checked for deterministic repeated rendering and Hindi/Latin text support.
+- Full repository suite is not claimed.
+
+Step 4.2 test status:
+- **Runtime layout tests passed locally.**
+- Verified all five lesson types produce distinct 1920x1080 question compositions.
+- Verified practice, timed-test, concept-practice, and PYQ segment sequences render at 1280x720 without runtime errors.
+- Verified the new layout module compiles successfully.
+- No new Python dependency was added.
+
+Architecture:
+- `visual_primitives.py` owns reusable low-level instructional drawing primitives.
+- `lesson_layouts.py` owns direct lesson-type composition.
+- Future renderers should consume these scenes rather than introducing duplicate layout logic.
 
 Dependency policy remains locked:
 - Pillow
@@ -723,6 +746,6 @@ The factory remains ₹0 production-spend by design. Real credentials stay local
 
 ## NEXT STEP
 
-**Step 4.2 — Lesson-specific layouts.**
+**Step 4.3 — Long-form renderer.**
 
-Create several educational compositions that reuse the primitives but are meaningfully different by lesson type rather than becoming one rigid template.
+Render the assembled lesson scenes into a deterministic 16:9 video, using the narration timing/audio already validated before rendering.
