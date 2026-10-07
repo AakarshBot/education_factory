@@ -82,7 +82,6 @@ Questions:
         },
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "responseMimeType": "application/json",
             "responseFormat": {
                 "text": {
                     "mimeType": "application/json",
