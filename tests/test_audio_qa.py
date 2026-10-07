@@ -19,6 +19,20 @@ def write_wav(path, *, duration=1.0, amplitude=10000):
             wav.writeframesraw(struct.pack("<h", value))
 
 
+def test_volume_levels_parse_ffmpeg_output(monkeypatch, tmp_path):
+    import audio_qa
+
+    path = tmp_path / "tone.wav"
+    path.write_bytes(b"audio")
+    monkeypatch.setattr(
+        audio_qa,
+        "_run",
+        lambda _path: "mean_volume: -18.2 dB\nmax_volume: -1.4 dB\n",
+    )
+
+    assert audio_qa._volume_levels(path) == (-18.2, -1.4)
+
+
 def test_check_audio_accepts_real_audio_and_validates_metadata(tmp_path):
     path = tmp_path / "tone.wav"
     write_wav(path)
