@@ -662,15 +662,3 @@ Architecture note:
 **Step 2.1 — Demand discovery.**
 
 Build free/low-cost topic discovery around exam-related search intent and current learning needs.
-## NEXT STEP
-
-**Step 1.5 — Lesson assembler.**
-
-Build the deterministic assembler that turns verified questions + verified explanations into the five locked learning experiences:
-- practice
-- timed test
-- concept + practice
-- PYQ analysis
-- revision/marathon
-
-This stage should define the lesson contract and sequencing rules without adding rendering, audio, publishing, or topic-discovery code yet.
