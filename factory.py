@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from audio_qa import check_audio
-from channel_history import DEFAULT_HISTORY_FILE, load_history
+from channel_history import DEFAULT_HISTORY_FILE, load_history, recent_topic_keys
 from concept_generator import generate_concept_summary
 from demand_discovery import discover_demand
 from editorial_adaptation import build_editorial_adaptation
@@ -36,6 +36,16 @@ from topic_family_analysis import analyze_topic_families
 from topic_scorer import score_topics
 from youtube_analytics import ingest_metrics
 from youtube_auth import get_youtube_client
+from production_backlog import (
+    DEFAULT_BACKLOG_FILE,
+    claim_job,
+    complete_job,
+    load_backlog,
+    merge_jobs,
+    pending_jobs,
+    release_stale_claims,
+    save_backlog,
+)
 from youtube_uploader import upload_video
 
 DEFAULT_OUTPUT_ROOT = Path("output")
@@ -283,6 +293,7 @@ def run_factory(
     language: str = DEFAULT_LANGUAGE,
     publish_mode: str = "scheduled",
     publish_at: datetime | None = None,
+    backlog_path: str | Path = DEFAULT_BACKLOG_FILE,
     resume: str | Path | None = None,
 ) -> Lesson:
     if resume is None:
@@ -304,6 +315,7 @@ def run_factory(
             "language": language,
             "publish_mode": publish_mode,
             "history_path": str(Path(history_path).resolve()),
+            "backlog_path": str(Path(backlog_path).resolve()),
         }
         manifest.save()
     else:
@@ -320,6 +332,7 @@ def run_factory(
         language = str(config["language"])
         publish_mode = str(config["publish_mode"])
         history_path = config.get("history_path", history_path)
+        backlog_path = config.get("backlog_path", backlog_path)
 
     current_stage = "initialization"
 
@@ -336,20 +349,41 @@ def run_factory(
             subjects = analyze_subjects(history)
             families = analyze_topic_families(history)
             adaptation = build_editorial_adaptation(formats, subjects, families)
-            signals = discover_demand()
-            scores = score_topics(
-                signals,
-                recent_titles=tuple(
-                    entry.title for entry in history if entry.title.strip()
-                ),
-                language=language,
-            )
-            jobs = build_editorial_queue(
-                scores,
-                max_jobs=max_jobs,
-                history=history,
-            )
+
+            backlog_file = Path(backlog_path)
+            backlog = release_stale_claims(load_backlog(backlog_file))
+            recent_topics = recent_topic_keys(history)
+            backlog = [
+                entry
+                for entry in backlog
+                if entry.key not in recent_topics
+            ]
+
+            if len(pending_jobs(backlog)) < max_jobs:
+                signals = discover_demand()
+                scores = score_topics(
+                    signals,
+                    recent_titles=tuple(
+                        entry.title for entry in history if entry.title.strip()
+                    ),
+                    language=language,
+                )
+                jobs = build_editorial_queue(
+                    scores,
+                    max_jobs=max_jobs,
+                    history=history,
+                )
+                backlog = merge_jobs(backlog, jobs)
+
+            jobs = pending_jobs(backlog)
             job = _select_job(jobs, adaptation)
+            backlog = claim_job(
+                backlog,
+                job,
+                run_id=manifest.run_id,
+            )
+            save_backlog(backlog, backlog_file)
+
             lesson_type = _select_lesson_type(adaptation)
             manifest.selected.update(
                 {
@@ -361,6 +395,13 @@ def run_factory(
                     "supporting_signal_indices": list(job.supporting_signal_indices),
                     "rationale": job.rationale,
                     "lesson_type": lesson_type,
+                    "backlog_key": list(
+                        (
+                            job.exam.strip().lower(),
+                            job.subject.strip().lower(),
+                            job.topic.strip().lower(),
+                        )
+                    ),
                 }
             )
             manifest.checkpoint("editorial_selection")
@@ -690,6 +731,23 @@ def run_factory(
             ingest_metrics(history_path=history_file)
             manifest.checkpoint("analytics")
 
+        if not stage_complete(manifest, "backlog_complete"):
+            current_stage = "backlog_complete"
+            backlog_key = manifest.selected.get("backlog_key")
+            if backlog_key:
+                if not isinstance(backlog_key, list) or len(backlog_key) != 3:
+                    raise RuntimeError("manifest backlog key is invalid")
+                backlog = load_backlog(Path(backlog_path))
+                backlog = complete_job(
+                    backlog,
+                    exam=str(backlog_key[0]),
+                    subject=str(backlog_key[1]),
+                    topic=str(backlog_key[2]),
+                    run_id=manifest.run_id,
+                )
+                save_backlog(backlog, Path(backlog_path))
+            manifest.checkpoint("backlog_complete")
+
         manifest.complete()
         return lesson
 
@@ -713,6 +771,7 @@ def main() -> None:
         choices=("scheduled", "public"),
         default="scheduled",
     )
+    parser.add_argument("--backlog-path", default=str(DEFAULT_BACKLOG_FILE))
     parser.add_argument("--resume", default=None)
     args = parser.parse_args()
 
@@ -724,6 +783,7 @@ def main() -> None:
         difficulty=args.difficulty,
         language=args.language,
         publish_mode=args.publish_mode,
+        backlog_path=args.backlog_path,
         resume=args.resume,
     )
     print(f"Completed: {lesson.title}")
