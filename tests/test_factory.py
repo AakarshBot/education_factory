@@ -117,10 +117,35 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
     monkeypatch.setattr(factory, "_short_segment_indices", lambda lesson: calls.append("short_select") or [0])
     monkeypatch.setattr(factory, "render_short", lambda *args, **kwargs: calls.append("render_short") or tmp_path / "short.mp4")
 
+    from metadata_generator import VideoMetadata
+
     class Metadata:
+        primary_title = "Long"
         title_candidates = ("Long", "Short", "Three", "Four", "Five")
+        description = "Description"
+        hashtags = ("#SSC", "#Maths", "#Practice")
+        tags = ("SSC Maths",)
+        series_context = "SSC Maths Practice"
+        category_id = "27"
+        default_language = "hi"
+
         def to_dict(self):
-            return {}
+            return {
+                "primary_title": self.primary_title,
+                "title_candidates": self.title_candidates,
+                "description": self.description,
+                "hashtags": self.hashtags,
+                "tags": self.tags,
+                "series_context": self.series_context,
+                "category_id": self.category_id,
+                "default_language": self.default_language,
+            }
+
+    monkeypatch.setattr(
+        factory,
+        "VideoMetadata",
+        lambda **kwargs: Metadata(),
+    )
 
     monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: calls.append("metadata") or Metadata())
     monkeypatch.setattr(factory, "get_youtube_client", lambda: calls.append("auth") or object())
