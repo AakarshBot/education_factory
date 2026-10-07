@@ -1274,3 +1274,20 @@ Next gate:
 - Run one real Gemini structured-output smoke test locally using the configured production API key/model.
 - Do not run the full factory yet.
 - After the Gemini smoke test is clean, resolve the documented YouTube API compliance-audit boundary before declaring public/scheduled publication operational.
+## Gemini live smoke-test contract correction — 2026-10-08
+
+The first real Gemini structured-output smoke test exposed an API contract detail that mocked pytest requests could not detect.
+
+Google's current GenerateContent REST documentation defines responseFormat.text.mimeType as the enum `APPLICATION_JSON`, not the MIME string `application/json`. The live endpoint rejected the lowercase string with HTTP 400.
+
+Correction committed to main:
+- Updated all five Gemini production stages to send `generationConfig.responseFormat.text.mimeType = APPLICATION_JSON`.
+- Updated payload regression tests in question, topic-scoring, and explanation generation to assert the live enum value.
+- The structured JSON schema remains nested under responseFormat.text.schema.
+- No dependency, wrapper, pipeline, or manual configuration change was added.
+
+Current gate:
+- The previous full suite was 183 passed before this live-contract correction.
+- Pull main and rerun the full pytest suite once more.
+- Do not run factory.py yet.
+- After pytest is green, rerun the real Gemini one-question smoke test. A successful response is required before proceeding to the first complete production job.
