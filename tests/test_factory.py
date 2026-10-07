@@ -8,6 +8,7 @@ import pytest
 import factory
 from lesson import Lesson, LessonSegment
 from metadata_generator import VideoMetadata
+from topic_family_analysis import TopicFamilyPerformance
 from question import Question
 
 
@@ -73,6 +74,68 @@ def adaptation(weights=None):
 
     return Result()
 
+
+
+
+def test_select_job_applies_topic_family_adaptation():
+    class Job:
+        def __init__(self, topic, score):
+            self.priority = 1
+            self.total_score = score
+            self.subject = "Maths"
+            self.exam = "SSC"
+            self.topic = topic
+
+    class Adaptation:
+        subject_weights = {"maths": 1.0}
+        topic_family_weights = {
+            ("Maths", "Percentages"): 1.1,
+            ("Maths", "Ratio"): 0.9,
+        }
+
+    families = (
+        TopicFamilyPerformance(
+            subject="Maths",
+            family_name="Percentages",
+            topics=("Percentages",),
+            topic_count=1,
+            measured_videos=3,
+            total_views=300,
+            average_views=100,
+            median_views=100,
+            total_watch_minutes=30,
+            average_watch_minutes=10,
+            median_watch_minutes=10,
+            average_view_percentage=70,
+            engagement_rate_percent=5,
+            subscribers_per_1000_views=10,
+            comparison_ready=True,
+        ),
+        TopicFamilyPerformance(
+            subject="Maths",
+            family_name="Ratio",
+            topics=("Ratio",),
+            topic_count=1,
+            measured_videos=3,
+            total_views=300,
+            average_views=100,
+            median_views=100,
+            total_watch_minutes=30,
+            average_watch_minutes=10,
+            median_watch_minutes=10,
+            average_view_percentage=70,
+            engagement_rate_percent=5,
+            subscribers_per_1000_views=10,
+            comparison_ready=True,
+        ),
+    )
+
+    selected = factory._select_job(
+        [Job("Percentages", 100), Job("Ratio", 105)],
+        Adaptation(),
+        families,
+    )
+    assert selected.topic == "Percentages"
 
 def test_select_lesson_type_respects_adaptation():
     result = adaptation({
