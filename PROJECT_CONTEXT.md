@@ -568,8 +568,25 @@ Also implemented segment scenes for concept text, source attribution, answer rev
 
 The layouts reuse the Step 4.1 primitives rather than creating a second visual system. No animation engine, media dependency, or template framework was added.
 
-### Step 4.3 — Long-form renderer
-Render 16:9 educational sessions.
+### Step 4.3 — Long-form renderer — **COMPLETE**
+Added `long_form_renderer.py` as the direct 16:9 video assembly stage.
+
+The renderer:
+- accepts an assembled `Lesson`, its already-generated audio, an output path, and one positive duration per lesson segment
+- requires a 16:9 canvas
+- validates that scene durations exactly match the lesson segment count
+- checks the supplied narration audio through the existing Audio QA gate and requires the total scene duration to match the audio within the existing tolerance
+- renders each lesson segment through `lesson_layouts.py`
+- writes deterministic PNG scenes to a temporary workspace
+- uses the local FFmpeg concat demuxer to assemble the scenes
+- muxes the validated audio as the MP4 soundtrack
+- produces H.264/YUV420P output with fast-start metadata
+- replaces the destination only after a successful render
+- fails closed on invalid durations, bad scene sizes, media-tool errors, or missing output
+
+No animation framework, video Python wrapper, or new dependency was added.
+
+The renderer deliberately receives scene durations explicitly. The lesson/narration orchestration stage can supply those durations from its final timing contract without embedding timing guesses inside the video renderer.
 
 ### Step 4.4 — Shorts renderer
 Render 9:16 challenge/lesson cuts.
@@ -671,7 +688,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 4 / STEP 4.2 COMPLETE**
+Status: **PHASE 4 / STEP 4.3 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -685,9 +702,10 @@ Completed:
 - Phase 3.3 — audio QA
 - Phase 4.1 — deterministic visual primitives
 - Phase 4.2 — lesson-specific visual layouts
+- Phase 4.3 — long-form 16:9 renderer
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual primitives -> lesson-specific scenes**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual scenes -> 16:9 MP4**
 
 Current repository files include:
 - `PROJECT_CONTEXT.md`
@@ -710,24 +728,31 @@ Current repository files include:
 - `audio_qa.py`
 - `visual_primitives.py`
 - `lesson_layouts.py`
+- `long_form_renderer.py`
 - focused tests under `tests/`
 
 Step 4.1 test status:
 - 2 focused visual primitive tests were added.
 - The primitive layer was checked for deterministic repeated rendering and Hindi/Latin text support.
-- Full repository suite is not claimed.
 
 Step 4.2 test status:
-- **Runtime layout tests passed locally.**
+- Runtime layout tests were completed locally.
 - Verified all five lesson types produce distinct 1920x1080 question compositions.
-- Verified practice, timed-test, concept-practice, and PYQ segment sequences render at 1280x720 without runtime errors.
-- Verified the new layout module compiles successfully.
+- Verified assembled segment scenes render at 1280x720 without runtime errors.
 - No new Python dependency was added.
 
+Step 4.3 test status:
+- **Real FFmpeg long-form render passed locally.**
+- A synthetic 0.8-second audio file was validated and muxed with two 16:9 scene images.
+- The resulting MP4 was verified with FFprobe as 320x180 video plus audio with 0.8-second duration.
+- Scene-count and non-16:9 input failures are covered by focused tests.
+- The full repository suite has not been executed in this hosted session.
+
 Architecture:
-- `visual_primitives.py` owns reusable low-level instructional drawing primitives.
-- `lesson_layouts.py` owns direct lesson-type composition.
-- Future renderers should consume these scenes rather than introducing duplicate layout logic.
+- `visual_primitives.py` owns reusable instructional drawing primitives.
+- `lesson_layouts.py` owns lesson-type composition.
+- `long_form_renderer.py` owns deterministic FFmpeg assembly and audio/video handoff.
+- No duplicate visual pipeline or wrapper framework has been introduced.
 
 Dependency policy remains locked:
 - Pillow
@@ -746,6 +771,6 @@ The factory remains ₹0 production-spend by design. Real credentials stay local
 
 ## NEXT STEP
 
-**Step 4.3 — Long-form renderer.**
+**Step 4.4 — Shorts renderer.**
 
-Render the assembled lesson scenes into a deterministic 16:9 video, using the narration timing/audio already validated before rendering.
+Render 9:16 challenge/lesson cuts using the same verified educational content and visual system, without creating a second visual architecture.
