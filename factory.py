@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from audio_qa import check_audio
 from channel_history import DEFAULT_HISTORY_FILE, load_history
+from concept_generator import generate_concept_summary
 from demand_discovery import discover_demand
 from editorial_adaptation import build_editorial_adaptation
 from editorial_queue import build_editorial_queue
@@ -32,7 +33,7 @@ DEFAULT_OUTPUT_ROOT = Path("output")
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
-AUTO_LESSON_TYPES = ("practice", "timed_test", "revision")
+AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
 SHORT_PUBLISH_DELAY = timedelta(hours=2)
@@ -209,6 +210,14 @@ def run_factory(
     job = _select_job(jobs, adaptation)
 
     lesson_type = _select_lesson_type(adaptation)
+    concept_summary = None
+    if lesson_type == "concept_practice":
+        concept_summary = generate_concept_summary(
+            subject=job.subject,
+            exam=job.exam,
+            topic=job.topic,
+            language=language,
+        )
     questions = generate_questions(
         subject=job.subject,
         exam=job.exam,
@@ -218,7 +227,11 @@ def run_factory(
         language=language,
     )
     questions = generate_explanations(questions, language=language)
-    lesson = assemble_lesson(questions, lesson_type=lesson_type)
+    lesson = assemble_lesson(
+        questions,
+        lesson_type=lesson_type,
+        concept_summary=concept_summary,
+    )
 
     lesson_dir = output / _slug(lesson.title)
     lesson_dir.mkdir(parents=True, exist_ok=True)
