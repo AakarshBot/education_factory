@@ -322,10 +322,27 @@ Important design decision:
 
 Added `tests/test_validators.py` covering exact arithmetic, number parsing, mismatched answers, unsafe expressions, required Maths expressions, and multiple-choice integrity.
 
-### Step 1.3 — Question generation
-Generate original question sets using the canonical schema.
+### Step 1.3 — Question generation — **COMPLETE**
+Added `question_generator.py` with one direct `generate_questions()` path using Gemini's REST `generateContent` endpoint and structured JSON output. Google's current API documentation confirms Gemini 3.8 Flash is a stable production model and supports structured JSON responses through a response schema. citeturn875388search2turn931795search1turn875388search3
 
-The generator must avoid near-duplicate questions and must preserve exam relevance.
+The generator:
+- makes one Gemini request for a requested question batch
+- requests exactly the requested count through structured output
+- generates original questions only
+- requires `source_type="original"` and no source reference
+- requires a machine-checkable arithmetic expression for Maths
+- converts returned records into the canonical `Question` objects
+- runs the deterministic validator on every generated question before returning anything
+- rejects wrong counts, malformed structured responses, HTTP/API failures, and validation failures
+- performs no hidden regeneration loop
+
+The public `Question` schema remains unchanged; `math_expression` is generation-time validation metadata and is removed before a `Question` object is returned.
+
+Added `tests/test_question_generator.py` covering successful structured generation, deterministic rejection of a wrong Maths answer, invalid count handling, and HTTP failure handling.
+
+Model/cost note:
+- The active Google pricing page currently lists `gemini-3.8-flash` as free-tier for standard text input/output. citeturn875388search0
+- The generator therefore remains within the locked ₹0 production constraint, subject to the provider's active free-tier limits.
 
 ### Step 1.4 — Explanation generation
 Create explanations from verified answers rather than allowing the model to invent the final answer.
@@ -562,7 +579,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 1 / STEP 1.2 COMPLETE**
+Status: **PHASE 1 / STEP 1.3 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -573,6 +590,7 @@ Completed in Phase 0:
 Completed in Phase 1:
 - Step 1.1 — canonical question schema
 - Step 1.2 — deterministic Maths/question validators
+- Step 1.3 — structured original question generation
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -583,17 +601,23 @@ Current repository files:
 - `config.py`
 - `question.py`
 - `validators.py`
+- `question_generator.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
+- `tests/test_question_generator.py`
 
 Test status:
-- Focused Step 1.2 tests are committed.
-- They have not been executed in this hosted GitHub-only session; no test pass is claimed yet.
+- Focused Step 1.3 tests are committed.
+- They have not been executed in this hosted GitHub-only session; no test pass is claimed.
+- The HTTP mock was corrected before completion so the test does not depend on Python method binding behavior.
 - No CI workflow has been added yet.
+
+Important implementation note:
+- The current generator is intentionally a single network path with no automatic rewrite/retry. A future generation policy can add bounded retries only when a concrete failure mode and requirement justify them.
 
 ## NEXT STEP
 
-**Step 1.3 — Question generation.**
+**Step 1.4 — Explanation generation.**
 
-Build the first real generation path around the canonical `Question` schema and deterministic validation contract. The generator must produce original questions, include machine-checkable Maths metadata for Maths items, and reject invalid generated sets before any explanation or rendering stage can use them.
+Build the explanation stage so it consumes only verified question data and never invents or changes the verified answer. The explanation output must remain attached to the canonical question contract and should minimize additional LLM calls.
