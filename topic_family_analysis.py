@@ -68,7 +68,14 @@ def _subject_name(subject: str) -> str:
 
 def _topic_tokens(topic: str) -> frozenset[str]:
     words = re.findall(r"[\w]+", topic.casefold(), flags=re.UNICODE)
-    return frozenset(word for word in words if word not in STOP_WORDS and len(word) > 2)
+    tokens = []
+    for word in words:
+        if word in STOP_WORDS or len(word) <= 2:
+            continue
+        if word.endswith("s") and not word.endswith(("ss", "is", "us")):
+            word = word[:-1]
+        tokens.append(word)
+    return frozenset(tokens)
 
 
 def _related(left: frozenset[str], right: frozenset[str]) -> bool:
