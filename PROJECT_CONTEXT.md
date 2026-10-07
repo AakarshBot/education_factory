@@ -801,9 +801,57 @@ The real channel has no analytics data yet, so the adaptation profile currently 
 
 ## Phase 7 — Autonomous daily operation
 
-### Step 7.1 — One-click / one-command factory run
-One user action starts the complete cycle.
+### Step 7.1 — One-click / one-command factory run — **COMPLETE**
 
+Added `factory.py` as the direct production entry point and `tests/test_factory.py` for orchestration coverage.
+
+The command connects the existing stages in one path:
+1. load channel history
+2. analyze format, subject, and topic-family performance
+3. build conservative editorial adaptation
+4. discover current YouTube demand
+5. score topics
+6. build the editorial queue and apply subject evidence
+7. choose an available lesson format using the format evidence
+8. generate verified questions
+9. generate explanations
+10. assemble the lesson
+11. build narration directly from the educational lesson
+12. synthesize Hindi/Hinglish speech
+13. run audio QA
+14. derive scene durations from the narration
+15. render and QA the 16:9 long-form video
+16. generate and save metadata
+17. authenticate YouTube only at the publishing boundary
+18. upload/schedule and persist channel history
+19. ingest available analytics
+
+Important fail-closed boundary:
+- The command does not publish until question validation, explanations, narration, audio QA, rendering/video QA, and metadata validation have all succeeded.
+- Upload failures remain hard failures.
+- A successful upload is recorded in channel history before the analytics refresh.
+
+Initial automatic lesson types are deliberately limited to the formats the current upstream generation engine can instantiate without hidden inputs:
+- practice
+- timed_test
+- revision
+
+`concept_practice` still requires explicit concept text, and `pyq_analysis` requires sourced PYQ questions. The factory does not fabricate either input.
+
+Default command behavior:
+- one production lesson per run
+- 10 questions
+- mixed difficulty
+- Hinglish
+- scheduled publishing by default
+- absent an explicit publish time, scheduled publication defaults to the next local 18:00 India time
+
+No new dependency or wrapper framework was added.
+
+Testing:
+- Added focused orchestration tests covering lesson-format selection, default behavior, publish-time calculation, scene-duration accounting, and end-to-end mocked stage ordering.
+- The factory source was syntax-checked and core helper logic was executed successfully in isolation.
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
 ### Step 7.2 — Daily queue generation
 Create today's jobs and future backlog.
 
@@ -855,7 +903,7 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 6 / STEP 6.5 COMPLETE**
+Status: **PHASE 7 / STEP 7.1 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -975,8 +1023,8 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 7 / Step 7.1 — One-click / one-command factory run.**
+**Phase 7 / Step 7.2 — Automatic Shorts derivation and publishing.**
 
-Connect the completed production stages into one direct factory command that runs demand discovery, scoring, queueing, educational generation, narration, rendering, metadata, and the prepared publishing/analytics interfaces without introducing a wrapper framework.**Phase 6 / Step 6.4 — Topic-family analysis.**
+Derive a useful Short from each completed long-form lesson using the existing portrait renderer, narration/timing, QA, metadata, and upload path without creating a second educational-content pipeline.**Phase 6 / Step 6.4 — Topic-family analysis.**
 
 Identify recurring winning topic clusters from the persisted production history and metrics, without treating a single anomalous video as a strategy signal.
