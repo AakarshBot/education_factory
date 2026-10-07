@@ -505,8 +505,26 @@ Microsoft currently lists `hi-IN-MadhurNeural` as a supported Hindi (India) stan
 
 Added `tests/test_narration.py` covering default/configured/explicit voice selection, audio-setting forwarding, empty input, and missing output.
 
-### Step 3.2 — Timing contract
-Produce stable word/phrase timing data for rendering.
+### Step 3.2 — Timing contract — **COMPLETE**
+Extended `narration.py` so the same Edge-TTS synthesis call can optionally produce stable word timing metadata.
+
+The timing path:
+- requests Edge-TTS `WordBoundary` events
+- writes the exact generated audio and timing data from the same synthesis stream
+- converts Edge-TTS 100-nanosecond offsets/durations into seconds
+- preserves spoken word text alongside each timing
+- validates monotonic timings and positive word durations
+- records overall spoken timing duration
+- fails closed when no word-boundary events or no timing file are produced
+- does not rewrite, split, or otherwise modify narration text
+- does not add a second TTS call or a timing dependency
+
+Added timing-specific tests to `tests/test_narration.py`.
+
+The current Edge-TTS Python implementation exposes `Communicate.stream()` with `WordBoundary` events containing text, offset, and duration; the offsets are represented in 100-nanosecond ticks. citeturn556359search1turn556359search4
+
+### Step 3.3 — Audio QA
+Verify duration, silence, missing audio, and basic output integrity.
 
 ### Step 3.2 — Timing contract
 Produce stable word/phrase timing data for rendering.
@@ -703,7 +721,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 3 / STEP 3.1 COMPLETE**
+Status: **PHASE 3 / STEP 3.2 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -726,6 +744,7 @@ Completed in Phase 2:
 
 Completed in Phase 3:
 - Step 3.1 — Hindi/Hinglish narration pipeline
+- Step 3.2 — word timing contract
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -758,15 +777,20 @@ Current repository files:
 - `tests/test_narration.py`
 
 Test status:
-- Step 3.1 dedicated tests: **5 passed locally** with mocked edge-tts synthesis.
-- No live network synthesis was performed in this hosted session.
-- The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
+- Timing-specific tests were added for the single-call streaming contract and word-boundary normalization.
+- The hosted Python environment does not have `edge-tts` installed, so live synthesis and execution of these tests could not be performed here.
+- The full repository suite was not executed; no test pass is claimed.
 
 Architecture note:
-- Step 3.1 produces audio only.
-- Step 3.2 will extract a stable timing contract from the generated speech and must not alter the narration text.
-- No additional TTS dependency was introduced.
+- Step 3.1 remains the audio-generation contract.
+- Step 3.2 uses the same synthesis operation to produce word timing metadata, avoiding duplicate speech-generation calls.
+- Step 3.3 will validate the final audio file itself with local media tooling.
 
+## NEXT STEP
+
+**Step 3.3 — Audio QA.**
+
+Verify duration, silence, missing audio, and basic output integrity.
 ## NEXT STEP
 
 **Step 3.2 — Timing contract.**

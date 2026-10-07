@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 3.1 — Hindi/Hinglish narration pipeline**
+**Step 3.2 — Timing contract**
 
-The factory now has a direct free Edge-TTS narration stage with a Hindi neural voice default. Timing metadata is the next layer.
+The narration stage can now produce word-level timing metadata from the same Edge-TTS synthesis stream. Audio QA is next.

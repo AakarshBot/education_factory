@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import narration
@@ -6,8 +8,8 @@ import narration
 class FakeCommunicate:
     calls = []
 
-    def __init__(self, text, voice, *, rate, volume, pitch):
-        self.calls.append((text, voice, rate, volume, pitch))
+    def __init__(self, text, voice, *, rate, volume, pitch, **kwargs):
+        self.calls.append((text, voice, rate, volume, pitch, kwargs))
 
     async def save(self, path):
         with open(path, "wb") as file:
@@ -33,6 +35,7 @@ def test_synthesize_speech_uses_default_hindi_voice(monkeypatch, tmp_path):
             "+0%",
             "+0%",
             "+0Hz",
+            {},
         )
     ]
 
@@ -66,7 +69,47 @@ def test_synthesize_speech_accepts_explicit_voice_and_audio_settings(monkeypatch
         "-10%",
         "+10%",
         "+2Hz",
+        {},
     )
+
+
+def test_synthesize_speech_with_timing_streams_audio_and_word_boundaries(
+    monkeypatch,
+    tmp_path,
+):
+    events = [
+        {"type": "WordBoundary", "offset": 0, "duration": 4_000_000, "text": "Aaj"},
+        {"type": "audio", "data": b"aa"},
+        {"type": "WordBoundary", "offset": 4_000_000, "duration": 3_000_000, "text": "test"},
+        {"type": "audio", "data": b"bb"},
+    ]
+
+    class StreamingCommunicate:
+        def __init__(self, text, voice, *, rate, volume, pitch, boundary):
+            assert text == "Aaj test"
+            assert voice == "hi-IN-MadhurNeural"
+            assert boundary == "WordBoundary"
+
+        async def stream(self):
+            for event in events:
+                yield event
+
+    monkeypatch.setattr(narration.edge_tts, "Communicate", StreamingCommunicate)
+
+    output = narration.synthesize_speech(
+        "Aaj test",
+        tmp_path / "audio.mp3",
+        timing_path=tmp_path / "timing.json",
+    )
+
+    assert output.read_bytes() == b"aabb"
+    payload = json.loads((tmp_path / "timing.json").read_text(encoding="utf-8"))
+    assert payload["text"] == "Aaj test"
+    assert payload["duration_seconds"] == 0.7
+    assert payload["words"] == [
+        {"text": "Aaj", "start_seconds": 0.0, "duration_seconds": 0.4},
+        {"text": "test", "start_seconds": 0.4, "duration_seconds": 0.3},
+    ]
 
 
 def test_synthesize_speech_rejects_empty_text():
@@ -83,3 +126,21 @@ def test_synthesize_speech_fails_when_no_audio_is_written(monkeypatch, tmp_path)
 
     with pytest.raises(RuntimeError, match="no audio"):
         narration.synthesize_speech("Hello.", tmp_path / "missing.mp3")
+
+
+def test_synthesize_speech_fails_when_no_word_boundaries(monkeypatch, tmp_path):
+    class NoTimingCommunicate:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def stream(self):
+            yield {"type": "audio", "data": b"fake-audio"}
+
+    monkeypatch.setattr(narration.edge_tts, "Communicate", NoTimingCommunicate)
+
+    with pytest.raises(RuntimeError, match="no word timing"):
+        narration.synthesize_speech(
+            "Hello.",
+            tmp_path / "audio.mp3",
+            timing_path=tmp_path / "timing.json",
+        )
