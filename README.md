@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 3.2 — Timing contract**
+**Step 3.3 — Audio QA**
 
-The narration stage can now produce word-level timing metadata from the same Edge-TTS synthesis stream. Audio QA is next.
+The factory now validates generated audio with local FFmpeg/FFprobe before visual rendering. Visual primitives are next.

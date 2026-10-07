@@ -475,12 +475,6 @@ The history store is deliberately local and small. Analytics-specific interpreta
 
 
 
-### Step 2.3 — Editorial queue
-Automatically choose the next jobs.
-
-### Step 2.4 — Historical memory
-Store enough local channel history to avoid repetitive publishing and support learning from prior results.
-
 ---
 
 ## Phase 3 — Voice and audio
@@ -523,14 +517,20 @@ Added timing-specific tests to `tests/test_narration.py`.
 
 The current Edge-TTS Python implementation exposes `Communicate.stream()` with `WordBoundary` events containing text, offset, and duration; the offsets are represented in 100-nanosecond ticks. citeturn556359search1turn556359search4
 
-### Step 3.3 — Audio QA
-Verify duration, silence, missing audio, and basic output integrity.
+### Step 3.3 — Audio QA — **COMPLETE**
+Added `audio_qa.py` as the final audio gate before rendering.
 
-### Step 3.2 — Timing contract
-Produce stable word/phrase timing data for rendering.
+The QA stage:
+- uses local `ffprobe` to verify an audio stream, positive duration, sample rate, and channel count
+- uses local `ffmpeg` `volumedetect` to detect audio that is effectively silent
+- rejects missing files, empty files, unreadable media, unusably short audio, and incomplete metadata
+- can compare actual audio duration with an expected narration/timing duration using an explicit tolerance
+- performs no repair, normalization, regeneration, or hidden retry
+- adds no new Python dependency
 
-### Step 3.3 — Audio QA
-Verify duration, silence, missing audio, and basic output integrity.
+Added `tests/test_audio_qa.py`, using real generated WAV files and real FFmpeg/FFprobe execution for valid, silent, short, missing, empty, and mismatched audio cases.
+
+### Step 4.1 — Visual primitives
 
 ---
 
@@ -654,38 +654,20 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **FOUNDATION / STEP 0.2 COMPLETE**
+Status: **PHASE 3 / STEP 3.3 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
 
-The repository was empty at the start of this project.
-
 Completed:
-- locked channel strategy recorded
-- minimal repository skeleton created
-- `.gitignore` added for Python caches, local environments, runtime output, and credentials
-- `.env.example` added with YouTube credential placeholders only
-- `README.md` added with the locked strategy and development rule
-- India/Hindi-Hinglish market locked
-- SSC + Banking + Railway focus locked
-- Maths + Reasoning + English initial subjects locked
-- long-form + Shorts strategy locked
-- zero-cost constraint locked
-- autonomous operating model locked
-- build map recorded
-- manual external actions documented
+- Phase 0 — foundation through configuration
+- Phase 1 — question schema, validation, generation, explanations, lesson assembly
+- Phase 2 — demand discovery, topic scoring, editorial queue, historical memory
+- Phase 3.1 — Hindi/Hinglish narration
+- Phase 3.2 — word timing contract
+- Phase 3.3 — audio QA
 
-Not yet implemented:
-- production application code
-- dependency file
-- question schema
-- validators
-- research/discovery
-- renderer
-- uploader
-- analytics
-- autonomous run command
+The current production chain reaches a validated audio asset before visual rendering.
 
 ## STEP 0.3 — LOCAL/FREE DEPENDENCY POLICY — **COMPLETE**
 
@@ -721,7 +703,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 3 / STEP 3.2 COMPLETE**
+Status: **PHASE 3 / STEP 3.3 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -745,6 +727,7 @@ Completed in Phase 2:
 Completed in Phase 3:
 - Step 3.1 — Hindi/Hinglish narration pipeline
 - Step 3.2 — word timing contract
+- Step 3.3 — audio QA
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -764,6 +747,7 @@ Current repository files:
 - `editorial_queue.py`
 - `channel_history.py`
 - `narration.py`
+- `audio_qa.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
@@ -775,17 +759,24 @@ Current repository files:
 - `tests/test_editorial_queue.py`
 - `tests/test_channel_history.py`
 - `tests/test_narration.py`
+- `tests/test_audio_qa.py`
 
 Test status:
-- Timing-specific tests were added for the single-call streaming contract and word-boundary normalization.
-- The hosted Python environment does not have `edge-tts` installed, so live synthesis and execution of these tests could not be performed here.
-- The full repository suite was not executed; no test pass is claimed.
+- Step 3.3 tests: **7 passed locally** against real generated WAV files with real FFmpeg/FFprobe.
+- Live Edge-TTS synthesis was not run in the hosted session.
+- The full repository suite was not executed; no broader full-suite pass is claimed.
 
 Architecture note:
-- Step 3.1 remains the audio-generation contract.
-- Step 3.2 uses the same synthesis operation to produce word timing metadata, avoiding duplicate speech-generation calls.
-- Step 3.3 will validate the final audio file itself with local media tooling.
+- Step 3.1 generates narration audio.
+- Step 3.2 derives word timings from the same synthesis stream.
+- Step 3.3 validates the resulting audio before the visual engine.
+- No automatic audio repair or regeneration is performed by QA.
 
+## NEXT STEP
+
+**Step 4.1 — Visual primitives.**
+
+Create a small set of deterministic educational primitives:
 ## NEXT STEP
 
 **Step 3.3 — Audio QA.**
