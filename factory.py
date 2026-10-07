@@ -359,7 +359,8 @@ def run_factory(
                 if entry.key not in recent_topics
             ]
 
-            if len(pending_jobs(backlog)) < max_jobs:
+            pending_count = len(pending_jobs(backlog))
+            if pending_count < max_jobs:
                 signals = discover_demand()
                 scores = score_topics(
                     signals,
@@ -370,7 +371,7 @@ def run_factory(
                 )
                 jobs = build_editorial_queue(
                     scores,
-                    max_jobs=max_jobs,
+                    max_jobs=max_jobs - pending_count,
                     history=history,
                 )
                 backlog = merge_jobs(backlog, jobs)
