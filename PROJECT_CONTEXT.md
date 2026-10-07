@@ -877,8 +877,56 @@ Testing:
 - Added factory coverage for automatic `concept_practice` selection.
 - No new dependency was added.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
+## Phase 8 — Reliability and autonomous execution
+
+### Step 8.1 — Production job manifest and resume-safe execution — **COMPLETE**
+
+Added `job_manifest.py` and integrated it directly into `factory.py`.
+
+Every production run now creates a compact JSON manifest containing:
+- unique run ID and creation time
+- run configuration, including the original history path
+- selected exam, subject, topic, editorial score, lesson format, and rationale
+- per-stage completion/failure status
+- output artifact paths
+- long-form and Short YouTube video IDs
+- exact long-form/Short publish times
+- current failure stage and error text
+
+The factory checkpoints after each meaningful production stage and restores successful stages from saved artifacts rather than regenerating them.
+
+Persisted/recoverable artifacts include:
+- concept summary
+- generated questions
+- explained/verified questions
+- assembled lesson
+- narration text and word-timing audio
+- long-form scene durations and MP4
+- metadata
+- Short narration/timing audio
+- Short scene durations and MP4
+- Short metadata
+
+Resume behavior:
+- `python factory.py --resume <path-to-job.json>` continues a failed/incomplete run.
+- A completed job returns directly from its saved lesson artifact.
+- The original topic, format, run settings, history path, and publish schedule are preserved.
+- A successful long/Short upload is skipped on resume when its stage is already checkpointed; the history ledger is also checked to avoid an obvious duplicate upload after a normal post-upload checkpoint interruption.
+- Missing artifacts for a checkpointed stage fail closed instead of silently regenerating or publishing partial output.
+- Manifest writes and JSON artifact writes use atomic replacement so ordinary process interruption does not leave half-written JSON files.
+
+External side-effect boundary:
+- There remains an unavoidable tiny failure window between a successful YouTube upload and the local checkpoint/history write. The uploader already persists history immediately after upload, and the factory also checks history before retrying. The system therefore minimizes duplicate-upload risk but cannot provide mathematically exactly-once behavior across a remote API side effect and a local filesystem without a transactional external service.
+
+Testing:
+- Added focused manifest tests for round-tripping, failure persistence, completion, missing/invalid manifests, and atomic checkpoint writes.
+- Reworked factory tests around deterministic lesson selection and a mocked render failure/resume cycle.
+- The resume test verifies question generation and the first narration synthesis are not repeated after a failed render.
+- Added artifact-restore support to the existing Lesson and VideoMetadata contracts.
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell; committed tests were reviewed for the new recovery path.
+
 ## NEXT STEP
 
-**Phase 8 / Step 8.1 — Production job manifest and resume-safe execution.**
+**Phase 8 / Step 8.2 — Automated daily queue generation and backlog management.**
 
-Make each run persist a compact job manifest with stage status, output paths, selected topic/format, upload IDs, and failure state so the factory can resume or diagnose a failed run without repeating successful work.
+Separate “what to make next” from “make one job now”: persist a small ranked production backlog so twice-daily factory runs can consume and replenish jobs without repeatedly researching the same queue.
