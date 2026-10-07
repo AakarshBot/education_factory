@@ -157,6 +157,8 @@ Return only the requested structured JSON.
 
     questions: list[Question] = []
     for item in items:
+        item = dict(item)
+        item["explanation"] = ""
         math_expression = item.pop("math_expression", None)
         question = Question.from_dict(item)
         validate_question(question, math_expression=math_expression)
