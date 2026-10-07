@@ -857,27 +857,28 @@ Create today's jobs and future backlog.
 
 ### Step 7.3 — Complete the remaining locked lesson products — **COMPLETE**
 
-Added automatic concept generation through `concept_generator.py`. When the conservative format adaptation selects `concept_practice`, the factory generates a concise teaching concept for the chosen exam/subject/topic and passes it directly into the existing deterministic lesson assembler.
+Added automatic concept generation through `concept_generator.py`. When the conservative format adaptation selects `concept_practice`, the factory generates a concise teaching concept for the chosen exam/subject/topic and passes it directly into the deterministic lesson assembler.
 
-Added `pyq_source.py` as the explicit rights-gated PYQ input contract:
-- a PYQ question must already identify `source_type="pyq"`
-- the question's `source_reference` must match the verified source record
-- a rights/permission note is required
-- duplicate PYQs are rejected
-- the factory will never turn an original generated question into a fake PYQ
+Added `pyq_source.py` as the explicit PYQ provenance and reuse gate. A PYQ can enter the lesson system only when:
+- the question identifies `source_type="pyq"`
+- the source reference matches the verified source record
+- the source is on the expected official HTTPS domain
+- an explicit reuse-permission flag is true
+- a rights note is present
+- duplicate questions are rejected
 
-This keeps PYQ analysis fail-closed until the factory has an automated source-discovery path that can identify usable, attributable question material. Official exam bodies do publish question-paper/answer-key material, but the existence of those materials does not by itself establish that arbitrary reuse is permitted; the source layer therefore remains explicit and conservative. citeturn324464search0turn324464search24turn324464search25
+The automatic factory still excludes PYQ from its lesson-format selector because current official-source behavior does not provide a sufficiently reliable public, reusable, machine-readable question feed for all three launch exams. SSC currently exposes answer-key/question-paper materials through its official site, while RRB materials can be candidate/login-limited, and IBPS explicitly states that it does not provide question papers or right-answer keys. citeturn867560search3turn867560search26turn964187search0
+
+This is an intentional safety boundary, not missing plumbing: the factory will not scrape a third-party PYQ repository and assume that copying the question text is permitted.
 
 Testing:
 - Added focused concept-generation tests for structured output, empty responses, and invalid input.
-- Added focused PYQ source-gate tests for matching references, minimum source count, and verified-question selection.
-- Added factory coverage for automatic concept-practice selection.
+- Added PYQ provenance/reuse tests for official-domain checking, explicit reuse evidence, reference matching, minimum source counts, duplicate protection, and verified-question selection.
+- Added factory coverage for automatic `concept_practice` selection.
 - No new dependency was added.
-
-`concept_practice` is now available to the automatic lesson-format selector. PYQ remains intentionally excluded from automatic selection until Step 7.4 implements source discovery and verification.
-
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
 ## NEXT STEP
 
-**Phase 7 / Step 7.4 — Automated PYQ source discovery and verification.**
+**Phase 8 / Step 8.1 — Production job manifest and resume-safe execution.**
 
-Build the source adapter that can discover official/usable PYQ material, verify attribution/permission metadata, extract the actual question content, and hand only verified PYQs to the existing lesson assembler.
+Make each run persist a compact job manifest with stage status, output paths, selected topic/format, upload IDs, and failure state so the factory can resume or diagnose a failed run without repeating successful work.
