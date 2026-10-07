@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 7 / Step 7.3 — Automatic concept + practice and rights-gated PYQ support**
+**Phase 7 / Step 7.4 — Official PYQ discovery and reuse gate**
 
-The factory now has a direct one-command production path from demand discovery through educational generation, narration, long-form + Shorts rendering, metadata, upload/scheduling, history, and analytics. Concept + practice is automatic; PYQ use remains source-gated until automated source verification is added.
+The factory now has a direct one-command production path from demand discovery through educational generation, narration, long-form + Shorts rendering, metadata, upload/scheduling, history, and analytics. Concept + practice is automatic. Official PYQ discovery is automated, but question reuse remains explicitly permission-gated.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
