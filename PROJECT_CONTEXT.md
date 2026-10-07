@@ -762,9 +762,22 @@ Added `tests/test_subject_analysis.py` covering subject normalization, stable th
 
 The real channel has no analytics data yet, so this remains a ready-to-run comparison contract rather than a live subject verdict.
 
-### Step 6.4 — Topic-family analysis
-Identify winning clusters.
+### Step 6.4 — Topic-family analysis — **COMPLETE**
+Added `topic_family_analysis.py` as the deterministic topic-clustering layer over published channel history.
 
+The analysis:
+- clusters related topic names **within the same subject**, avoiding false merges across Maths, Reasoning, and English
+- removes generic learning-format words such as “questions”, “practice”, and “test” from the family signal
+- normalizes simple plural variants so topic names such as “Percentage”, “Percentages”, and “Percentage shortcuts” can belong to one family
+- uses lexical token overlap only; it does not add embeddings, another API, or an LLM dependency
+- reports the member topic names, measured-video count, total/average/median views, total/average/median watch minutes, average view percentage, engagement rate, and subscribers gained per 1,000 views
+- marks a family `comparison_ready` only after 3 measured videos
+- orders comparison-ready families ahead of insufficient-sample families, using median views as the descriptive ordering signal
+- performs no editorial reweighting or automatic strategy change
+
+Added `tests/test_topic_family_analysis.py` covering lexical clustering, plural normalization, subject separation, filtering, rate calculations, insufficient samples, and empty history.
+
+The real channel has no analytics data yet, so this remains a ready-to-run family analysis contract rather than a live list of winning topic families.
 ### Step 6.5 — Automatic editorial adaptation
 Modify future production weights based on evidence.
 
@@ -828,7 +841,7 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 6 / STEP 6.3 COMPLETE**
+Status: **PHASE 6 / STEP 6.4 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -856,6 +869,7 @@ Completed:
 - Phase 6.1 — YouTube Analytics metrics ingestion
 - Phase 6.2 — deterministic format analysis
 - Phase 6.3 — deterministic subject analysis
+- Phase 6.4 — deterministic topic-family analysis
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -890,6 +904,7 @@ Current repository files include:
 - `youtube_analytics.py`
 - `format_analysis.py`
 - `subject_analysis.py`
+- `topic_family_analysis.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -921,6 +936,10 @@ Step 6.2 test status:
 Step 6.3 test status:
 - Added focused deterministic subject-analysis tests for normalization, stable core-subject output, filtering, rate calculations, empty history, and the 3-video comparison threshold.
 - The subject-analysis source and tests were reviewed after commit; a full repository pytest run remains unavailable in this GitHub-connected environment.
+
+Step 6.4 test status:
+- Added focused deterministic topic-family tests for lexical clustering, plural normalization, subject separation, scheduled/empty-topic filtering, rate calculations, insufficient samples, and empty history.
+- The topic-family source and tests were reviewed after commit; a full repository pytest run remains unavailable in this GitHub-connected environment.
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
@@ -934,6 +953,8 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 6 / Step 6.4 — Topic-family analysis.**
+**Phase 6 / Step 6.5 — Automatic editorial adaptation.**
+
+Use accumulated format, subject, and topic-family evidence to adjust future production weights conservatively, with minimum evidence thresholds and no strategy change from a single anomalous video.**Phase 6 / Step 6.4 — Topic-family analysis.**
 
 Identify recurring winning topic clusters from the persisted production history and metrics, without treating a single anomalous video as a strategy signal.
