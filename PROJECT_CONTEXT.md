@@ -628,8 +628,28 @@ No new dependency was added.
 
 ## Phase 5 — Publishing
 
-### Step 5.1 — Metadata generation
-Generate title candidates, description, hashtags/keywords where useful, and series/context fields.
+### Step 5.1 — Metadata generation — **COMPLETE**
+Added `metadata_generator.py` as the direct publishing-metadata stage.
+
+The metadata stage:
+- uses one structured Gemini batch call
+- receives only the completed `Lesson` contract plus the requested output language
+- produces exactly 5 distinct title candidates, with the first treated as the primary publishing title
+- generates a unique viewer-facing description grounded only in supplied lesson facts
+- generates 3-5 directly relevant hashtags
+- generates a small set of precise keyword tags rather than stuffing
+- generates a short recurring series-context label
+- sets the YouTube Education category deterministically to category `27`
+- sets the primary metadata language to Hindi (`hi`), consistent with the channel's Hindi/Hinglish strategy
+- rejects oversized/empty titles, descriptions beyond the current API limit, malformed hashtags, oversized tag sets, URLs, angle brackets, duplicates, and empty metadata fields
+- does not invent dates, scores, instructors, certifications, outcomes, downloads, or guarantees
+- performs no second generation/rewrite loop
+
+Current platform constraints reflected in the stage:
+- YouTube titles are limited to 100 characters.
+- Video descriptions are limited to 5,000 bytes in the API.
+- Video keyword tags have a 500-character total limit.
+- YouTube warns against misleading metadata and excessive/unrelated tags/hashtags. citeturn127069search0turn127069search2turn290784search1turn290784search2turn127069search3
 
 ### Step 5.2 — YouTube OAuth
 Connect the dedicated Google account/channel.
@@ -718,7 +738,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 4 / STEP 4.5 COMPLETE**
+Status: **PHASE 5 / STEP 5.1 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -735,9 +755,10 @@ Completed:
 - Phase 4.3 — long-form 16:9 renderer
 - Phase 4.4 — Shorts 9:16 renderer
 - Phase 4.5 — visual QA
+- Phase 5.1 — metadata generation
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded publishing metadata**
 
 Current repository files include:
 - `PROJECT_CONTEXT.md`
@@ -763,43 +784,24 @@ Current repository files include:
 - `long_form_renderer.py`
 - `shorts_renderer.py`
 - `visual_qa.py`
+- `metadata_generator.py`
 - focused tests under `tests/`
 
-Step 4.1 test status:
-- 2 focused visual primitive tests were added.
-- The primitive layer was checked for deterministic repeated rendering and Hindi/Latin text support.
-
-Step 4.2 test status:
-- Runtime layout tests were completed locally.
-- Verified all five lesson types produce distinct 1920x1080 question compositions.
-- Verified assembled segment scenes render at 1280x720 without runtime errors.
-- No new Python dependency was added.
-
-Step 4.3 test status:
-- Real FFmpeg long-form render passed locally.
-- A synthetic 0.8-second audio file was validated and muxed with two 16:9 scene images.
-- The resulting MP4 was verified with FFprobe as 320x180 video plus audio with 0.8-second duration.
-- Scene-count and non-16:9 input failures are covered by focused tests.
-
-Step 4.4 test status:
-- Added focused tests for real portrait rendering, selection/duration validation, and bad segment handling.
-- The renderer was reviewed for the 1080x1920 contract and shared primitive reuse.
-- No new dependency was added.
-
-Step 4.5 test status:
-- **Visual QA smoke tests passed locally** with Pillow and real FFmpeg/FFprobe.
-- Verified valid image bounds and blank/edge rejection behavior.
-- Verified final-video geometry, duration, and required audio-stream checks.
-- The focused remote test files were added; the repository's complete test suite has not been executed in this hosted session because GitHub Actions is not yet configured.
+Step 5.1 test status:
+- Added focused tests for primary-title selection, title-size rejection, description-size rejection, hashtag-format rejection, URL rejection, and HTTP failure handling.
+- Remote test code has been reviewed against the current metadata contract.
+- The repository does not yet have a GitHub Actions test workflow, so no hosted full-suite pass is claimed.
 
 Architecture:
-- `visual_primitives.py` owns reusable instructional drawing primitives.
-- `lesson_layouts.py` owns lesson-type composition.
-- `long_form_renderer.py` owns 16:9 FFmpeg assembly.
-- `shorts_renderer.py` owns portrait scene selection/assembly.
-- `visual_qa.py` owns final visual/media quality checks shared by both renderers.
-- Long-form and Shorts share the same content contracts, QA gate, and FFmpeg approach.
-- No duplicate content-generation pipeline or wrapper framework has been introduced.
+- metadata generation is one direct stage after rendering
+- the primary title is deterministic: the first model-provided title candidate
+- metadata validation is local and fail-closed
+- publishing is not implemented yet; no OAuth or upload code has been added in Step 5.1
+
+Current platform note:
+- YouTube's current API permits setting title, description, tags, category, language, and other status fields through `videos.insert`. The uploader will therefore consume this metadata contract directly rather than reformatting it through another metadata layer. citeturn290784search0turn127069search10
+- YouTube currently documents title max 100 characters, description max 5,000 bytes, and video tags max 500 characters. citeturn127069search0turn127069search2
+- YouTube's current policy guidance says titles/descriptions should not mislead and warns against unrelated/excessive tags or hashtags. citeturn290784search1turn290784search2turn127069search3
 
 Dependency policy remains locked:
 - Pillow
@@ -818,6 +820,6 @@ The factory remains ₹0 production-spend by design. Real credentials stay local
 
 ## NEXT STEP
 
-**Phase 5 / Step 5.1 — Metadata generation.**
+**Phase 5 / Step 5.2 — YouTube OAuth.**
 
-Create the direct metadata stage for long-form videos and Shorts: title candidates, descriptions, hashtags/keywords where useful, and the lesson/series context needed for publishing.
+Connect the dedicated Google/YouTube account through the existing OAuth dependencies so the factory can authenticate an upload/scheduling client without embedding credentials in the repository.
