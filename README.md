@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 7 / Step 7.1 — One-command autonomous factory run**
+**Phase 7 / Step 7.2 — Automatic Shorts derivation and publishing**
 
-The factory now has a direct one-command production path from demand discovery through educational generation, narration, rendering, metadata, upload/scheduling, history, and analytics. Editorial adaptation feeds the queue and available lesson-format choice conservatively.
+The factory now has a direct one-command production path from demand discovery through educational generation, narration, long-form + Shorts rendering, metadata, upload/scheduling, history, and analytics. Shorts are derived from the same verified lesson content and kept separate from long-form analytics.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
