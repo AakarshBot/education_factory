@@ -853,7 +853,7 @@ Testing:
 - The factory source was syntax-checked and core helper logic was executed successfully in isolation.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
 ### Step 7.2 — Daily queue generation
-Create today's jobs and future backlog.
+This queue requirement is now implemented as the persistent production backlog in Phase 8 / Step 8.2. The Phase 7 label is retained only as the original roadmap reference.
 
 ### Step 7.3 — Complete the remaining locked lesson products — **COMPLETE**
 
@@ -925,8 +925,39 @@ Testing:
 - Added artifact-restore support to the existing Lesson and VideoMetadata contracts.
 - A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell; committed tests were reviewed for the new recovery path.
 
+### Step 8.2 — Automated daily queue generation and backlog management — **COMPLETE**
+
+Added `production_backlog.py` and integrated it directly into `factory.py`.
+
+The production backlog:
+- persists a small ranked pool in `data/production_backlog.json`
+- stores the same editorial job fields used by the factory, without duplicating lesson-generation logic
+- deduplicates by exam + subject + topic
+- refreshes an existing pending topic when newer demand research returns it
+- never rewrites a claimed job from a live run
+- marks the selected job as claimed with the run ID before production continues
+- removes the claimed job only after the full run completes, through an explicit `backlog_complete` manifest stage
+- automatically releases claims older than 7 days so abandoned jobs can return to the pool
+- drops backlog topics that are now active in channel history, preventing recently scheduled/published topics from resurfacing
+- writes the backlog atomically
+
+Factory behavior:
+- normal runs first consume the highest-scoring pending backlog job using the current editorial adaptation
+- demand discovery/scoring/research runs only when pending backlog falls below the configured queue target (`max_jobs`)
+- the queue is replenished, saved, and then one job is claimed for the current run
+- resume uses the existing manifest selection and does not reselect or re-research the job
+- backlog completion is idempotent, so interruption after removal but before manifest checkpoint does not recreate the job
+- the backlog path is persisted in run configuration and is configurable for tests/alternate deployments
+
+This separates **future editorial planning** from **current production execution**. There is still only one production pipeline.
+
+Testing:
+- Added focused `tests/test_production_backlog.py` coverage for persistence, pending-job refresh, claimed-job protection, claim/completion ownership, stale-claim release, idempotent completion, and atomic replacement.
+- Extended factory resume coverage to persist the backlog path and require the final `backlog_complete` checkpoint.
+- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
+
 ## NEXT STEP
 
-**Phase 8 / Step 8.2 — Automated daily queue generation and backlog management.**
+**Phase 8 / Step 8.3 — Autonomous scheduling cadence and daily operating state.**
 
-Separate “what to make next” from “make one job now”: persist a small ranked production backlog so twice-daily factory runs can consume and replenish jobs without repeatedly researching the same queue.
+Make twice-daily execution explicit at the factory level: persist the next-run state and schedule production opportunities without introducing a second runner or duplicated orchestration path.
