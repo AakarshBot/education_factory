@@ -198,6 +198,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
         factory.run_factory(
             output_root=tmp_path,
             history_path=tmp_path / "history.json",
+            backlog_path=tmp_path / "backlog.json",
         )
 
     manifest_paths = list((tmp_path / "jobs").glob("*/job.json"))
@@ -209,6 +210,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert saved["stages"]["questions_generated"]["status"] == "complete"
     assert saved["stages"]["long_narration"]["status"] == "complete"
     assert saved["selected"]["run_config"]["history_path"] == str((tmp_path / "history.json").resolve())
+    assert saved["selected"]["run_config"]["backlog_path"] == str((tmp_path / "backlog.json").resolve())
     assert calls["questions"] == 1
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
@@ -218,6 +220,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     result = factory.run_factory(
         resume=manifest_path,
         history_path=tmp_path / "history.json",
+        backlog_path=tmp_path / "backlog.json",
     )
 
     assert result.title == "SSC Maths Percentages Practice"
@@ -229,6 +232,8 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     final = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert final["status"] == "complete"
     assert final["failure"] is None
+    assert final["stages"]["backlog_complete"]["status"] == "complete"
+    assert not (tmp_path / "backlog.json").read_text(encoding="utf-8").strip().rstrip("[]")
     assert final["upload_ids"] == {
         "long_form": "video-id",
         "shorts": "video-id",
