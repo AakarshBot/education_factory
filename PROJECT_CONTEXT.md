@@ -1165,3 +1165,32 @@ Next step before another full production run:
 5. Only after those checks, run the first complete production job again.
 
 The user's locked operating model remains unchanged: USER RUNS THE FACTORY ONCE OR TWICE PER DAY → FACTORY DOES EVERYTHING ELSE AUTOMATICALLY.
+
+## Pre-rerun audit continuation — 2026-10-08
+
+The next launch attempt was stopped after pytest collection failed with `ModuleNotFoundError` for repository modules. This was a test-runner path issue, not missing production modules: invoking the standalone `pytest` executable on Windows did not place the repository root on `sys.path`.
+
+Correction:
+- Added root-level `pytest.ini` with `pythonpath = .`.
+- No production dependency or runtime wrapper was added.
+
+The full production code was then reviewed again before another real run. The review covered all Gemini generation stages, demand discovery, editorial selection/backlog/state, lesson assembly, both renderers, audio/video QA, YouTube OAuth/Analytics, and upload/scheduling boundaries.
+
+Current Gemini contract:
+- All five Gemini generation stages use `generationConfig.responseFormat.text.mimeType/schema`, matching Google's current REST structured-output documentation.
+- No Gemini stage still sends deprecated `responseSchema`, `responseJsonSchema`, or duplicate `responseMimeType` fields.
+- All five stages retry transient 429/503 responses.
+- Model default is `gemini-3.1-flash-lite`, currently listed by Google as a stable high-throughput model.
+- Question generation requires exactly four choices because the existing production visual primitives/renderers are four-choice layouts.
+
+Current YouTube/Google launch status remains:
+- OAuth token: valid and contains all three required scopes.
+- YouTube Data API: verified.
+- YouTube Analytics API: verified.
+- Local `.env`: configured.
+- Local `client_secrets.json`: present.
+- No production video has been uploaded by any failed run.
+
+Do not ask the user to rerun `factory.py` until the focused/full pytest pass and one real Gemini structured-output smoke test are clean.
+
+Full pytest has still not been claimed as green because the repository is not available as a directly executable local checkout in this environment; the user's local checkout is the authoritative runtime copy.
