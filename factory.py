@@ -318,7 +318,6 @@ def run_factory(
         difficulty = str(config["difficulty"])
         language = str(config["language"])
         publish_mode = str(config["publish_mode"])
-        history_path = history_path
 
     current_stage = "initialization"
 
@@ -385,7 +384,6 @@ def run_factory(
             manifest.checkpoint("concept", outputs={"concept": str(concept_path.resolve())})
         else:
             concept_summary = None
-            manifest.checkpoint("concept")
 
         if stage_complete(manifest, "questions_generated"):
             questions = [
