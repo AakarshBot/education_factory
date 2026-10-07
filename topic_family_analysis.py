@@ -108,7 +108,7 @@ def _family_metrics(
 ) -> TopicFamilyPerformance:
     valid = []
     for entry in entries:
-        if entry.status.strip().lower() != "published" or not entry.video_id:
+        if entry.content_format != "long_form" or entry.status.strip().lower() != "published" or not entry.video_id:
             continue
         views = _metric(entry, "views")
         if views is None or views < 0:
