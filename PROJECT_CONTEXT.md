@@ -1453,3 +1453,28 @@ The YouTube demand quota/cache fix remains in main; the current failed run did n
 
 Next manual action:
 - Pull latest main and run `python factory.py --max-jobs 1` again.
+
+## Post-green launch audit — 2026-10-08
+
+After the user requested that code defects be fixed before any more testing, the complete diff since the last known-green 183-test state was audited.
+
+Defects found and fixed:
+- `question_generator.py` had a stale JSON-schema required field for `correct_answer` after changing Gemini output to `correct_choice_index`; the required field now matches the actual schema.
+- `question_generator.py` raised `ValidationError` without importing it; the import is now explicit.
+- `demand_discovery.py` cache write placement was incorrect and referenced cache variables from inside `_search()`; the cache write now occurs once after the complete discovery loop.
+
+Verified post-green changed production areas:
+- Gemini mime enum changes remain consistent across all five generation stages.
+- TTS timing validator now checks ordered word starts and positive durations.
+- Demand cache preserves the full 9-query × 2-order signal pool and only avoids repeated calls within 24 hours.
+- Maths answer source is now choice-index-driven, with deterministic arithmetic verification.
+
+No new dependency or wrapper was added by these corrections.
+
+Current status:
+- The repository's last user-reported full suite was 183 passed before this launch sequence.
+- The subsequent launch-sequence defects above have now been statically corrected and audited against the post-green diff.
+- No further user test run is required merely to inspect these fixes; the next useful step is the real production rerun.
+
+Next manual action:
+- Pull latest main and run `python factory.py --max-jobs 1`.
