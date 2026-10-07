@@ -8,6 +8,7 @@ from PIL import Image
 import long_form_renderer
 from lesson import Lesson, LessonSegment
 from question import Question
+from visual_primitives import BACKGROUND
 
 
 def _lesson():
