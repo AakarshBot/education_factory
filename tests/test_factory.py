@@ -233,7 +233,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert final["status"] == "complete"
     assert final["failure"] is None
     assert final["stages"]["backlog_complete"]["status"] == "complete"
-    assert not (tmp_path / "backlog.json").read_text(encoding="utf-8").strip().rstrip("[]")
+    assert json.loads((tmp_path / "backlog.json").read_text(encoding="utf-8")) == []
     assert final["upload_ids"] == {
         "long_form": "video-id",
         "shorts": "video-id",
