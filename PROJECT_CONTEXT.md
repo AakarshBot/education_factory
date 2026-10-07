@@ -855,186 +855,29 @@ Testing:
 ### Step 7.2 — Daily queue generation
 Create today's jobs and future backlog.
 
-### Step 7.3 — Retry and recovery
-Recover transient failures without duplicating uploads.
+### Step 7.3 — Complete the remaining locked lesson products — **COMPLETE**
 
-### Step 7.4 — Production ledger
-Keep a lightweight state record so a new run knows exactly what has already been produced, uploaded, scheduled, or failed.
+Added automatic concept generation through `concept_generator.py`. When the conservative format adaptation selects `concept_practice`, the factory generates a concise teaching concept for the chosen exam/subject/topic and passes it directly into the existing deterministic lesson assembler.
 
----
+Added `pyq_source.py` as the explicit rights-gated PYQ input contract:
+- a PYQ question must already identify `source_type="pyq"`
+- the question's `source_reference` must match the verified source record
+- a rights/permission note is required
+- duplicate PYQs are rejected
+- the factory will never turn an original generated question into a fake PYQ
 
-# 8. QUALITY AND POLICY GATES
+This keeps PYQ analysis fail-closed until the factory has an automated source-discovery path that can identify usable, attributable question material. Official exam bodies do publish question-paper/answer-key material, but the existence of those materials does not by itself establish that arbitrary reuse is permitted; the source layer therefore remains explicit and conservative. citeturn324464search0turn324464search24turn324464search25
 
-These are factory safeguards, not human approval gates.
+Testing:
+- Added focused concept-generation tests for structured output, empty responses, and invalid input.
+- Added focused PYQ source-gate tests for matching references, minimum source count, and verified-question selection.
+- Added factory coverage for automatic concept-practice selection.
+- No new dependency was added.
 
-Every long-form/Short must satisfy:
-- original or appropriately sourced educational content
-- verified answers
-- coherent explanation
-- readable visual output
-- correct narration timing
-- no obvious duplication with recent uploads
-- no fabricated source claims
-- no fake engagement
-- no deceptive metadata
-- no copyright-dependent visuals unless properly sourced/licensed
-- no financial/advice content unless the strategy is explicitly changed and reviewed
-
-The factory should prefer original questions and original graphics.
-
----
-
-# 9. MANUAL ACTIONS CURRENTLY REQUIRED
-
-**No manual action now. The YouTube channel has not been created yet, and channel/OAuth setup is intentionally deferred until the factory implementation is complete.**
-
-The remaining external setup will be handled together at the end, when the factory is ready for its first real production run. At that point the user will need to:
-1. create the dedicated Google account and YouTube channel;
-2. complete any Google/YouTube identity, phone, advanced-feature, or verification steps required for that account/channel;
-3. enable the required Google APIs for the finished factory, including **YouTube Data API v3** and **YouTube Analytics API**;
-4. create the Google Cloud OAuth client and authorize the factory against the dedicated channel account using the finished scope set;
-5. provide any final channel branding assets that the completed design actually requires.
-
-Until that launch handoff, do not ask the user to create the channel, create OAuth credentials, run `youtube_auth.py`, or perform routine backend setup.
-
-The factory should perform everything else that is technically possible.
-
----
-
-# 10. CURRENT BUILD STATE
-
-Status: **PHASE 7 / STEP 7.2 COMPLETE**
-
-Repository:
-AakarshBot/education_factory
-
-Channel status:
-- The dedicated YouTube channel/account has **not** been created yet.
-- This is intentional. Real OAuth, upload, and analytics execution are deferred until the factory itself is complete.
-
-Completed:
-- Phase 0 — foundation and configuration
-- Phase 1 — question schema, deterministic validation, generation, explanations, lesson assembly
-- Phase 2 — demand discovery, topic scoring, editorial queue, historical memory
-- Phase 3.1 — Hindi/Hinglish narration
-- Phase 3.2 — word timing contract
-- Phase 3.3 — audio QA
-- Phase 4.1 — deterministic visual primitives
-- Phase 4.2 — lesson-specific visual layouts
-- Phase 4.3 — long-form 16:9 renderer
-- Phase 4.4 — Shorts 9:16 renderer
-- Phase 4.5 — visual QA
-- Phase 5.1 — metadata generation
-- Phase 5.2 — YouTube OAuth
-- Phase 5.3 — YouTube upload and scheduling
-- Phase 5.4 — Shorts → long-form linking capability boundary
-- Phase 6.1 — YouTube Analytics metrics ingestion
-- Phase 6.2 — deterministic format analysis
-- Phase 6.3 — deterministic subject analysis
-- Phase 6.4 — deterministic topic-family analysis
-- Phase 6.5 — conservative automatic editorial adaptation
-- Phase 7.1 — one-command autonomous factory run
-- Phase 7.2 — automatic Shorts derivation and publishing
-
-Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
-
-Current repository files include:
-- `PROJECT_CONTEXT.md`
-- `README.md`
-- `.gitignore`
-- `.env.example`
-- `requirements.txt`
-- `config.py`
-- `question.py`
-- `validators.py`
-- `question_generator.py`
-- `explanation_generator.py`
-- `lesson.py`
-- `lesson_assembler.py`
-- `demand_discovery.py`
-- `topic_scorer.py`
-- `editorial_queue.py`
-- `channel_history.py`
-- `narration.py`
-- `audio_qa.py`
-- `visual_primitives.py`
-- `lesson_layouts.py`
-- `long_form_renderer.py`
-- `shorts_renderer.py`
-- `visual_qa.py`
-- `metadata_generator.py`
-- `youtube_auth.py`
-- `youtube_uploader.py`
-- `youtube_analytics.py`
-- `format_analysis.py`
-- `subject_analysis.py`
-- `topic_family_analysis.py`
-- `editorial_adaptation.py`
-- `factory.py`
-- focused tests under `tests/`
-
-Step 5.1 test status:
-- Added focused metadata tests for title selection and important malformed/oversized metadata cases.
-- The metadata contract is grounded in the finished Lesson and fails closed on unsafe output.
-
-Step 5.2 test status:
-- Added focused tests for existing valid tokens, token refresh, first-time browser authorization, missing client secrets, and refresh failure.
-- Remote OAuth code was reviewed against the current Desktop/installed-app flow.
-- Real Google authorization was deliberately not run because the dedicated channel/account does not exist yet.
-- No credential or token has been committed.
-
-Step 5.3 test status:
-- Added focused mocked-upload tests for public publishing, scheduled publishing, validation failures including the final description byte limit, API failures, missing IDs, and history persistence.
-- Real YouTube upload was deliberately not run because the dedicated channel/account and OAuth token do not exist yet.
-
-Step 5.4 status:
-- No code was added because the supported YouTube Data API does not expose Shorts' native Related Video field.
-- No unsupported browser automation or undocumented API was introduced.
-
-Step 6.1 test status:
-- Added focused mocked Analytics API tests for report construction, metric parsing, 500-ID batching, history updates, default windows, empty histories, invalid dates/IDs, API failures, and malformed reports.
-- Real Analytics execution was deliberately not run because the dedicated channel/account and OAuth grant do not exist yet.
-
-Step 6.2 test status:
-- Added focused deterministic format-analysis tests for grouping, medians, measured-video filtering, rate calculations, canonical lesson-type names, empty history, and the 3-video comparison threshold.
-- A full repository pytest run was not available because this GitHub-connected environment does not expose the repository as a local checkout.
-
-Step 6.3 test status:
-- Added focused deterministic subject-analysis tests for normalization, stable core-subject output, filtering, rate calculations, empty history, and the 3-video comparison threshold.
-- The subject-analysis source and tests were reviewed after commit; a full repository pytest run remains unavailable in this GitHub-connected environment.
-
-Step 6.4 test status:
-- Added focused deterministic topic-family tests for lexical clustering, plural normalization, subject separation, scheduled/empty-topic filtering, rate calculations, insufficient samples, and empty history.
-- The topic-family source and tests were reviewed after commit; a full repository pytest run remains unavailable in this GitHub-connected environment.
-
-Step 6.5 test status:
-- Added focused adaptation tests for minimum comparable-group evidence, conservative multipliers, neutral treatment of insufficient samples, and hard weight bounds.
-- The adaptation logic was executed in isolation with representative format, subject, and topic-family fixtures and passed.
-- A full repository pytest run was not available because this environment cannot resolve GitHub from the shell.
-
-Step 7.2 test status:
-- Added history round-trip tests for the new `content_format` field.
-- Added upload validation/persistence coverage for Shorts.
-- Added deterministic Short question-cycle selection tests.
-- Added explicit tests proving Shorts are excluded from long-form format, subject, and topic-family analyses.
-- Updated the factory orchestration test to cover long-form rendering, Short rendering, separate uploads, and analytics refresh.
-- Current YouTube guidance confirms square or vertical videos up to three minutes are categorized as Shorts.
-- A full repository pytest run remains unavailable because this environment cannot resolve GitHub from the shell.
-
-Architecture:
-- `metadata_generator.py` owns metadata generation and local validation.
-- `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
-- `youtube_uploader.py` owns only direct video upload/scheduling and the required channel-history write; no alternate uploader or authentication wrapper should be introduced.
-
-## MANUAL ACTION REQUIRED NOW
-
-**None. The dedicated channel has not been created yet, so the external Google/YouTube setup is intentionally postponed until the factory is fully built.**
-
-Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_auth.py` yet. The repository is ready for that later launch step, and both credential files remain ignored by Git.
+`concept_practice` is now available to the automatic lesson-format selector. PYQ remains intentionally excluded from automatic selection until Step 7.4 implements source discovery and verification.
 
 ## NEXT STEP
 
-**Phase 7 / Step 7.3 — Complete the remaining locked lesson products.**
+**Phase 7 / Step 7.4 — Automated PYQ source discovery and verification.**
 
-Add the missing direct generation inputs for concept + practice and PYQ analysis so the factory can choose all locked long-form products without hidden manual content.
+Build the source adapter that can discover official/usable PYQ material, verify attribution/permission metadata, extract the actual question content, and hand only verified PYQs to the existing lesson assembler.
