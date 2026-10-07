@@ -31,6 +31,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 4.4 — Shorts renderer**
+**Phase 4 — Visual engine complete**
 
-The factory now renders selected educational lesson segments as 9:16 Shorts using the same Pillow visual primitives, portrait compositions, validated audio, and local FFmpeg.
+The factory now has deterministic visual primitives, lesson-specific layouts, a 16:9 long-form renderer, a 9:16 Shorts renderer, and a shared visual/media QA gate.
