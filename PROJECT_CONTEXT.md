@@ -692,15 +692,42 @@ Current platform note:
 - YouTube's current `videos.insert` documentation supports the `youtube.upload` scope and `status.publishAt` for private, never-before-published videos. The current API revision history also states that video uploads use a separate upload quota bucket and the upload cost was reduced to 1 unit per call in the current documentation. citeturn706286search0turn706286search2
 - Unverified API projects created after July 28, 2020 have uploaded videos restricted to private viewing until the project completes YouTube's required audit. The factory therefore does not treat a requested public upload as proof that YouTube has made the video public. citeturn706286search0turn706286search1
 
-### Step 5.4 — Shorts → long-form linking
-Add the relevant YouTube relationship where supported.
+### Step 5.4 — Shorts → long-form linking — **PLATFORM LIMITATION**
+Reviewed the current supported YouTube interfaces before adding code.
+
+Finding:
+- YouTube Studio supports a native **Related Video** field on Shorts, which creates a clickable link below the channel handle.
+- The supported YouTube Data API video resource does **not** expose a corresponding related-video ID field for `videos.insert` or `videos.update`.
+- Shorts descriptions and comments are explicitly non-clickable, so the factory must not pretend that adding a YouTube URL there is equivalent.
+- The factory therefore does **not** add an undocumented/browser-automation workaround or a second publishing pipeline.
+
+This step is complete as an API-capability boundary. Native Related Video assignment remains a platform/Studio action unless YouTube exposes a supported API in the future. citeturn372775search0turn372775search1turn999992search1
 
 ---
 
 ## Phase 6 — Analytics and self-improvement
 
-### Step 6.1 — Metrics ingestion
-Collect channel/video performance that is available through permitted APIs.
+### Step 6.1 — Metrics ingestion — **COMPLETE**
+Added `youtube_analytics.py` as the direct analytics ingestion stage.
+
+The analytics stage:
+- uses the supported YouTube Analytics API v2 reports endpoint through the existing Google API dependency
+- queries video-level metrics for all known video IDs using one report per batch, up to the API's documented 500-video filter limit
+- collects views, estimated minutes watched, average view duration, average view percentage, likes, comments, and subscribers gained
+- accepts an explicit date window, with a default 30-day window ending on the previous day to avoid intentionally querying an incomplete current day
+- converts report values into numeric metrics and fails closed on malformed responses or API errors
+- writes the newest metrics back into the existing local channel-history entries rather than creating a second production ledger
+- makes no editorial decisions; interpretation belongs to later Phase 6 steps
+- performs no hidden retry loop
+
+OAuth correction required by the current Analytics API:
+- expanded `youtube_auth.py` to request both `youtube.upload` and `youtube.readonly`
+- the current `reports.query` documentation states that Analytics queries now require `youtube.readonly`
+- installed-app OAuth does not support incremental authorization, so the final launch authorization should request all required scopes together. citeturn866611search0turn866611search5
+
+Added `tests/test_youtube_analytics.py` covering normal metric retrieval, 500-ID batching, history persistence, default windows, empty histories, date validation, duplicate IDs, API failures, and malformed reports.
+
+The real Analytics API cannot be exercised yet because the dedicated YouTube channel/account has not been created.
 
 ### Step 6.2 — Format analysis
 Compare practice, test, lesson, PYQ, and revision formats.
@@ -762,7 +789,8 @@ The factory should prefer original questions and original graphics.
 The remaining external setup will be handled together at the end, when the factory is ready for its first real production run. At that point the user will need to:
 1. create the dedicated Google account and YouTube channel;
 2. complete any Google/YouTube identity, phone, advanced-feature, or verification steps required for that account/channel;
-3. create the Google Cloud OAuth client and authorize the factory against the dedicated channel account;
+3. enable the required Google APIs for the finished factory, including **YouTube Data API v3** and **YouTube Analytics API**;
+4. create the Google Cloud OAuth client and authorize the factory against the dedicated channel account using the finished scope set;
 4. provide any final channel branding assets that the completed design actually requires.
 
 Until that launch handoff, do not ask the user to create the channel, create OAuth credentials, run `youtube_auth.py`, or perform routine backend setup.
@@ -773,14 +801,14 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 5 / STEP 5.3 COMPLETE**
+Status: **PHASE 6 / STEP 6.1 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
 
 Channel status:
 - The dedicated YouTube channel/account has **not** been created yet.
-- This is intentional. Real OAuth authorization and real upload testing are deferred until the factory itself is complete.
+- This is intentional. Real OAuth, upload, and analytics execution are deferred until the factory itself is complete.
 
 Completed:
 - Phase 0 — foundation and configuration
@@ -797,6 +825,8 @@ Completed:
 - Phase 5.1 — metadata generation
 - Phase 5.2 — YouTube OAuth
 - Phase 5.3 — YouTube upload and scheduling
+- Phase 5.4 — Shorts → long-form linking capability boundary
+- Phase 6.1 — YouTube Analytics metrics ingestion
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -828,6 +858,7 @@ Current repository files include:
 - `metadata_generator.py`
 - `youtube_auth.py`
 - `youtube_uploader.py`
+- `youtube_analytics.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -844,6 +875,14 @@ Step 5.3 test status:
 - Added focused mocked-upload tests for public publishing, scheduled publishing, validation failures including the final description byte limit, API failures, missing IDs, and history persistence.
 - Real YouTube upload was deliberately not run because the dedicated channel/account and OAuth token do not exist yet.
 
+Step 5.4 status:
+- No code was added because the supported YouTube Data API does not expose Shorts' native Related Video field.
+- No unsupported browser automation or undocumented API was introduced.
+
+Step 6.1 test status:
+- Added focused mocked Analytics API tests for report construction, metric parsing, 500-ID batching, history updates, default windows, empty histories, invalid dates/IDs, API failures, and malformed reports.
+- Real Analytics execution was deliberately not run because the dedicated channel/account and OAuth grant do not exist yet.
+
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
@@ -857,6 +896,6 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 5 / Step 5.4 — Shorts → long-form linking.**
+**Phase 6 / Step 6.2 — Format analysis.**
 
-Add the relevant YouTube relationship between a Short and its related long-form lesson where the platform/API supports it, without introducing a second publishing pipeline.
+Compare the completed video's learning formats using the persisted production history and metrics, without changing editorial strategy based on a single anomalous video.
