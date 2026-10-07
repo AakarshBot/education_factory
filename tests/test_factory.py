@@ -117,8 +117,6 @@ def test_factory_runs_stages_in_order(monkeypatch, tmp_path):
     monkeypatch.setattr(factory, "_short_segment_indices", lambda lesson: calls.append("short_select") or [0])
     monkeypatch.setattr(factory, "render_short", lambda *args, **kwargs: calls.append("render_short") or tmp_path / "short.mp4")
 
-    from metadata_generator import VideoMetadata
-
     class Metadata:
         primary_title = "Long"
         title_candidates = ("Long", "Short", "Three", "Four", "Five")
