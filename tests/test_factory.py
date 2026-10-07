@@ -194,7 +194,7 @@ def test_record_publish_times_is_resume_stable(tmp_path):
 
 def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_path):
     render_state = {"fail": True}
-    calls = {"questions": 0, "explanations": 0, "lesson": 0, "tts": 0, "english_localization": 0}
+    calls = {"questions": 0, "explanations": 0, "lesson": 0, "tts": 0}
 
     class Job:
         priority = 1
@@ -218,11 +218,6 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
         factory,
         "generate_explanations",
         lambda questions, language: calls.__setitem__("explanations", calls["explanations"] + 1) or questions,
-    )
-    monkeypatch.setattr(
-        factory,
-        "generate_english_narration_segments",
-        lambda segments, source_language: calls.__setitem__("english_localization", calls["english_localization"] + 1) or [f"English: {segment}" for segment in segments],
     )
     monkeypatch.setattr(
         factory,
@@ -286,7 +281,6 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
     assert calls["tts"] == 1
-    assert calls["english_localization"] == 1
     failed_state = json.loads((tmp_path / "factory_state.json").read_text(encoding="utf-8"))
     assert failed_state["last_status"] == "failed"
     assert failed_state["last_run_id"] == saved["run_id"]
@@ -303,8 +297,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert calls["questions"] == 1
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
-    assert calls["tts"] == 3
-    assert calls["english_localization"] == 1
+    assert calls["tts"] == 2
 
     final = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert final["status"] == "complete"

@@ -1519,6 +1519,7 @@ Current behavior:
 - Hinglish remains the primary/default narration and is unchanged.
 - After the existing Hinglish narration is checkpointed, the factory localizes the exact same narration segments into English through `english_narration_generator.py`.
 - The English localization is checkpointed as `english_narration.json`, so resume does not repeat the translation call.
+- The localization stage deterministically rejects changed numeric content, changed explicit answer text, and removed option structure before English audio is synthesized.
 - After long-form rendering succeeds, the factory synthesizes one full English narration track using `ENGLISH_TTS_VOICE` (default `en-IN-PrabhatNeural`) and checkpoints the MP3 plus word timings as `english_narration.mp3` and `english_word_timings.json`.
 - English audio is QA-checked before metadata generation/upload continues.
 - No second video is uploaded and no English rendering pipeline was introduced.

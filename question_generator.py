@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Any
 
@@ -57,6 +58,53 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
     },
     "required": ["questions"],
 }
+
+
+
+_VISUAL_REFERENCE_PATTERNS = (
+    re.compile(
+        r"\b(?:shown|displayed|provided|pictured|illustrated)\s+(?:below|above|here)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:in|from|of|according to|based on)\s+(?:the|this|following|given)\s+"
+        r"(?:figure|diagram|chart|image|map|table)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:the|this|following|given)\s+"
+        r"(?:figure|diagram|chart|image|map|table)\s+"
+        r"(?:shown|displayed|provided|pictured|illustrated|below|above)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:see|refer to|look at)\s+(?:the|this|following|given)\s+"
+        r"(?:figure|diagram|chart|image|map|table)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:figure|diagram|chart|image|map|table)\s+"
+        r"(?:shown|displayed|provided|pictured|illustrated)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:arrangement|pattern|sequence)\s+(?:shown|displayed|provided)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:as shown|as pictured|as illustrated|as displayed)\b",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _validate_self_contained_text(question: str, choices: list[str]) -> None:
+    search_text = " ".join([question, *choices])
+    for pattern in _VISUAL_REFERENCE_PATTERNS:
+        if pattern.search(search_text):
+            raise ValidationError(
+                "generated question depends on an unseen visual"
+            )
 
 
 def generate_questions(
@@ -170,10 +218,16 @@ Return only the requested structured JSON.
         if (
             not isinstance(choices, list)
             or len(choices) != 4
+            or not all(isinstance(choice, str) and choice.strip() for choice in choices)
             or not isinstance(correct_choice_index, int)
             or not 0 <= correct_choice_index < 4
         ):
             raise ValidationError("generated choices/correct_choice_index are invalid")
+
+        question_text = item.get("question")
+        if not isinstance(question_text, str) or not question_text.strip():
+            raise ValidationError("generated question text is invalid")
+        _validate_self_contained_text(question_text, choices)
 
         item["correct_answer"] = choices[correct_choice_index]
         question = Question.from_dict(item)
