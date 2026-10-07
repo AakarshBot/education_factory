@@ -132,6 +132,49 @@ def test_score_topics_uses_neutral_novelty_without_history(monkeypatch):
     assert result[1].novelty == 50
 
 
+def test_score_topics_retries_transient_failure(monkeypatch):
+    class RetryResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+            self.text = "temporary"
+
+        def json(self):
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [{"text": json.dumps(fake_candidate_response())}]
+                        }
+                    }
+                ]
+            }
+
+    responses = iter(
+        [
+            RetryResponse(503),
+            RetryResponse(503),
+            RetryResponse(200),
+        ]
+    )
+    calls = []
+
+    monkeypatch.setattr(topic_scorer, "validate_config", lambda **_: None)
+    monkeypatch.setattr(topic_scorer, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        topic_scorer.requests,
+        "post",
+        lambda *args, **kwargs: (calls.append(True) or next(responses)),
+    )
+    delays = []
+    monkeypatch.setattr(topic_scorer.time, "sleep", delays.append)
+
+    result = topic_scorer.score_topics(signals())
+
+    assert result
+    assert len(calls) == 3
+    assert delays == [1, 2]
+
+
 def test_score_topics_rejects_bad_inputs(monkeypatch):
     patch_gemini(monkeypatch)
 
@@ -188,6 +231,7 @@ def test_score_topics_rejects_http_failure(monkeypatch):
         "post",
         lambda *args, **kwargs: ErrorResponse(),
     )
+    monkeypatch.setattr(topic_scorer.time, "sleep", lambda _: None)
 
     with pytest.raises(RuntimeError, match="429"):
         topic_scorer.score_topics(signals())
