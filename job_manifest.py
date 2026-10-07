@@ -123,3 +123,31 @@ def load_manifest(path: str | Path) -> JobManifest:
 
 def stage_complete(manifest: JobManifest, stage: str) -> bool:
     return manifest.stages.get(stage, {}).get("status") == "complete"
+
+
+def write_json(path: str | Path, payload: Any) -> None:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(payload, ensure_ascii=False, indent=2)
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            handle.write(data)
+            temp_path = Path(handle.name)
+        os.replace(temp_path, target)
+    except OSError as exc:
+        raise RuntimeError(f"Could not write artifact: {target}") from exc
+
+
+def read_json(path: str | Path) -> Any:
+    target = Path(path)
+    if not target.exists():
+        raise RuntimeError(f"artifact does not exist: {target}")
+    try:
+        return json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Could not read artifact: {target}") from exc
