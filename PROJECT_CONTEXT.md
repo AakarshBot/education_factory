@@ -778,10 +778,24 @@ The analysis:
 Added `tests/test_topic_family_analysis.py` covering lexical clustering, plural normalization, subject separation, filtering, rate calculations, insufficient samples, and empty history.
 
 The real channel has no analytics data yet, so this remains a ready-to-run family analysis contract rather than a live list of winning topic families.
-### Step 6.5 — Automatic editorial adaptation
-Modify future production weights based on evidence.
+### Step 6.5 — Automatic editorial adaptation — **COMPLETE**
+Added `editorial_adaptation.py` as the conservative decision layer over the format, subject, and topic-family analyses.
 
-The system must not change strategy based on a single anomalous video.
+The adaptation policy:
+- changes nothing unless at least **2 comparable groups** are each `comparison_ready` (3+ measured videos)
+- uses the existing median-view evidence rather than a single video's performance
+- computes relative performance against the mean median-view level of the comparable groups
+- caps every evidence-based multiplier at **0.90–1.10**
+- leaves groups with insufficient evidence at exactly **1.0**
+- returns separate weights for learning format, core subject, and subject-specific topic family
+- performs no LLM calls and does not mutate historical records
+- produces a reusable adaptation profile for the production/orchestration stage to consume; it does not silently alter the current strategy outside that pipeline
+
+This deliberately makes early-channel adaptation gradual: one anomalous video cannot change the editorial mix, and a single measured category cannot establish a winner.
+
+Added `tests/test_editorial_adaptation.py` covering minimum evidence, conservative weight changes, preservation of neutral weights for non-ready groups, and adaptation bounds.
+
+The real channel has no analytics data yet, so the adaptation profile currently remains neutral until enough real published-video evidence exists.
 
 ---
 
@@ -841,7 +855,7 @@ The factory should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 6 / STEP 6.4 COMPLETE**
+Status: **PHASE 6 / STEP 6.5 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -870,6 +884,7 @@ Completed:
 - Phase 6.2 — deterministic format analysis
 - Phase 6.3 — deterministic subject analysis
 - Phase 6.4 — deterministic topic-family analysis
+- Phase 6.5 — conservative automatic editorial adaptation
 
 Current production chain:
 **demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual QA -> 16:9 long-form or 9:16 Short -> grounded metadata -> authenticated YouTube client**
@@ -905,6 +920,7 @@ Current repository files include:
 - `format_analysis.py`
 - `subject_analysis.py`
 - `topic_family_analysis.py`
+- `editorial_adaptation.py`
 - focused tests under `tests/`
 
 Step 5.1 test status:
@@ -940,6 +956,12 @@ Step 6.3 test status:
 Step 6.4 test status:
 - Added focused deterministic topic-family tests for lexical clustering, plural normalization, subject separation, scheduled/empty-topic filtering, rate calculations, insufficient samples, and empty history.
 - The topic-family source and tests were reviewed after commit; a full repository pytest run remains unavailable in this GitHub-connected environment.
+
+Step 6.5 test status:
+- Added focused adaptation tests for minimum comparable-group evidence, conservative multipliers, neutral treatment of insufficient samples, and hard weight bounds.
+- The adaptation logic was executed in isolation with representative format, subject, and topic-family fixtures and passed.
+- A full repository pytest run was not available because this environment cannot resolve GitHub from the shell.
+
 Architecture:
 - `metadata_generator.py` owns metadata generation and local validation.
 - `youtube_auth.py` owns only OAuth credential loading/refresh/initial authorization and YouTube client construction.
@@ -953,8 +975,8 @@ Do not create `client_secrets.json`, authorize YouTube, or run `python youtube_a
 
 ## NEXT STEP
 
-**Phase 6 / Step 6.5 — Automatic editorial adaptation.**
+**Phase 7 / Step 7.1 — One-click / one-command factory run.**
 
-Use accumulated format, subject, and topic-family evidence to adjust future production weights conservatively, with minimum evidence thresholds and no strategy change from a single anomalous video.**Phase 6 / Step 6.4 — Topic-family analysis.**
+Connect the completed production stages into one direct factory command that runs demand discovery, scoring, queueing, educational generation, narration, rendering, metadata, and the prepared publishing/analytics interfaces without introducing a wrapper framework.**Phase 6 / Step 6.4 — Topic-family analysis.**
 
 Identify recurring winning topic clusters from the persisted production history and metrics, without treating a single anomalous video as a strategy signal.
