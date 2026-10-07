@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -138,19 +139,27 @@ Do not include URLs.
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "responseSchema": _RESPONSE_SCHEMA,
+            "responseJsonSchema": _RESPONSE_SCHEMA,
         },
     }
 
-    response = requests.post(
-        _GEMINI_URL.format(model=GEMINI_MODEL),
-        headers={
-            "x-goog-api-key": GEMINI_API_KEY,
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=60,
-    )
+    response = None
+    for attempt, delay in enumerate((0, 1, 2, 4)):
+        if delay:
+            time.sleep(delay)
+        response = requests.post(
+            _GEMINI_URL.format(model=GEMINI_MODEL),
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=60,
+        )
+        if response.status_code not in {429, 503} or attempt == 3:
+            break
+
+    assert response is not None
     if response.status_code != 200:
         raise RuntimeError(
             f"Gemini metadata generation failed ({response.status_code}): "
