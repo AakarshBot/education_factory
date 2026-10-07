@@ -8,10 +8,33 @@ DEV="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf" if os.name!=
 DEV_B="/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if os.name!="nt" else "C:/Windows/Fonts/NirmalaUI-Bold.ttf"
 LAT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" if os.name!="nt" else "C:/Windows/Fonts/arial.ttf"
 LAT_B="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.name!="nt" else "C:/Windows/Fonts/arialbd.ttf"
-DEV_FONTS=(DEV, "C:/Windows/Fonts/Mangal.ttf", "C:/Windows/Fonts/Nirmala.ttf")
-DEV_B_FONTS=(DEV_B, "C:/Windows/Fonts/Mangalb.ttf", "C:/Windows/Fonts/Nirmalab.ttf", *DEV_FONTS)
-LAT_FONTS=(LAT, "C:/Windows/Fonts/segoeui.ttf")
-LAT_B_FONTS=(LAT_B, "C:/Windows/Fonts/segoeuib.ttf", *LAT_FONTS)
+def _installed_font_candidates(*names):
+    if os.name != "nt":
+        return names
+    roots = [
+        "C:/Windows/Fonts",
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft/Windows/Fonts"),
+    ]
+    candidates = list(names)
+    for root in roots:
+        if not root:
+            continue
+        try:
+            for entry in os.scandir(root):
+                if entry.is_file() and entry.name.lower().endswith((".ttf", ".otf", ".ttc")):
+                    candidates.append(entry.path)
+        except OSError:
+            continue
+    return tuple(dict.fromkeys(candidates))
+
+DEV_FONTS = _installed_font_candidates(
+    DEV, "C:/Windows/Fonts/Mangal.ttf", "C:/Windows/Fonts/Nirmala.ttf"
+)
+DEV_B_FONTS = _installed_font_candidates(
+    DEV_B, "C:/Windows/Fonts/Mangalb.ttf", "C:/Windows/Fonts/Nirmalab.ttf"
+) + DEV_FONTS
+LAT_FONTS = _installed_font_candidates(LAT, "C:/Windows/Fonts/segoeui.ttf")
+LAT_B_FONTS = _installed_font_candidates(LAT_B, "C:/Windows/Fonts/segoeuib.ttf") + LAT_FONTS
 
 def _dev(text): return any("\u0900"<=c<="\u097f" for c in text)
 
@@ -19,7 +42,10 @@ def _font(size,bold=False,dev=False):
     candidates = DEV_B_FONTS if dev and bold else DEV_FONTS if dev else LAT_B_FONTS if bold else LAT_FONTS
     for path in candidates:
         if os.path.exists(path):
-            return ImageFont.truetype(path,size)
+            try:
+                return ImageFont.truetype(path,size)
+            except OSError:
+                continue
     raise OSError("No suitable font is installed for the requested text")
 
 def _measure(draw,text,size,bold):
