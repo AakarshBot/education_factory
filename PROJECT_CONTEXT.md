@@ -588,8 +588,21 @@ No animation framework, video Python wrapper, or new dependency was added.
 
 The renderer deliberately receives scene durations explicitly. The lesson/narration orchestration stage can supply those durations from its final timing contract without embedding timing guesses inside the video renderer.
 
-### Step 4.4 — Shorts renderer
-Render 9:16 challenge/lesson cuts.
+### Step 4.4 — Shorts renderer — **COMPLETE**
+Added `shorts_renderer.py` as the direct portrait rendering stage.
+
+The Shorts renderer:
+- renders selected lesson segments into a 1080x1920 canvas
+- reuses the same Step 4.1 educational primitives rather than creating a second design system
+- uses portrait-specific compositions so question, choices, timer, answer, explanation, shortcut, concept, source, and result scenes remain readable on a Shorts canvas
+- accepts an explicit segment selection and one duration per selected scene
+- validates selection, duration, and timing inputs before rendering
+- reuses the existing Audio QA gate before video assembly
+- assembles scenes with local FFmpeg into H.264/YUV420P MP4
+- replaces the destination only after a successful render
+- fails closed on invalid selections, media errors, or missing output
+
+No new dependency or animation/video framework was added.
 
 ### Step 4.5 — Visual QA
 Automated checks for cutoffs, overlaps, unreadable text, duration and missing assets.
@@ -688,7 +701,7 @@ The factory itself should perform everything else that is technically possible.
 
 # 10. CURRENT BUILD STATE
 
-Status: **PHASE 4 / STEP 4.3 COMPLETE**
+Status: **PHASE 4 / STEP 4.4 COMPLETE**
 
 Repository:
 AakarshBot/education_factory
@@ -703,9 +716,10 @@ Completed:
 - Phase 4.1 — deterministic visual primitives
 - Phase 4.2 — lesson-specific visual layouts
 - Phase 4.3 — long-form 16:9 renderer
+- Phase 4.4 — Shorts 9:16 renderer
 
 Current production chain:
-**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual scenes -> 16:9 MP4**
+**demand -> scored topic -> editorial queue -> verified questions -> verified explanations -> lesson sequence -> narration + word timings -> audio QA -> visual scenes -> 16:9 long-form or 9:16 Short**
 
 Current repository files include:
 - `PROJECT_CONTEXT.md`
@@ -729,6 +743,7 @@ Current repository files include:
 - `visual_primitives.py`
 - `lesson_layouts.py`
 - `long_form_renderer.py`
+- `shorts_renderer.py`
 - focused tests under `tests/`
 
 Step 4.1 test status:
@@ -742,17 +757,23 @@ Step 4.2 test status:
 - No new Python dependency was added.
 
 Step 4.3 test status:
-- **Real FFmpeg long-form render passed locally.**
+- Real FFmpeg long-form render passed locally.
 - A synthetic 0.8-second audio file was validated and muxed with two 16:9 scene images.
 - The resulting MP4 was verified with FFprobe as 320x180 video plus audio with 0.8-second duration.
 - Scene-count and non-16:9 input failures are covered by focused tests.
-- The full repository suite has not been executed in this hosted session.
+
+Step 4.4 test status:
+- Added focused tests for real portrait rendering, selection/duration validation, and bad segment handling.
+- The exact remote code has been reviewed for the 1080x1920 render contract and shared primitive reuse.
+- A hosted full-suite execution is not available because this repository has no configured GitHub Actions workflow yet; no full-suite pass is claimed here.
 
 Architecture:
 - `visual_primitives.py` owns reusable instructional drawing primitives.
-- `lesson_layouts.py` owns lesson-type composition.
-- `long_form_renderer.py` owns deterministic FFmpeg assembly and audio/video handoff.
-- No duplicate visual pipeline or wrapper framework has been introduced.
+- `lesson_layouts.py` owns long-form lesson-type composition.
+- `long_form_renderer.py` owns 16:9 FFmpeg assembly.
+- `shorts_renderer.py` owns only the portrait scene selection/assembly needed for Shorts.
+- Long-form and Shorts share the same content contracts, primitives, QA gate, and FFmpeg approach.
+- No duplicate content-generation pipeline or wrapper framework has been introduced.
 
 Dependency policy remains locked:
 - Pillow
@@ -771,6 +792,6 @@ The factory remains ₹0 production-spend by design. Real credentials stay local
 
 ## NEXT STEP
 
-**Step 4.4 — Shorts renderer.**
+**Step 4.5 — Visual QA.**
 
-Render 9:16 challenge/lesson cuts using the same verified educational content and visual system, without creating a second visual architecture.
+Add automated checks for rendered scene geometry, text/image bounds, missing visual assets, and final video duration before a video can proceed toward publishing.
