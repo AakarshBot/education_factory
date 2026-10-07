@@ -81,7 +81,7 @@ def _explanation_scene(lesson: Lesson, segment: LessonSegment, size):
     q, _ = _question(lesson, segment, image)
     draw_answer_reveal(image, f"Answer: {q.correct_answer}", (110, 80, 760, 330))
     draw_calculation_step(image, _explanation_lines(q.explanation), (820, 80, size[0] - 110, 860))
-    draw_highlighted_text(image, (("Why it works", False),), (110, 900, 760, 970), font_size=34)
+    draw_progress(image, segment.question_index + 1, len(lesson.questions), (110, 930, size[0] - 280, 960))
     return image
 
 def _shortcut_scene(lesson: Lesson, segment: LessonSegment, size):
