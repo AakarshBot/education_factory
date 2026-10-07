@@ -88,15 +88,15 @@ def test_verified_pyq_source_requires_matching_reference():
 
 def test_select_verified_pyq_questions_requires_enough_sources():
     with pytest.raises(ValueError, match="not enough"):
-        select_verified_pyq_questions([source("a", "A")], count=2)
+        select_verified_pyq_questions([source("https://ssc.gov.in/q1", "A")], count=2)
 
 
 def test_select_verified_pyq_questions_returns_verified_questions():
     result = select_verified_pyq_questions(
-        [source("a", "A"), source("b", "B")],
+        [source("https://ssc.gov.in/q1", "A"), source("https://ssc.gov.in/q2", "B")],
         count=2,
     )
-    assert [item.source_reference for item in result] == ["a", "b"]
+    assert [item.source_reference for item in result] == ["https://ssc.gov.in/q1", "https://ssc.gov.in/q2"]
 
 
 def test_verified_pyq_source_rejects_missing_reuse_permission():
