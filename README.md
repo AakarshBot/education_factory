@@ -33,6 +33,6 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Step 2.4 — Historical memory**
+**Step 3.1 — Hindi/Hinglish narration pipeline**
 
-The factory now persists lightweight local channel history and can exclude recently published or scheduled topics from the editorial queue.
+The factory now has a direct free Edge-TTS narration stage with a Hindi neural voice default. Timing metadata is the next layer.

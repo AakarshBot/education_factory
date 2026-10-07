@@ -21,7 +21,7 @@ def test_defaults(monkeypatch):
     assert config.YOUTUBE_API_KEY == ""
     assert config.YOUTUBE_CLIENT_SECRETS_FILE == Path("client_secrets.json")
     assert config.YOUTUBE_TOKEN_FILE == Path("token.json")
-    assert config.TTS_VOICE == ""
+    assert config.TTS_VOICE == "hi-IN-MadhurNeural"
 
 
 def test_environment_values(monkeypatch, tmp_path):

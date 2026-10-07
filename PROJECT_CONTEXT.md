@@ -485,8 +485,28 @@ Store enough local channel history to avoid repetitive publishing and support le
 
 ## Phase 3 — Voice and audio
 
-### Step 3.1 — Hindi/Hinglish narration pipeline
-Generate speech using free/local tooling.
+### Step 3.1 — Hindi/Hinglish narration pipeline — **COMPLETE**
+Added `narration.py` as the direct speech-synthesis stage using the existing `edge-tts` dependency.
+
+The narration stage:
+- accepts the final narration text and writes an audio file directly
+- defaults to the currently supported Hindi neural voice `hi-IN-MadhurNeural`
+- allows the configured `TTS_VOICE` or an explicit voice override
+- supports rate, volume, and pitch settings without adding another service
+- creates the output directory when needed
+- fails closed when input text is empty, synthesis errors, or no audio file is produced
+- does not create timing metadata yet; timing is intentionally reserved for Step 3.2
+
+Configuration:
+- `TTS_VOICE` now defaults to `hi-IN-MadhurNeural` in `config.py` and `.env.example`.
+
+The current edge-tts project exposes Python `Communicate` with voice/rate/volume/pitch parameters and saves synthesized audio directly. citeturn264207search0turn264207search5
+Microsoft currently lists `hi-IN-MadhurNeural` as a supported Hindi (India) standard neural voice. citeturn187269search1
+
+Added `tests/test_narration.py` covering default/configured/explicit voice selection, audio-setting forwarding, empty input, and missing output.
+
+### Step 3.2 — Timing contract
+Produce stable word/phrase timing data for rendering.
 
 ### Step 3.2 — Timing contract
 Produce stable word/phrase timing data for rendering.
@@ -683,7 +703,7 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **PHASE 2 / STEP 2.4 COMPLETE**
+Status: **PHASE 3 / STEP 3.1 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
@@ -704,6 +724,9 @@ Completed in Phase 2:
 - Step 2.3 — editorial queue
 - Step 2.4 — historical memory
 
+Completed in Phase 3:
+- Step 3.1 — Hindi/Hinglish narration pipeline
+
 Current repository files:
 - `PROJECT_CONTEXT.md`
 - `README.md`
@@ -721,6 +744,7 @@ Current repository files:
 - `topic_scorer.py`
 - `editorial_queue.py`
 - `channel_history.py`
+- `narration.py`
 - `tests/test_config.py`
 - `tests/test_question.py`
 - `tests/test_validators.py`
@@ -731,19 +755,23 @@ Current repository files:
 - `tests/test_topic_scorer.py`
 - `tests/test_editorial_queue.py`
 - `tests/test_channel_history.py`
+- `tests/test_narration.py`
 
 Test status:
-- Step 2.4 tests were written for history persistence and queue filtering.
-- The hosted environment cannot clone the repository because outbound GitHub access is unavailable, so no local test pass is claimed for this step.
-- Repository reads and the final `main` tree have been verified after the commit.
+- Step 3.1 dedicated tests: **5 passed locally** with mocked edge-tts synthesis.
+- No live network synthesis was performed in this hosted session.
+- The full repository suite was not executed in this hosted session; no broader full-suite pass is claimed.
 
 Architecture note:
-- Step 2.1 discovers raw demand signals.
-- Step 2.2 scores educational candidates.
-- Step 2.3 creates bounded jobs.
-- Step 2.4 persists lightweight channel history and lets the queue exclude recent published/scheduled topics.
-- Analytics interpretation remains deferred to Phase 6.
+- Step 3.1 produces audio only.
+- Step 3.2 will extract a stable timing contract from the generated speech and must not alter the narration text.
+- No additional TTS dependency was introduced.
 
+## NEXT STEP
+
+**Step 3.2 — Timing contract.**
+
+Produce stable word/phrase timing data for rendering.
 ## NEXT STEP
 
 **Step 3.1 — Hindi/Hinglish narration pipeline.**
