@@ -1432,3 +1432,24 @@ Important immediate launch note:
 
 Next manual action:
 - Pull latest main and run `python factory.py --max-jobs 1`.
+
+## Maths answer-source correction — 2026-10-08
+
+The next production run reached question generation and failed correctly on a Gemini inconsistency: the model supplied `math_expression=100/3` but `correct_answer=3333/100`.
+
+Root cause:
+- Gemini was independently generating both `correct_answer` and `math_expression`, creating two competing answer sources.
+- The deterministic validator correctly rejected the mismatch before any content could continue to rendering or upload.
+
+Correction committed to main:
+- `question_generator.py` now asks Gemini for `correct_choice_index` (0-3) instead of a separate `correct_answer`.
+- The factory derives `Question.correct_answer` directly from the selected choice.
+- For Maths, the derived choice is then validated against the machine-checkable `math_expression`.
+- The Maths prompt explicitly requires exact choice matches and avoids rounding/repeating-decimal ambiguity.
+- Existing canonical `Question` schema is unchanged.
+- Updated regression tests cover the new choice-index contract.
+
+The YouTube demand quota/cache fix remains in main; the current failed run did not reach YouTube upload.
+
+Next manual action:
+- Pull latest main and run `python factory.py --max-jobs 1` again.
