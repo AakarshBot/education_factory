@@ -39,11 +39,17 @@ def authenticate_youtube(
         )
 
     credentials = _load_credentials(token_path)
+    granted_scopes = set(getattr(credentials, "scopes", None) or SCOPES)
 
-    if credentials and credentials.valid:
+    if credentials and credentials.valid and set(SCOPES).issubset(granted_scopes):
         return credentials
 
-    if credentials and credentials.expired and credentials.refresh_token:
+    if (
+        credentials
+        and credentials.expired
+        and credentials.refresh_token
+        and set(SCOPES).issubset(granted_scopes)
+    ):
         try:
             credentials.refresh(Request())
         except Exception as exc:
