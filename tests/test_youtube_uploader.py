@@ -274,3 +274,25 @@ def test_upload_rejects_final_description_over_api_limit(monkeypatch, tmp_path):
             video,
             mode="public",
         )
+
+
+def test_upload_shorts_records_shorts_content_format(monkeypatch, tmp_path):
+    patch_media(monkeypatch)
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    history = tmp_path / "history.json"
+    youtube = FakeYouTube(response={"id": "short123"})
+
+    result = youtube_uploader.upload_video(
+        youtube,
+        lesson(),
+        metadata(),
+        video,
+        mode="public",
+        history_path=history,
+        content_format="shorts",
+        now=datetime(2026, 10, 7, 12, tzinfo=timezone.utc),
+    )
+
+    assert result == "short123"
+    assert '"content_format": "shorts"' in history.read_text(encoding="utf-8")
