@@ -791,8 +791,3 @@ Architecture note:
 **Step 3.3 — Audio QA.**
 
 Verify duration, silence, missing audio, and basic output integrity.
-## NEXT STEP
-
-**Step 3.2 — Timing contract.**
-
-Produce stable word/phrase timing data for rendering.
