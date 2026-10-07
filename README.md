@@ -31,9 +31,9 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 6 / Step 6.5 — Conservative automatic editorial adaptation**
+**Phase 7 / Step 7.1 — One-command autonomous factory run**
 
-The factory now has direct YouTube upload/scheduling, analytics ingestion, format comparison, subject comparison, topic-family analysis, and conservative editorial-adaptation stages, with production state stored in local channel history.
+The factory now has a direct one-command production path from demand discovery through educational generation, narration, rendering, metadata, upload/scheduling, history, and analytics. Editorial adaptation feeds the queue and available lesson-format choice conservatively.
 
 The dedicated YouTube channel has not been created yet, so real OAuth, upload, and analytics execution remain intentionally deferred until the factory is fully built.
 
