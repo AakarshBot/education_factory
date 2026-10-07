@@ -26,7 +26,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
                 "difficulty": "medium",
                 "question": "A price of ₹2,000 is reduced by 15%. What is the selling price?",
                 "choices": ["₹1,600", "₹1,700", "₹1,800", "₹1,900"],
-                "correct_answer": "₹1,700",
+                "correct_choice_index": 1,
                 "explanation": "15% of ₹2,000 is ₹300, so ₹2,000 - ₹300 = ₹1,700.",
                 "shortcut": "Multiply ₹2,000 by 0.85.",
                 "source_type": "original",
@@ -73,7 +73,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert choices_schema["maxItems"] == 4
 
 
-def test_generate_questions_rejects_wrong_math_answer(monkeypatch):
+def test_generate_questions_rejects_math_choice_not_matching_expression(monkeypatch):
     generated = {
         "questions": [
             {
@@ -83,7 +83,7 @@ def test_generate_questions_rejects_wrong_math_answer(monkeypatch):
                 "difficulty": "medium",
                 "question": "A price of ₹2,000 is reduced by 15%. What is the selling price?",
                 "choices": ["₹1,600", "₹1,700", "₹1,800", "₹1,900"],
-                "correct_answer": "₹1,650",
+                "correct_choice_index": 0,
                 "explanation": "Incorrect answer.",
                 "shortcut": None,
                 "source_type": "original",
