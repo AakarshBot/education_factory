@@ -1,0 +1,8 @@
+Pillow>=11,<13
+edge-tts>=7,<8
+requests>=2.32,<3
+python-dotenv>=1,<2
+google-api-python-client>=2,<3
+google-auth>=2,<3
+google-auth-oauthlib>=1,<2
+pytest>=8,<9
