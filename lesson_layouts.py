@@ -9,6 +9,7 @@ from visual_primitives import (
     BORDER,
     DEFAULT_SIZE,
     MUTED,
+    SURFACE,
     draw_answer_reveal,
     _font,
     draw_calculation_step,
