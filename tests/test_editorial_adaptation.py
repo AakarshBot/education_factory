@@ -132,4 +132,4 @@ def test_adaptation_never_changes_weights_for_nonready_group():
 
 def test_adaptation_constants_are_conservative():
     assert MIN_READY_GROUPS == 2
-    assert MAX_WEIGHT - MIN_WEIGHT == 0.20
+    assert MAX_WEIGHT - MIN_WEIGHT == pytest.approx(0.20)
