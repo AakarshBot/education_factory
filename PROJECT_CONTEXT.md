@@ -287,8 +287,8 @@ Added one direct `config.py` boundary that loads `.env`, exposes the small set o
 
 ## Phase 1 — Educational content engine
 
-### Step 1.1 — Question schema
-Define one canonical structured representation for:
+### Step 1.1 — Question schema — **COMPLETE**
+Added `question.py` with one canonical immutable `Question` dataclass containing exactly the locked question contract:
 - subject
 - exam
 - topic
@@ -300,6 +300,9 @@ Define one canonical structured representation for:
 - shortcut/method
 - source type
 - source reference when applicable
+
+The schema is JSON-safe through `to_dict()` and can be reconstructed through `from_dict()`. It contains no LLM calls, provider logic, rendering logic, or business rules.
+Added `tests/test_question.py` covering the complete field set and dict round-trip behavior.
 
 ### Step 1.2 — Deterministic validators
 Implement reliable validators for generated questions.
@@ -546,12 +549,16 @@ The dependency file is now `requirements.txt`. No heavyweight Final-Shorts depen
 
 ## CURRENT BUILD STATE — UPDATED
 
-Status: **FOUNDATION / STEP 0.3 COMPLETE**
+Status: **PHASE 1 / STEP 1.1 COMPLETE**
 
 Completed in Phase 0:
 - Step 0.1 — master project context
 - Step 0.2 — minimal repository skeleton
 - Step 0.3 — minimum local/free dependency policy and build stack
+- Step 0.4 — configuration and secret handling
+
+Completed in Phase 1:
+- Step 1.1 — canonical question schema
 
 Current repository files:
 - `PROJECT_CONTEXT.md`
@@ -560,12 +567,17 @@ Current repository files:
 - `.env.example`
 - `requirements.txt`
 - `config.py`
+- `question.py`
 - `tests/test_config.py`
+- `tests/test_question.py`
 
-Production content generation has not started.
+Test status:
+- Focused Step 1.1 tests are committed.
+- They have not been executed in this hosted GitHub-only session; no test pass is claimed yet.
+- No CI workflow has been added yet because that is not required by Step 1.1.
 
 ## NEXT STEP
 
-**Step 1.1 — Define the canonical question schema.**
+**Step 1.2 — Deterministic validators.**
 
-This is the first content-engine implementation. It will create one small, explicit data contract for questions and answer/explanation data. No LLM call or renderer will be added yet.
+Implement the smallest reliable validation layer required before generated questions can ever reach lesson assembly. Maths is first priority. Validation must verify the answer against the question data where deterministic verification is possible, without adding an LLM retry loop or speculative validation rules.
