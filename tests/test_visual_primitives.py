@@ -1,0 +1,23 @@
+from PIL import Image
+import visual_primitives
+
+def test_primitives_draw():
+    image = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    visual_primitives.draw_question_card(image, "25% of 240?", (100,100,1800,400), question_number=1, total_questions=20)
+    visual_primitives.draw_choices(image, ("60","70","80","90"), (100,420,1800,900), selected_index=1, correct_index=2)
+    visual_primitives.draw_timer(image, 15, (180,170))
+    visual_primitives.draw_answer_reveal(image, "60", (100,100,800,300))
+    visual_primitives.draw_calculation_step(image, ("25/100 x 240 = 60",), (900,100,1800,400), step_number=1)
+    visual_primitives.draw_highlighted_text(image, (("Answer ",False),("60",True)), (100,920,900,1020))
+    visual_primitives.draw_flow_diagram(image, (("Read",(950,500,1200,620)),("Solve",(1300,500,1550,620))), ((0,1),))
+    visual_primitives.draw_progress(image, 7, 20, (100,1040,1600,1060))
+    visual_primitives.draw_score_result(image, 17, 20, (1250,820,1800,1020))
+    assert len(set(image.getdata())) > 1
+
+def test_question_card_is_deterministic():
+    a = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    b = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    args = ("Same question", (100,100,1800,400))
+    visual_primitives.draw_question_card(a, *args)
+    visual_primitives.draw_question_card(b, *args)
+    assert list(a.getdata()) == list(b.getdata())
