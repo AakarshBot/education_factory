@@ -1251,3 +1251,14 @@ The four previous failures therefore represented two stale test expectations plu
 Current gate:
 - Do not run factory.py.
 - Run the full pytest suite once more after pulling main. A green result is required before the real Gemini smoke test.
+
+## Windows font discovery final correction — 2026-10-08
+
+The final two pytest failures were isolated to Devanagari font discovery on the production Windows machine. The previous fallback only checked a few hard-coded system filenames.
+
+Correction committed to main:
+- visual_primitives.py now searches both C:/Windows/Fonts and the Windows per-user font directory under %LOCALAPPDATA%/Microsoft/Windows/Fonts.
+- It considers TTF, OTF, and TTC files and tolerates individual font-load failures while searching.
+- No font file, dependency, or manual installation was added to the repository.
+
+The latest suite result before this correction was 181 passed, 2 failed. Do not run factory.py yet. Pull main and rerun the full pytest suite; this is the final test gate before the real Gemini smoke test.
