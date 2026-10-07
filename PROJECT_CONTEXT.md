@@ -1478,3 +1478,22 @@ Current status:
 
 Next manual action:
 - Pull latest main and run `python factory.py --max-jobs 1`.
+
+
+## First complete production run succeeded — 2026-10-08
+
+The first complete production job completed successfully from the local factory:
+- Job: `SSC Reasoning — Counting of Figures: Practice`
+- The `factory.py --max-jobs 1` command returned `Completed`, which means the direct pipeline reached its completion path after production, scheduled upload stages, analytics ingestion, and backlog completion.
+- This is the first successful end-to-end run after the launch-sequence Gemini, TTS, quota, schema, and OAuth defects were corrected.
+
+Current launch status:
+- Factory engineering path: operational on the user's local machine.
+- Gemini live generation: operational.
+- TTS/narration: operational.
+- Rendering: operational.
+- YouTube OAuth/upload path: operational through the existing working project/client.
+- Scheduled publishing mode: completed successfully in the first production run.
+
+Next manual action:
+- Open YouTube Studio -> Content -> Scheduled and confirm the newly scheduled long-form video and Short are present. Do not change their visibility or edit metadata yet.
