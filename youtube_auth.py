@@ -7,9 +7,12 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from config import YOUTUBE_CLIENT_SECRETS_FILE, YOUTUBE_TOKEN_FILE, validate_config
+from config import YOUTUBE_CLIENT_SECRETS_FILE, YOUTUBE_TOKEN_FILE
 
-SCOPES = ("https://www.googleapis.com/auth/youtube.upload",)
+SCOPES = (
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+)
 
 
 def _load_credentials(token_file: Path) -> Credentials | None:
@@ -80,6 +83,21 @@ def get_youtube_client(
         return build("youtube", "v3", credentials=credentials)
     except Exception as exc:
         raise RuntimeError("Could not create YouTube Data API client") from exc
+
+
+def get_youtube_analytics_client(
+    *,
+    client_secrets_file: str | Path = YOUTUBE_CLIENT_SECRETS_FILE,
+    token_file: str | Path = YOUTUBE_TOKEN_FILE,
+):
+    credentials = authenticate_youtube(
+        client_secrets_file=client_secrets_file,
+        token_file=token_file,
+    )
+    try:
+        return build("youtubeAnalytics", "v2", credentials=credentials)
+    except Exception as exc:
+        raise RuntimeError("Could not create YouTube Analytics API client") from exc
 
 
 
