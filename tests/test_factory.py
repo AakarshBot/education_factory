@@ -218,6 +218,9 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
     assert calls["tts"] == 1
+    failed_state = json.loads((tmp_path / "factory_state.json").read_text(encoding="utf-8"))
+    assert failed_state["last_status"] == "failed"
+    assert failed_state["last_run_id"] == saved["run_id"]
 
     render_state["fail"] = False
     result = factory.run_factory(
