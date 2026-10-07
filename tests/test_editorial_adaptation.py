@@ -1,4 +1,4 @@
-from adaptation import (
+from editorial_adaptation import (
     MAX_WEIGHT,
     MIN_WEIGHT,
     MIN_READY_GROUPS,
