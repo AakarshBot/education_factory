@@ -208,6 +208,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert saved["failure"]["stage"] == "long_render"
     assert saved["stages"]["questions_generated"]["status"] == "complete"
     assert saved["stages"]["long_narration"]["status"] == "complete"
+    assert saved["selected"]["run_config"]["history_path"] == str((tmp_path / "history.json").resolve())
     assert calls["questions"] == 1
     assert calls["explanations"] == 1
     assert calls["lesson"] == 1
