@@ -709,8 +709,3 @@ Architecture note:
 **Step 2.3 — Editorial queue.**
 
 Automatically choose the next jobs from the scored topic candidates.
-## NEXT STEP
-
-**Step 2.2 — Topic scoring.**
-
-Score demand, exam relevance, novelty relative to our channel, educational value, visual potential, and production reliability.
