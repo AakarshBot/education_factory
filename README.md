@@ -31,6 +31,8 @@ The project context is the source of truth for the current build state and exact
 
 ## Current state
 
-**Phase 5 / Step 5.2 — YouTube OAuth**
+**Phase 5 / Step 5.3 — YouTube upload and scheduling**
 
-The factory now has a direct desktop OAuth flow that stores the refreshable authorized-user token locally, uses the minimum upload scope, and builds the YouTube Data API client without committing credentials.
+The factory now has a direct upload/scheduling stage that consumes a rendered MP4 plus `VideoMetadata`, publishes immediately or schedules privately with `publishAt`, and records the returned YouTube video ID in local channel history.
+
+The dedicated YouTube channel has not been created yet, so real OAuth and upload execution remain intentionally deferred until the factory is fully built.
