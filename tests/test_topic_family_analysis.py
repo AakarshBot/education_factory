@@ -53,6 +53,20 @@ def test_analyze_topic_families_clusters_related_topics_within_subject():
     assert interest.comparison_ready is False
 
 
+def test_analyze_topic_families_normalizes_plural_topic_tokens():
+    results = analyze_topic_families(
+        [
+            entry("Maths", "Percentage", "p1", views=100),
+            entry("Maths", "Percentages", "p2", views=200),
+            entry("Maths", "Percentage shortcuts", "p3", views=300),
+        ]
+    )
+
+    assert len(results) == 1
+    assert results[0].topic_count == 3
+    assert results[0].measured_videos == 3
+
+
 def test_analyze_topic_families_keeps_subjects_separate():
     entries = [
         entry("Maths", "Time and Work", "m1", views=100),
