@@ -1592,3 +1592,24 @@ The final-render audit fix is present in the production layout:
 
 No visual redesign was introduced.
 
+
+## YouTube Studio multi-language audio gate — verified 2026-10-08
+
+The remaining dual-audio platform action has been verified against YouTube's current official desktop workflow:
+- Open YouTube Studio on a computer.
+- Go to **Content** and select the scheduled/private video.
+- Open **Languages**.
+- Click **Add language** → **English**.
+- Next to **Dub**, click **Add**.
+- Choose **Select file** and upload the factory-generated English audio-only MP3.
+- Click **Publish** for the audio track.
+- YouTube states that custom multi-language audio requires Advanced features, supports existing videos, and the audio file should be roughly the same length as the video.
+- If an automatic English dub already exists for that video, delete it before uploading the factory's custom English dub.
+
+Factory files:
+- Long-form: `english_narration.mp3`
+- Short: `english_short_narration.mp3`
+
+This is a YouTube Studio-only platform operation. The factory already generates and QA-checks the English tracks and supplies English title/description localization during upload. The Data API is not used for the audio-track attachment.
+
+Official source checked 2026-10-08: https://support.google.com/youtube/answer/13338784
