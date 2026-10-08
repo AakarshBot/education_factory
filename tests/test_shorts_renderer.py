@@ -7,7 +7,8 @@ import pytest
 
 from lesson import Lesson, LessonSegment
 from question import Question
-from shorts_renderer import SHORT_SIZE, render_short
+from shorts_renderer import SHORT_SIZE, render_short, _portrait_scene
+from visual_qa import check_image
 
 
 def lesson():
@@ -36,6 +37,19 @@ def audio(path,duration=1.6):
         for i in range(int(rate*duration)):
             value=int(8000*math.sin(2*math.pi*440*i/rate))
             w.writeframesraw(struct.pack("<h",value))
+
+
+def test_all_portrait_segment_kinds_pass_visual_qa(tmp_path):
+    lesson = lesson()
+    for index in range(len(lesson.segments)):
+        image = _portrait_scene(lesson, index)
+        path = tmp_path / f"scene_{index}.png"
+        image.save(path, format="PNG", optimize=False)
+        result = check_image(path, expected_size=SHORT_SIZE)
+        assert result.content_bbox[0] >= 8
+        assert result.content_bbox[1] >= 8
+        assert result.content_bbox[2] <= SHORT_SIZE[0] - 8
+        assert result.content_bbox[3] <= SHORT_SIZE[1] - 8
 
 
 def test_render_short_creates_9_by_16_mp4(tmp_path):
