@@ -1786,3 +1786,17 @@ Manual action:
 Official source checked 2026-10-08:
 https://support.google.com/youtube/answer/9891124
 https://support.google.com/youtube/answer/72431
+
+## Fresh-render regression audit — 2026-10-09
+
+The second production attempt failed at the long-form render call (`factory.py` -> `render_long_form()` -> `visual_qa.check_image()`); the traceback lines in `factory.py` are call-stack locations, not three separate failures. The actual failure was `visual content touches unsafe edge` from `visual_qa.py`.
+
+Root cause confirmed by comparing against the last successful production-render state (`558d1a90dc3b13e333467f93a6dc0c0fde0cbdab`):
+- The successful production code used the earlier plain canvas and did not have `_canvas_base()`.
+- The later visual-system rewrite added `_canvas_base()` and changed both long-form and Shorts canvases to draw a grid and top accent.
+- `_canvas_base()` initially drew those intentional decorative pixels at x=0/y=0, while the existing QA rule rejects any non-background pixel within 8px of an edge.
+- The first public launch did not exercise this fresh renderer because it used a previously rendered known-good asset from before the visual-system rewrite.
+
+The regression fix on `main` moves the decorative canvas lines inside the frame and adds a direct regression test against `check_image()`. No change to the educational content, orchestration, or YouTube publishing logic is required for this failure.
+
+Audit decision: do not add another wrapper or weaken visual QA. The renderer should satisfy the existing safety rule directly.
