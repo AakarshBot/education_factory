@@ -230,12 +230,56 @@ class FakeVideos:
         return FakeVideosRequest(self.body, self.error)
 
 
+class FakeChannelsRequest:
+    def __init__(self, body):
+        self.body = body
+
+    def execute(self):
+        return self.body
+
+
+class FakeChannels:
+    def __init__(self, body):
+        self.body = body
+        self.calls = []
+
+    def list(self, **kwargs):
+        self.calls.append(kwargs)
+        return FakeChannelsRequest(self.body)
+
+
+class FakePlaylistRequest:
+    def __init__(self, body):
+        self.body = body
+
+    def execute(self):
+        return self.body
+
+
+class FakePlaylistItems:
+    def __init__(self, body):
+        self.body = body
+        self.calls = []
+
+    def list(self, **kwargs):
+        self.calls.append(kwargs)
+        return FakePlaylistRequest(self.body)
+
+
 class FakeYouTube:
-    def __init__(self, body=None, error=None):
+    def __init__(self, body=None, error=None, channel_body=None, playlist_body=None):
         self.videos_api = FakeVideos(body, error)
+        self.channels_api = FakeChannels(channel_body or {"items": []})
+        self.playlist_api = FakePlaylistItems(playlist_body or {"items": []})
 
     def videos(self):
         return self.videos_api
+
+    def channels(self):
+        return self.channels_api
+
+    def playlistItems(self):
+        return self.playlist_api
 
 
 def test_fetch_video_statistics_uses_current_data_api_counters():
@@ -253,6 +297,7 @@ def test_fetch_video_statistics_uses_current_data_api_counters():
     )
     result = youtube_analytics.fetch_video_statistics(youtube, ["video1"])
     assert result["video1"] == {
+        "title": "",
         "publishedAt": "2026-10-08T18:30:00Z",
         "views": 123,
         "likes": 9,
@@ -289,7 +334,7 @@ def test_snapshot_uses_current_counters_and_does_not_write_history(tmp_path):
     youtube = FakeYouTube(
         {
             "items": [
-                {"id": "video1", "snippet": {"publishedAt": "2026-10-08T00:00:00Z"}, "statistics": {"viewCount": "120"}},
+                {"id": "video1", "snippet": {"title": "Syllogism Practice", "publishedAt": "2026-10-08T00:00:00Z"}, "statistics": {"viewCount": "120"}, "status": {"privacyStatus": "public"}},
                 {"id": "video2", "snippet": {"publishedAt": "2026-10-08T12:00:00Z"}, "statistics": {"viewCount": "60"}},
             ]
         }
@@ -339,3 +384,49 @@ def test_fetch_video_statistics_keeps_scheduled_visibility():
     result = youtube_analytics.fetch_video_statistics(youtube, ["video1"])
     assert result["video1"]["privacyStatus"] == "private"
     assert result["video1"]["publishAt"] == "2026-10-09T00:30:00Z"
+
+
+
+def test_snapshot_uses_channel_uploads_and_reports_missing_history(tmp_path):
+    history = tmp_path / "history.json"
+    save_history([entry("video1", "Syllogism"), entry("missing", "Missing")], history)
+    youtube = FakeYouTube(
+        body={
+            "items": [
+                {
+                    "id": "video1",
+                    "snippet": {
+                        "title": "Syllogism Practice",
+                        "publishedAt": "2026-10-08T00:00:00Z",
+                    },
+                    "statistics": {"viewCount": "120", "likeCount": "8", "commentCount": "1"},
+                    "status": {"privacyStatus": "public"},
+                }
+            ]
+        },
+        channel_body={
+            "items": [
+                {
+                    "contentDetails": {
+                        "relatedPlaylists": {"uploads": "UUuploads"},
+                    }
+                }
+            ]
+        },
+        playlist_body={
+            "items": [{"contentDetails": {"videoId": "video1"}}]
+        },
+    )
+    analytics = FakeAnalytics(response([]))
+    snapshot, _, missing = youtube_analytics._snapshot(
+        history,
+        limit=10,
+        days=30,
+        youtube=youtube,
+        youtube_analytics=analytics,
+        now=datetime(2026, 10, 10, tzinfo=timezone.utc),
+    )
+    assert [item["video_id"] for item in snapshot] == ["video1"]
+    assert missing == ["missing"]
+    assert youtube.channels_api.calls == [{"part": "contentDetails", "mine": True}]
+    assert youtube.playlist_api.calls[0]["playlistId"] == "UUuploads"

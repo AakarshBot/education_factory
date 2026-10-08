@@ -1727,6 +1727,10 @@ Immediate manual state:
 
 The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch decision and the first public video's current Short schedule. This prevents future factory runs from silently reverting to the earlier 2-hour spacing.
 
+
+Analytics source-of-truth correction — 2026-10-09
+The read-only snapshot now enumerates the authenticated channel's own Uploads playlist before reading video statistics, rather than assuming every history ID is currently exposed by `videos.list(id=...)`. This keeps live channel discovery inside the existing YouTube Data API path, avoids `search.list`, and reports history IDs that are missing from the channel upload list. Official YouTube documentation identifies the Uploads playlist as the channel's uploaded-video source. citeturn723241search2turn723241search10
+
 ## Live analytics decision — 2026-10-09
 
 The first real channel analytics snapshot has now been collected locally.

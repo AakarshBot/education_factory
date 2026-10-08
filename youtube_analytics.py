@@ -111,6 +111,38 @@ def fetch_video_metrics(
 
 
 
+def fetch_recent_channel_videos(youtube, limit: int) -> list[dict[str, Any]]:
+    if limit < 1 or limit > 50:
+        raise ValueError("limit must be between 1 and 50")
+
+    try:
+        channels = youtube.channels().list(part="contentDetails", mine=True).execute().get("items", [])
+        if not channels or not isinstance(channels[0], dict):
+            raise RuntimeError("YouTube returned no authenticated channel")
+        uploads_id = ((channels[0].get("contentDetails") or {}).get("relatedPlaylists") or {}).get("uploads")
+        if not uploads_id:
+            raise RuntimeError("YouTube channel has no uploads playlist")
+
+        playlist = youtube.playlistItems().list(
+            part="contentDetails,snippet",
+            playlistId=uploads_id,
+            maxResults=limit,
+        ).execute()
+        items = playlist.get("items", [])
+        if not isinstance(items, list):
+            raise RuntimeError("YouTube returned an invalid uploads playlist")
+        ids = [
+            str(item.get("contentDetails", {}).get("videoId"))
+            for item in items
+            if isinstance(item, dict) and item.get("contentDetails", {}).get("videoId")
+        ]
+        return [*fetch_video_statistics(youtube, ids).values()] if ids else []
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError("YouTube channel upload lookup failed") from exc
+
+
 def fetch_video_statistics(youtube, video_ids: list[str] | tuple[str, ...]) -> dict[str, dict[str, Any]]:
     if len(video_ids) > 50:
         raise ValueError("video_ids must contain 50 or fewer IDs")
@@ -141,6 +173,7 @@ def fetch_video_statistics(youtube, video_ids: list[str] | tuple[str, ...]) -> d
         snippet = item.get("snippet") or {}
         status = item.get("status") or {}
         result[str(item["id"])] = {
+            "title": str(snippet.get("title", "")),
             "publishedAt": snippet.get("publishedAt"),
             "views": int(stats["viewCount"]) if "viewCount" in stats else None,
             "likes": int(stats["likeCount"]) if "likeCount" in stats else None,
@@ -170,7 +203,7 @@ def _snapshot(
     youtube,
     youtube_analytics,
     now: datetime | None = None,
-) -> tuple[list[dict[str, Any]], date]:
+) -> tuple[list[dict[str, Any]], date, list[str]]:
     if limit < 1 or limit > 50:
         raise ValueError("limit must be between 1 and 50")
     if days < 1:
@@ -180,13 +213,20 @@ def _snapshot(
     if current_time.tzinfo is None or current_time.utcoffset() is None:
         raise ValueError("now must be timezone-aware")
 
-    entries = [entry for entry in load_history(Path(history_path)) if entry.video_id][-limit:]
-    if not entries:
-        return [], current_time.astimezone(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
+    entries = [entry for entry in load_history(Path(history_path)) if entry.video_id]
+    history_by_id = {str(entry.video_id): entry for entry in entries}
+    uploaded = fetch_recent_channel_videos(youtube, limit)
+    uploaded_by_id = {item["video_id"]: item for item in uploaded}
+    missing_history = [video_id for video_id in history_by_id if video_id not in uploaded_by_id]
 
-    ids = [str(entry.video_id) for entry in entries]
-    current = fetch_video_statistics(youtube, ids)
-    published = [_published_at(entry, current.get(str(entry.video_id), {})) for entry in entries]
+    ordered_ids = [item["video_id"] for item in uploaded]
+    published = []
+    for video_id in ordered_ids:
+        entry = history_by_id.get(video_id, HistoryEntry(
+            exam="", subject="", topic="", lesson_type="", title=uploaded_by_id[video_id].get("title", ""),
+            status="", created_at="", video_id=video_id,
+        ))
+        published.append(_published_at(entry, uploaded_by_id[video_id]))
     published_dates = [value.date() for value in published if value is not None]
     end_date = current_time.astimezone(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
 
@@ -195,26 +235,26 @@ def _snapshot(
         start_date = max(end_date - timedelta(days=days - 1), min(published_dates))
         analytics = fetch_video_metrics(
             youtube_analytics,
-            ids,
+            ordered_ids,
             start_date=start_date,
             end_date=end_date,
         )
 
     result = []
-    for entry, publication in zip(entries, published):
-        video_id = str(entry.video_id)
-        stats = current.get(video_id, {})
+    for video_id, publication in zip(ordered_ids, published):
+        video = uploaded_by_id[video_id]
         metrics = analytics.get(video_id, {})
+        entry = history_by_id.get(video_id)
         age_hours = (
             max(0.0, (current_time - publication).total_seconds() / 3600)
             if publication
             else None
         )
-        views = stats.get("views")
+        views = video.get("views")
         result.append(
             {
-                "content_format": entry.content_format,
-                "title": entry.title,
+                "content_format": entry.content_format if entry else "unknown",
+                "title": video.get("title") or (entry.title if entry else video_id),
                 "video_id": video_id,
                 "published_at": publication,
                 "age_hours": age_hours,
@@ -225,17 +265,15 @@ def _snapshot(
                 "average_view_duration": metrics.get("averageViewDuration"),
                 "average_view_percentage": metrics.get("averageViewPercentage"),
                 "subscribers_gained": metrics.get("subscribersGained"),
-                "likes": stats.get("likes"),
-                "comments": stats.get("comments"),
-                "privacy_status": stats.get("privacyStatus"),
-                "publish_at": stats.get("publishAt"),
+                "likes": video.get("likes"),
+                "comments": video.get("comments"),
+                "privacy_status": video.get("privacyStatus"),
+                "publish_at": video.get("publishAt"),
             }
         )
-    result.sort(
-        key=lambda item: item["published_at"] or datetime.min.replace(tzinfo=timezone.utc),
-        reverse=True,
-    )
-    return result, end_date
+
+    return result[:limit], end_date, missing_history[:limit]
+
 
 
 def _snapshot_value(value: float | int | None) -> str:
@@ -260,7 +298,7 @@ def print_snapshot(*, history_path: str | Path = "data/channel_history.json", li
         print(f"No YouTube video IDs found in {history_path}.")
         return
 
-    snapshot, analytics_through = _snapshot(
+    snapshot, analytics_through, missing_history = _snapshot(
         history_path,
         limit=limit,
         days=days,
@@ -270,7 +308,11 @@ def print_snapshot(*, history_path: str | Path = "data/channel_history.json", li
     print("Education Factory — YouTube analytics snapshot")
     print(f"Analytics requested through: {analytics_through.isoformat()}")
     print("Current counters: views/likes/comments | Analytics: engaged views/watch time/average view metrics/subscribers")
-    print()
+    if missing_history:
+        print("History IDs not present in the channel uploads list:")
+        for video_id in missing_history:
+            print(f"  {video_id}")
+        print()
 
     for content_format, label in (("long_form", "Long-form"), ("shorts", "Shorts")):
         videos = [item for item in snapshot if item["content_format"] == content_format]
