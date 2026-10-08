@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageDraw
 import visual_primitives
 
 def test_primitives_draw():
@@ -23,3 +23,31 @@ def test_question_card_is_deterministic():
     visual_primitives.draw_question_card(a, *args)
     visual_primitives.draw_question_card(b, *args)
     assert list(a.getdata()) == list(b.getdata())
+
+
+def test_text_fitting_scales_long_text_to_box():
+    image = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    draw = ImageDraw.Draw(image)
+    lines, size = visual_primitives._fit_text(
+        draw,
+        "This is a deliberately long question that must fit inside a compact card without breaking its box.",
+        360,
+        110,
+        52,
+        min_size=24,
+        bold=True,
+        spacing=8,
+    )
+    assert size < 52
+    assert len(lines) >= 2
+
+
+def test_question_text_stays_inside_box():
+    image = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    visual_primitives.draw_question_card(
+        image,
+        "A compact question.",
+        (500, 200, 1200, 520),
+    )
+    assert all(image.getpixel((x, y)) == visual_primitives.BACKGROUND
+               for x in range(0, 500, 25) for y in range(200, 520, 25))

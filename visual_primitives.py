@@ -85,7 +85,7 @@ def _measure(draw, text, size, bold):
 def _wrap(draw, text, size, bold, width):
     out = []
     line = ""
-    for word in text.strip().split():
+    for word in str(text).strip().split():
         test = word if not line else line + " " + word
         if _measure(draw, test, size, bold) <= width:
             line = test
@@ -98,9 +98,29 @@ def _wrap(draw, text, size, bold, width):
     return out
 
 
-def _lines(d, xy, text, size, bold, width, spacing=12, fill=INK):
+def _fit_text(draw, text, max_width, max_height, max_size, min_size=24, bold=False, spacing=10):
+    value = str(text).strip()
+    if not value:
+        return [], max_size
+    upper = max(min_size, int(max_size))
+    for size in range(upper, min_size - 1, -1):
+        lines = _wrap(draw, value, size, bold, max_width)
+        if lines and len(lines) * (size + spacing) - spacing <= max_height:
+            return lines, size
+    return _wrap(draw, value, min_size, bold, max_width), min_size
+
+
+def _lines(d, xy, text, size, bold, width, spacing=12, fill=INK, *, max_height=None, min_size=24):
     x, y = xy
-    for line in _wrap(d, text, size, bold, width):
+    if max_height is not None:
+        lines, size = _fit_text(
+            d, text, width, max_height, size, min_size=min_size,
+            bold=bold, spacing=spacing,
+        )
+    else:
+        lines = _wrap(d, text, size, bold, width)
+
+    for line in lines:
         cursor = x
         for word in line.split():
             font = _font(size, bold, _dev(word))
@@ -150,7 +170,16 @@ def draw_question_card(image, question, box, *, question_number=None, total_ques
         d.rounded_rectangle(pill, 20, fill=SURFACE_2, outline=BORDER, width=1)
         d.text((pill[0] + 16, pill[1] + 7), label, font=font, fill=MUTED)
 
-    _lines(d, (x1 + 42, y1 + 94), question, 52, True, x2 - x1 - 84, 12)
+    content_x = x1 + 42
+    content_y = y1 + 94
+    content_width = x2 - x1 - 84
+    content_height = max(1, y2 - content_y - 24)
+    _lines(
+        d, (content_x, content_y), question,
+        min(52, max(32, int(content_height * 0.30))),
+        True, content_width, 10,
+        max_height=content_height, min_size=30,
+    )
 
 
 def draw_choices(image, choices, box, *, selected_index=None, correct_index=None):
@@ -187,7 +216,15 @@ def draw_choices(image, choices, box, *, selected_index=None, correct_index=None
             font=letter_font,
             fill=ACCENT if i not in (correct_index, selected_index) else INK,
         )
-        _lines(d, (x1 + 104, top + 13), str(choice), size, False, x2 - x1 - 128, 6)
+        right_pad = 174 if correct_index is not None or selected_index is not None else 24
+        choice_x = x1 + 104
+        choice_y = top + 13
+        choice_width = max(40, x2 - choice_x - right_pad)
+        choice_height = max(1, bottom - choice_y - 13)
+        _lines(
+            d, (choice_x, choice_y), str(choice), size, False,
+            choice_width, 5, max_height=choice_height, min_size=24,
+        )
 
         if i == correct_index:
             d.text((x2 - 150, top + 20), "CORRECT", font=_font(20, True), fill=SUCCESS)
@@ -231,7 +268,16 @@ def draw_answer_reveal(image, answer, box, *, correct=True):
     d.rounded_rectangle((x1, y1, x1 + 8, y2), 4, fill=status)
     label = "ANSWER CONFIRMED" if correct else "CHECK THE ANSWER"
     d.text((x1 + 40, y1 + 28), label, font=_font(24, True), fill=status)
-    _lines(d, (x1 + 40, y1 + 94), str(answer), 56, True, x2 - x1 - 80, 10, INK)
+    content_x = x1 + 40
+    content_y = y1 + 94
+    content_width = x2 - x1 - 80
+    content_height = max(1, y2 - content_y - 24)
+    _lines(
+        d, (content_x, content_y), str(answer),
+        min(56, max(32, int(content_height * 0.34))),
+        True, content_width, 8, INK,
+        max_height=content_height, min_size=30,
+    )
 
 
 def draw_calculation_step(image, steps, box, *, step_number=None):
@@ -241,28 +287,82 @@ def draw_calculation_step(image, steps, box, *, step_number=None):
     label = "SOLUTION" if step_number is None else f"STEP {step_number}"
     d.text((x1 + 40, y1 + 28), label, font=_font(24, True), fill=INFO)
     d.line((x1 + 40, y1 + 66, x2 - 40, y1 + 66), fill=BORDER, width=1)
-    y = y1 + 92
-    for position, step in enumerate(steps):
+    steps = tuple(str(step).strip() for step in steps if str(step).strip())
+    if not steps:
+        return
+    content_x = x1 + 86
+    content_y = y1 + 92
+    content_width = x2 - content_x - 40
+    content_height = max(1, y2 - content_y - 24)
+    size = min(42, max(28, int(content_height / max(len(steps) * 2.2, 1))))
+    wrapped = []
+    for size_candidate in range(size, 23, -1):
+        candidate = [_wrap(d, step, size_candidate, False, content_width) for step in steps]
+        total_height = sum(len(lines) * (size_candidate + 7) for lines in candidate) + (len(steps) - 1) * 9
+        if total_height <= content_height:
+            size = size_candidate
+            wrapped = candidate
+            break
+    if not wrapped:
+        wrapped = [_wrap(d, step, size, False, content_width) for step in steps]
+    y = content_y
+    for position, lines in enumerate(wrapped):
         d.ellipse((x1 + 40, y + 6, x1 + 68, y + 34), fill=HIGHLIGHT)
         d.text((x1 + 48, y + 6), str(position + 1), font=_font(18, True), fill=INFO)
-        y = _lines(d, (x1 + 86, y), str(step), 42, False, x2 - x1 - 126, 7) + 16
+        for line in lines:
+            _lines(d, (content_x, y), line, size, False, content_width, 7)
+            y += size + 7
+        y += 9
 
 
 def draw_highlighted_text(image, segments, box, *, font_size=46):
     d = ImageDraw.Draw(image)
     x1, y1, x2, y2 = box
-    x, y = x1, y1
+    tokens = []
     for text, highlighted in segments:
-        for word in str(text).split():
+        tokens.extend((word, highlighted) for word in str(text).split())
+    if not tokens:
+        return
+
+    width = max(1, x2 - x1)
+    height = max(1, y2 - y1)
+    size = min(font_size, max(28, int(height * 0.28)))
+    chosen = []
+    for size_candidate in range(size, 23, -1):
+        lines = []
+        current = []
+        current_width = 0
+        space = d.textlength(" ", font=_font(size_candidate, False))
+        for word, highlighted in tokens:
+            word_width = d.textlength(word, font=_font(size_candidate, False))
+            required = word_width if not current else space + word_width
+            if current and current_width + required > width:
+                lines.append(current)
+                current = []
+                current_width = 0
+            current.append((word, highlighted))
+            current_width += required
+        if current:
+            lines.append(current)
+        if len(lines) * (size_candidate + 12) - 12 <= height:
+            chosen = lines
+            size = size_candidate
+            break
+    if not chosen:
+        chosen = [tokens]
+
+    y = y1
+    for line in chosen:
+        x = x1
+        for word, highlighted in line:
             token = word + " "
-            font = _font(font_size, False, _dev(word))
+            font = _font(size, False, _dev(word))
             w = d.textlength(token, font=font)
-            if x + w > x2 and x > x1:
-                x, y = x1, y + font_size + 16
             d.text((x, y), token, font=font, fill=INK)
             if highlighted:
-                d.line((x, y + font_size + 5, x + w - 4, y + font_size + 5), fill=ACCENT, width=5)
+                d.line((x, y + size + 5, x + w - 4, y + size + 5), fill=ACCENT, width=4)
             x += w
+        y += size + 12
 
 
 def draw_flow_diagram(image, nodes, edges):
