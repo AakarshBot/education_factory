@@ -4,6 +4,7 @@ from PIL import Image
 from lesson_assembler import assemble_lesson
 from question import Question
 from lesson_layouts import render_lesson_scene
+from visual_qa import check_image
 
 def question(source_type="original", source_reference=None):
     return Question(
@@ -50,3 +51,31 @@ def test_all_assembled_segment_kinds_render():
             image = render_lesson_scene(lesson, index, size=(1280, 720))
             assert isinstance(image, Image.Image)
             assert image.size == (1280, 720)
+
+
+def test_all_production_long_form_scenes_pass_visual_qa(tmp_path):
+    lessons = [
+        assemble_lesson([question()], lesson_type="practice"),
+        assemble_lesson([question()], lesson_type="timed_test"),
+        assemble_lesson(
+            [question()],
+            lesson_type="concept_practice",
+            concept_summary="Percent means per hundred.",
+        ),
+        assemble_lesson(
+            [question("pyq", "SSC CGL 2024 Tier 1")],
+            lesson_type="pyq_analysis",
+        ),
+        assemble_lesson([question()], lesson_type="revision"),
+    ]
+    for lesson in lessons:
+        for index in range(len(lesson.segments)):
+            image = render_lesson_scene(lesson, index)
+            assert image.size == (1920, 1080)
+            path = tmp_path / f"{lesson.lesson_type}_{index}.png"
+            image.save(path, format="PNG", optimize=False)
+            result = check_image(path, expected_size=(1920, 1080))
+            assert result.content_bbox[0] >= 8
+            assert result.content_bbox[1] >= 8
+            assert result.content_bbox[2] <= 1912
+            assert result.content_bbox[3] <= 1072
