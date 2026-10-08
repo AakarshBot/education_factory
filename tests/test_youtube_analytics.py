@@ -246,6 +246,7 @@ def test_fetch_video_statistics_uses_current_data_api_counters():
                     "id": "video1",
                     "snippet": {"publishedAt": "2026-10-08T18:30:00Z"},
                     "statistics": {"viewCount": "123", "likeCount": "9", "commentCount": "2"},
+                    "status": {"privacyStatus": "public"},
                 }
             ]
         }
@@ -256,9 +257,11 @@ def test_fetch_video_statistics_uses_current_data_api_counters():
         "views": 123,
         "likes": 9,
         "comments": 2,
+        "privacyStatus": "public",
+        "publishAt": null,
     }
     assert youtube.videos_api.calls == [
-        {"part": "snippet,statistics", "id": "video1"}
+        {"part": "snippet,statistics,status", "id": "video1"}
     ]
 
 
@@ -315,3 +318,24 @@ def test_snapshot_uses_current_counters_and_does_not_write_history(tmp_path):
     assert snapshot[1]["age_hours"] == 48
     assert end_date.isoformat() == "2026-10-08"
     assert history.read_text(encoding="utf-8") == before
+
+
+def test_fetch_video_statistics_keeps_scheduled_visibility():
+    youtube = FakeYouTube(
+        {
+            "items": [
+                {
+                    "id": "video1",
+                    "snippet": {"publishedAt": "2026-10-08T12:30:00Z"},
+                    "statistics": {},
+                    "status": {
+                        "privacyStatus": "private",
+                        "publishAt": "2026-10-09T00:30:00Z",
+                    },
+                }
+            ]
+        }
+    )
+    result = youtube_analytics.fetch_video_statistics(youtube, ["video1"])
+    assert result["video1"]["privacyStatus"] == "private"
+    assert result["video1"]["publishAt"] == "2026-10-09T00:30:00Z"

@@ -124,7 +124,7 @@ def fetch_video_statistics(youtube, video_ids: list[str] | tuple[str, ...]) -> d
 
     try:
         items = youtube.videos().list(
-            part="snippet,statistics",
+            part="snippet,statistics,status",
             id=",".join(ids),
         ).execute().get("items", [])
     except Exception as exc:
@@ -139,11 +139,14 @@ def fetch_video_statistics(youtube, video_ids: list[str] | tuple[str, ...]) -> d
             raise RuntimeError("YouTube Data API returned an invalid video")
         stats = item.get("statistics") or {}
         snippet = item.get("snippet") or {}
+        status = item.get("status") or {}
         result[str(item["id"])] = {
             "publishedAt": snippet.get("publishedAt"),
             "views": int(stats["viewCount"]) if "viewCount" in stats else None,
             "likes": int(stats["likeCount"]) if "likeCount" in stats else None,
             "comments": int(stats["commentCount"]) if "commentCount" in stats else None,
+            "privacyStatus": status.get("privacyStatus"),
+            "publishAt": status.get("publishAt"),
         }
     return result
 
@@ -224,6 +227,8 @@ def _snapshot(
                 "subscribers_gained": metrics.get("subscribersGained"),
                 "likes": stats.get("likes"),
                 "comments": stats.get("comments"),
+                "privacy_status": stats.get("privacyStatus"),
+                "publish_at": stats.get("publishAt"),
             }
         )
     result.sort(
@@ -279,7 +284,11 @@ def print_snapshot(*, history_path: str | Path = "data/channel_history.json", li
             age = f"{item['age_hours']:.1f}h" if item["age_hours"] is not None else "unknown"
             rate = f"{item['views_per_hour']:.1f}" if item["views_per_hour"] is not None else "—"
             print(f"  {item['title']}")
-            print(f"    Published: {published} UTC | Age: {age} | Views: {_snapshot_value(item['views'])} | Views/hour: {rate}")
+            schedule = item["publish_at"] or "—"
+            print(f"    Published: {published} UTC | Age: {age} | Visibility: {item['privacy_status'] or 'not returned'}")
+            if schedule != "—":
+                print(f"    Scheduled publishAt: {schedule}")
+            print(f"    Views: {_snapshot_value(item['views'])} | Views/hour: {rate}")
             print(f"    Engaged views: {_snapshot_value(item['engaged_views'])} | Watch: {_snapshot_value(item['watch_minutes'])} min | Avg view: {_snapshot_duration(item['average_view_duration'])} | Avg %: {_snapshot_percent(item['average_view_percentage'])}")
             print(f"    Subscribers gained: {_snapshot_value(item['subscribers_gained'])} | Likes: {_snapshot_value(item['likes'])} | Comments: {_snapshot_value(item['comments'])}")
             print(f"    Video ID: {item['video_id']}")
