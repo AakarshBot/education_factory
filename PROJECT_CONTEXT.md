@@ -851,6 +851,10 @@ Focused tests cover the new Data API counter retrieval, Analytics `engagedViews`
 Interpretation rule: YouTube Analytics is not real-time and official documentation says processing can introduce 48–72 hours of latency. Current per-video counters therefore come from the YouTube Data API, while watch/engagement metrics are treated as delayed analytics evidence. citeturn201681search5
 ## Phase 7 — Autonomous daily operation
 
+
+Runtime correction — 2026-10-09
+The new read-only analytics CLI was missing its `argparse` import, causing a `NameError` on launch. Added the missing standard-library import only; no analytics behavior changed. Targeted tests remain the verification gate before the next manual run.
+
 ### Step 7.1 — One-click / one-command factory run — **COMPLETE**
 
 Added `factory.py` as the direct production entry point and `tests/test_factory.py` for orchestration coverage.
