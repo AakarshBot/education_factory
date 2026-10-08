@@ -147,7 +147,7 @@ def test_generate_english_narration_restores_protected_numbers(monkeypatch):
     ]
     masked, _ = english_narration_generator._mask_segments(source)
     translated = [
-        masked[0].replace("[[NUMBER_A]]%", "[[NUMBER_A]] percent"),
+        masked[0].replace("[[NUMBER_B]]%", "[[NUMBER_B]] percent"),
     ]
     _patch(monkeypatch, source, translated)
 
