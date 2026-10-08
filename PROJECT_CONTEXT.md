@@ -1879,3 +1879,14 @@ Latest test-fix commits:
 - 5cbe197a48aa9b998864c4a12701c7e069ae0f95
 
 Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until that suite passes.
+
+## Preflight assertion correction — 2026-10-09
+
+The focused preflight rerun exposed one remaining test-only mismatch in `tests/test_lesson_layouts.py`: `test_all_assembled_segment_kinds_render` correctly called the renderer at the production size of 1920x1080 but still asserted the obsolete 1280x720 size. The assertion has been corrected to 1920x1080.
+
+Commit:
+- ca1fe6f418ba1df1ed56cd7029fa4671c7a3abe9 — fixed assembled scene size assertion
+
+No production pipeline logic was changed.
+
+Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until the suite passes.
