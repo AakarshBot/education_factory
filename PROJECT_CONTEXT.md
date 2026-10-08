@@ -1890,3 +1890,15 @@ Commit:
 No production pipeline logic was changed.
 
 Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until the suite passes.
+
+## Focused preflight passed — 2026-10-09
+
+The required focused preflight suite was run locally after syncing main:
+
+```
+python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q
+```
+
+Result: **39 passed in 21.26s**.
+
+This clears the pre-factory engineering gate. No production logic was changed by the final test correction. The next step is the first real factory run using the already-operational YouTube OAuth/Data/Analytics path; editorial strategy remains unchanged because the live sample is still only one long-form plus one Short.
