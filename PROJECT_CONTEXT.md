@@ -1934,3 +1934,17 @@ Result: **39 passed in 23.35s**.
 The question-generation resilience fix is therefore covered by the local focused suite. Deterministic Maths validation remains fail-closed, with at most one automatic regeneration for a malformed generated response.
 
 Next manual step: rerun the factory for the second real production upload. If the generation retry succeeds, the factory should continue through the existing production path; if another stage fails, stop before upload and diagnose that stage rather than bypassing its QA gate.
+
+## Second successful production run — 2026-10-09
+
+The second real factory run completed successfully:
+
+```
+Completed: Railway Reasoning — Direction and Distance: Practice
+```
+
+The production orchestration prints `Completed` only after the long-form upload stage, Short upload stage, analytics ingestion, backlog completion, and final run-state completion succeed. Therefore this run cleared the full production path without a QA bypass or manual intervention.
+
+The factory default publish mode remains `scheduled`. Its scheduler selects the next 18:00 Asia/Kolkata publish time when no explicit time is supplied, and the derived Short is scheduled 12 hours after the long-form. For this run, that means the long-form is scheduled for the next 18:00 local publish slot and the Short 12 hours later. Exact YouTube public visibility should be determined from the account's current schedule/state rather than assumed from the factory's completion message alone.
+
+Editorial state remains unchanged: this is the second production pair and should be allowed to become an additional learning sample before another factory job is run. Do not immediately stack another job.
