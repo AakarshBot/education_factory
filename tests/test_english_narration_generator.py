@@ -71,13 +71,14 @@ def test_generate_english_narration_uses_structured_json(monkeypatch):
 
     def fake_post(url, **kwargs):
         calls.append(kwargs)
+        masked, _ = english_narration_generator._mask_segments(source)
         return FakeResponse(
             body={
                 "candidates": [
                     {
                         "content": {
                             "parts": [
-                                {"text": json.dumps({"segments": ["Question 1. Solve this."]})}
+                                {"text": json.dumps({"segments": masked})}
                             ]
                         }
                     }
@@ -186,7 +187,7 @@ def test_generate_english_narration_rejects_missing_protected_token(monkeypatch)
 def test_generate_english_narration_rejects_reordered_protected_tokens(monkeypatch):
     source = ["Question 1. 25% of 240 is?"]
     masked, replacements = english_narration_generator._mask_segments(source)
-    tokens = [placeholder for placeholder, _ in replacements]
+    tokens = [placeholder for placeholder, _ in replacements[0]]
 
     reordered = masked[0].replace(tokens[0], "__FIRST__").replace(
         tokens[2], tokens[0]
