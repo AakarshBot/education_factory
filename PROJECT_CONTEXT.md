@@ -1653,3 +1653,20 @@ This is a storefront decision, not a factory pipeline change.
 
 Official YouTube customization guidance checked 2026-10-08:
 https://support.google.com/youtube/answer/3219384
+
+## Channel-level discovery and audience settings — 2026-10-08
+
+Launch settings decision:
+- **Country/region:** India.
+- **Channel keywords:** keep these tightly aligned to actual launch content:
+  `SSC, SSC CGL, SSC CHSL, Banking Exams, Bank PO, IBPS, SBI PO, Railway Exams, RRB, Quantitative Aptitude, Maths for Competitive Exams, Reasoning for Competitive Exams, English for Competitive Exams, competitive exam preparation`
+- Do not stuff unrelated trending terms or competitor/channel names.
+- **Audience:** set the channel to **not made for kids** because the intended content is competitive-exam preparation for aspirants, not content primarily directed to children. Individual videos remain able to override the channel-level audience setting if a future lesson genuinely requires different treatment.
+- **Channel links:** none at launch unless an owned, genuinely useful destination exists. Do not invent or add placeholder social links.
+- **Business/contact email:** leave empty for now; add it only when the channel has a real public business-contact workflow.
+
+YouTube currently exposes Country/region, Keywords, and Audience under Studio -> Settings -> Channel. Channel-level audience settings can apply to existing and future videos, while individual videos can override the channel setting.
+
+Official sources checked 2026-10-08:
+https://support.google.com/youtube/answer/2976814
+https://support.google.com/youtube/answer/9527654
