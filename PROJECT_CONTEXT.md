@@ -1727,6 +1727,24 @@ Immediate manual state:
 
 The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch decision and the first public video's current Short schedule. This prevents future factory runs from silently reverting to the earlier 2-hour spacing.
 
+## Live analytics decision — 2026-10-09
+
+The first real channel analytics snapshot has now been collected locally.
+
+Observed current Data API counters:
+- Banking Reasoning — Syllogism Practice long-form: **3 views at ~18.7 hours** after publication; 0 likes/comments.
+- Syllogism Practice Short: **28 views at ~4.7 hours** after publication; 0 likes/comments.
+- The deeper YouTube Analytics metrics are blank because the report is currently only available through **2026-10-07**; this is expected for uploads published on 2026-10-08 and must not be treated as zero retention/watch-time performance.
+- The newer SSC Counting of Figures long-form and derived Short have history timestamps in the past, but the authenticated YouTube Data API returned **no video resource** for their IDs. Their displayed publication timestamps therefore come from factory history and are **not confirmation that YouTube currently exposes those videos**.
+
+Production decision:
+- **Do not run `python factory.py --max-jobs 1` yet.**
+- Do not change subject mix, lesson format, topic selection, or adaptation weights from the first two public assets. The sample is far below the existing 3-video comparison threshold and the current adaptation logic intentionally remains neutral.
+- Keep one-job-at-a-time production as the default after the platform-state check.
+- Before another production run, manually confirm in YouTube Studio that the two SSC assets (`NPkGnNH8y3Q` and `xHY_pW9e2MM`) are actually present and have the expected visibility/publication state. If they are present/public, rerun the read-only analytics command; if they are absent or still private/scheduled, resolve that platform state before producing anything else.
+
+Important interpretation rule: current view counters from the Data API are usable for early evidence; delayed Analytics metrics should not be interpreted until their reporting window catches up.
+
 ## Intermediate feature gate — 2026-10-08
 
 The next channel-platform gate is **Intermediate features**, not Advanced features.
