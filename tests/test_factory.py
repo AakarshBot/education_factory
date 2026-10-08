@@ -1,4 +1,7 @@
 import json
+import math
+import struct
+import wave
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -322,3 +325,98 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
         "long_form": "video-id",
         "shorts": "video-id",
     }
+
+
+def _write_test_audio(path: Path, duration: float = 1.0) -> None:
+    rate = 8000
+    frames = int(rate * duration)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        for index in range(frames):
+            value = int(8000 * math.sin(2 * math.pi * 440 * index / rate))
+            wav.writeframesraw(struct.pack("<h", value))
+
+
+def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
+    calls = {"tts": 0, "uploads": 0}
+
+    class Job:
+        priority = 1
+        total_score = 100
+        subject = "Maths"
+        exam = "SSC"
+        topic = "Percentages"
+        rationale = "supported"
+        supporting_signal_indices = (0,)
+
+    monkeypatch.setattr(factory, "load_history", lambda path: [])
+    monkeypatch.setattr(factory, "analyze_formats", lambda history: ())
+    monkeypatch.setattr(factory, "analyze_subjects", lambda history: ())
+    monkeypatch.setattr(factory, "analyze_topic_families", lambda history: ())
+    monkeypatch.setattr(factory, "build_editorial_adaptation", lambda *args: adaptation())
+    monkeypatch.setattr(factory, "discover_demand", lambda: ["signal"])
+    monkeypatch.setattr(factory, "score_topics", lambda *args, **kwargs: ["score"])
+    monkeypatch.setattr(factory, "build_editorial_queue", lambda *args, **kwargs: [Job()])
+    monkeypatch.setattr(factory, "generate_questions", lambda **kwargs: [question()])
+    monkeypatch.setattr(factory, "generate_explanations", lambda questions, language: questions)
+    monkeypatch.setattr(factory, "assemble_lesson", lambda questions, lesson_type, concept_summary=None: lesson())
+    monkeypatch.setattr(
+        factory,
+        "generate_english_narration_segments",
+        lambda segments, source_language: list(segments),
+    )
+    monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: metadata())
+
+    def fake_tts(text, output_path, **kwargs):
+        calls["tts"] += 1
+        _write_test_audio(Path(output_path))
+        timing_path = kwargs.get("timing_path")
+        if timing_path:
+            Path(timing_path).write_text(
+                json.dumps({
+                    "text": text,
+                    "duration_seconds": 1.0,
+                    "words": [
+                        {
+                            "text": word,
+                            "start_seconds": index * 0.05,
+                            "duration_seconds": 0.04,
+                        }
+                        for index, word in enumerate(text.split())
+                    ],
+                }),
+                encoding="utf-8",
+            )
+
+    monkeypatch.setattr(factory, "synthesize_speech", fake_tts)
+    monkeypatch.setattr(factory, "get_youtube_client", lambda: object())
+
+    def fake_upload(*args, **kwargs):
+        calls["uploads"] += 1
+        return f"video-{calls['uploads']}"
+
+    monkeypatch.setattr(factory, "upload_video", fake_upload)
+    monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: [])
+
+    result = factory.run_factory(
+        output_root=tmp_path,
+        history_path=tmp_path / "history.json",
+        backlog_path=tmp_path / "backlog.json",
+        factory_state_path=tmp_path / "factory_state.json",
+        question_count=1,
+    )
+
+    assert result.title == "SSC Maths Percentages Practice"
+    assert calls["tts"] == 4
+    assert calls["uploads"] == 2
+
+    manifest_paths = list((tmp_path / "jobs").glob("*/job.json"))
+    assert len(manifest_paths) == 1
+    manifest = json.loads(manifest_paths[0].read_text(encoding="utf-8"))
+    assert manifest["status"] == "complete"
+    assert manifest["stages"]["long_render"]["status"] == "complete"
+    assert manifest["stages"]["short_render"]["status"] == "complete"
+    assert Path(manifest["outputs"]["long_video"]).exists()
+    assert Path(manifest["outputs"]["short_video"]).exists()
