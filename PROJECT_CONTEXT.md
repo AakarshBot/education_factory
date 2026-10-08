@@ -1844,3 +1844,19 @@ Validation limitation:
 - Full repository pytest still cannot be executed from this environment.
 - The localization helper logic was executed in an offline simulation covering token ordering and exact restoration.
 - Do not spend another production run until the local checkout is synced to main with these two commits.
+
+
+## Full factory preflight coverage — 2026-10-09
+
+After the English-localization regression fix, the production path was audited beyond the previously failing stage. The remaining downstream path is structurally sound: English audio is generated and checked with the existing audio QA gate; long-form and Shorts both render through their real renderers; metadata is validated before upload; YouTube upload remains fail-closed; final analytics ingestion and backlog/state completion happen only after both uploads succeed.
+
+A new offline factory preflight regression test now exercises the actual long-form and Short renderers inside the factory orchestration, while mocking only external/network services such as demand discovery, Gemini, TTS, YouTube upload, and analytics ingestion. It uses real media files and therefore exercises the real image QA, FFmpeg render, video QA, stage ordering, manifest completion, and dual-upload path.
+
+The test suite also now covers the hardened English placeholder invariants and the renderer edge-QA fixes.
+
+Validation limitation remains explicit: the full repository pytest suite cannot be executed from this environment. The current main state has been verified by direct code inspection, focused offline simulations, and the expanded regression tests committed to the repository.
+
+Latest implementation commits:
+- a5f90f9c779e2762520091a4d98d6293dacb374b — corrected protected localization regression test
+- 3222ac715c651d44da73e4b23470ce9e8148e681 — real media pipeline factory preflight test
+- b1466e5197fbbde9c9a382f7b51a07679e104427 — hardened localization audit/context
