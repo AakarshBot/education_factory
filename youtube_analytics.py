@@ -109,37 +109,25 @@ def fetch_video_metrics(
 
 
 
-def fetch_video_statistics(
-    youtube,
-    video_ids: list[str] | tuple[str, ...],
-) -> dict[str, dict[str, Any]]:
+def fetch_video_statistics(youtube, video_ids: list[str] | tuple[str, ...]) -> dict[str, dict[str, Any]]:
     if len(video_ids) > 50:
         raise ValueError("video_ids must contain 50 or fewer IDs")
-
-    cleaned_ids = []
-    for video_id in video_ids:
-        if not isinstance(video_id, str) or not video_id.strip():
-            raise ValueError("video_ids must contain non-empty strings")
-        cleaned_ids.append(video_id.strip())
-
-    if len(set(cleaned_ids)) != len(cleaned_ids):
+    ids = [video_id.strip() for video_id in video_ids]
+    if any(not video_id for video_id in ids):
+        raise ValueError("video_ids must contain non-empty strings")
+    if len(set(ids)) != len(ids):
         raise ValueError("video_ids must be unique")
-    if not cleaned_ids:
+    if not ids:
         return {}
 
     try:
-        body = (
-            youtube.videos()
-            .list(
-                part="snippet,statistics,status",
-                id=",".join(cleaned_ids),
-            )
-            .execute()
-        )
+        items = youtube.videos().list(
+            part="snippet,statistics",
+            id=",".join(ids),
+        ).execute().get("items", [])
     except Exception as exc:
         raise RuntimeError("YouTube video statistics query failed") from exc
 
-    items = body.get("items", [])
     if not isinstance(items, list):
         raise RuntimeError("YouTube Data API returned an invalid video list")
 
@@ -147,84 +135,29 @@ def fetch_video_statistics(
     for item in items:
         if not isinstance(item, dict) or not item.get("id"):
             raise RuntimeError("YouTube Data API returned an invalid video")
-        video_id = str(item["id"])
+        stats = item.get("statistics") or {}
         snippet = item.get("snippet") or {}
-        statistics = item.get("statistics") or {}
-        status = item.get("status") or {}
-
-        current: dict[str, Any] = {
-            "title": str(snippet.get("title", "")),
+        result[str(item["id"])] = {
             "publishedAt": snippet.get("publishedAt"),
-            "privacyStatus": status.get("privacyStatus"),
+            "views": int(stats["viewCount"]) if "viewCount" in stats else None,
+            "likes": int(stats["likeCount"]) if "likeCount" in stats else None,
+            "comments": int(stats["commentCount"]) if "commentCount" in stats else None,
         }
-        for key, output_key in (
-            ("viewCount", "views"),
-            ("likeCount", "likes"),
-            ("commentCount", "comments"),
-        ):
-            if key in statistics:
-                try:
-                    current[output_key] = int(statistics[key])
-                except (TypeError, ValueError) as exc:
-                    raise RuntimeError(
-                        f"YouTube Data API returned invalid {key} for {video_id}"
-                    ) from exc
-
-        result[video_id] = current
-
     return result
 
 
-def _published_at(
-    entry: HistoryEntry,
-    statistics: dict[str, Any],
-) -> datetime | None:
-    value = statistics.get("publishedAt") or entry.published_at
+def _published_at(entry: HistoryEntry, current: dict[str, Any]) -> datetime | None:
+    value = current.get("publishedAt") or entry.published_at
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         return None
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
 
 
-def _format_age(hours: float) -> str:
-    total_minutes = max(0, int(hours * 60))
-    days, remainder = divmod(total_minutes, 1440)
-    hours, minutes = divmod(remainder, 60)
-    if days:
-        return f"{days}d {hours}h"
-    if hours:
-        return f"{hours}h {minutes}m"
-    return f"{minutes}m"
-
-
-def _format_duration(seconds: float | None) -> str:
-    if seconds is None:
-        return "—"
-    total_seconds = max(0, int(round(seconds)))
-    minutes, seconds = divmod(total_seconds, 60)
-    return f"{minutes}:{seconds:02d}"
-
-
-def _format_number(value: float | int | None) -> str:
-    if value is None:
-        return "—"
-    return f"{int(value):,}"
-
-
-def _format_percent(value: float | None) -> str:
-    return f"{value:.1f}%" if value is not None else "—"
-
-
-def _latest_complete_analytics_date(now: datetime) -> date:
-    return now.astimezone(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
-
-
-def _snapshot_entries(
+def _snapshot(
     history_path: str | Path,
     *,
     limit: int,
@@ -233,181 +166,131 @@ def _snapshot_entries(
     youtube_analytics,
     now: datetime | None = None,
 ) -> tuple[list[dict[str, Any]], date]:
-    if limit < 1:
-        raise ValueError("limit must be at least 1")
-    if limit > 50:
-        raise ValueError("limit must be 50 or fewer")
+    if limit < 1 or limit > 50:
+        raise ValueError("limit must be between 1 and 50")
     if days < 1:
         raise ValueError("days must be at least 1")
 
-    current = now or datetime.now(timezone.utc)
-    if current.tzinfo is None or current.utcoffset() is None:
+    current_time = now or datetime.now(timezone.utc)
+    if current_time.tzinfo is None or current_time.utcoffset() is None:
         raise ValueError("now must be timezone-aware")
 
-    entries = [entry for entry in load_history(Path(history_path)) if entry.video_id]
+    entries = [entry for entry in load_history(Path(history_path)) if entry.video_id][-limit:]
     if not entries:
-        return [], _latest_complete_analytics_date(current)
+        return [], current_time.astimezone(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
 
-    entries = entries[-limit:]
-    video_ids = [str(entry.video_id) for entry in entries]
-    statistics_by_video = fetch_video_statistics(youtube, video_ids)
+    ids = [str(entry.video_id) for entry in entries]
+    current = fetch_video_statistics(youtube, ids)
+    published = [_published_at(entry, current.get(str(entry.video_id), {})) for entry in entries]
+    published_dates = [value.date() for value in published if value is not None]
+    end_date = current_time.astimezone(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
 
-    published_dates = [
-        _published_at(entry, statistics_by_video.get(str(entry.video_id), {}))
-        for entry in entries
-    ]
-    published_dates = [value for value in published_dates if value is not None]
-    end_date = _latest_complete_analytics_date(current)
-
-    if published_dates and min(published_dates).date() <= end_date:
-        start_date = max(
-            end_date - timedelta(days=days - 1),
-            min(value.date() for value in published_dates),
-        )
-        analytics_by_video = fetch_video_metrics(
+    analytics: dict[str, dict[str, float]] = {}
+    if published_dates and min(published_dates) <= end_date:
+        start_date = max(end_date - timedelta(days=days - 1), min(published_dates))
+        analytics = fetch_video_metrics(
             youtube_analytics,
-            video_ids,
+            ids,
             start_date=start_date,
             end_date=end_date,
         )
-    else:
-        analytics_by_video = {}
 
-    snapshot: list[dict[str, Any]] = []
-    for entry in entries:
+    result = []
+    for entry, publication in zip(entries, published):
         video_id = str(entry.video_id)
-        statistics = statistics_by_video.get(video_id, {})
-        metrics = analytics_by_video.get(video_id, {})
-        published = _published_at(entry, statistics)
+        stats = current.get(video_id, {})
+        metrics = analytics.get(video_id, {})
         age_hours = (
-            max(0.0, (current - published).total_seconds() / 3600)
-            if published
+            max(0.0, (current_time - publication).total_seconds() / 3600)
+            if publication
             else None
         )
-        views = statistics.get("views")
-
-        snapshot.append(
+        views = stats.get("views")
+        result.append(
             {
                 "content_format": entry.content_format,
-                "title": statistics.get("title") or entry.title,
+                "title": entry.title,
                 "video_id": video_id,
-                "published_at": published,
+                "published_at": publication,
                 "age_hours": age_hours,
                 "views": views,
-                "views_per_hour": (
-                    views / age_hours
-                    if views is not None and age_hours is not None and age_hours >= 1
-                    else None
-                ),
+                "views_per_hour": views / age_hours if views is not None and age_hours and age_hours >= 1 else None,
                 "engaged_views": metrics.get("engagedViews"),
-                "estimated_minutes_watched": metrics.get("estimatedMinutesWatched"),
+                "watch_minutes": metrics.get("estimatedMinutesWatched"),
                 "average_view_duration": metrics.get("averageViewDuration"),
                 "average_view_percentage": metrics.get("averageViewPercentage"),
                 "subscribers_gained": metrics.get("subscribersGained"),
-                "likes": statistics.get("likes"),
-                "comments": statistics.get("comments"),
-                "privacy_status": statistics.get("privacyStatus"),
+                "likes": stats.get("likes"),
+                "comments": stats.get("comments"),
             }
         )
-
-    snapshot.sort(
-        key=lambda item: item["published_at"]
-        or datetime.min.replace(tzinfo=timezone.utc),
+    result.sort(
+        key=lambda item: item["published_at"] or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,
     )
-    return snapshot[:limit], end_date
+    return result, end_date
 
 
-def print_snapshot(
-    *,
-    history_path: str | Path = "data/channel_history.json",
-    limit: int = 10,
-    days: int = 30,
-) -> None:
+def _snapshot_value(value: float | int | None) -> str:
+    return "—" if value is None else f"{value:,.0f}"
+
+
+def _snapshot_percent(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1f}%"
+
+
+def _snapshot_duration(value: float | None) -> str:
+    if value is None:
+        return "—"
+    seconds = max(0, int(round(value)))
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes}:{seconds:02d}"
+
+
+def print_snapshot(*, history_path: str | Path = "data/channel_history.json", limit: int = 10, days: int = 30) -> None:
     entries = load_history(Path(history_path))
     if not any(entry.video_id for entry in entries):
         print(f"No YouTube video IDs found in {history_path}.")
         return
 
-    youtube = get_youtube_client()
-    youtube_analytics = get_youtube_analytics_client()
-    snapshot, analytics_through = _snapshot_entries(
+    snapshot, analytics_through = _snapshot(
         history_path,
         limit=limit,
         days=days,
-        youtube=youtube,
-        youtube_analytics=youtube_analytics,
+        youtube=get_youtube_client(),
+        youtube_analytics=get_youtube_analytics_client(),
     )
-
-    now = datetime.now(timezone.utc)
     print("Education Factory — YouTube analytics snapshot")
-    print(f"Run time: {now.astimezone().isoformat(timespec='minutes')}")
     print(f"Analytics requested through: {analytics_through.isoformat()}")
-    print("Current counters: YouTube Data API views/likes/comments")
-    print("Analytics: engaged views/watch time/average view metrics/subscribers gained")
+    print("Current counters: views/likes/comments | Analytics: engaged views/watch time/average view metrics/subscribers")
     print()
 
-    for content_format in ("long_form", "shorts"):
+    for content_format, label in (("long_form", "Long-form"), ("shorts", "Shorts")):
         videos = [item for item in snapshot if item["content_format"] == content_format]
-        label = "Long-form" if content_format == "long_form" else "Shorts"
         print(label)
         if not videos:
             print("  No videos found.")
             print()
             continue
-
         for item in videos:
-            published = item["published_at"]
-            published_label = (
-                published.isoformat(timespec="minutes") if published else "unknown"
-            )
-            age_label = (
-                _format_age(item["age_hours"])
-                if item["age_hours"] is not None
-                else "unknown"
-            )
-            views_per_hour = (
-                f"{item['views_per_hour']:.1f}"
-                if item["views_per_hour"] is not None
-                else "—"
-            )
+            published = item["published_at"].isoformat(timespec="minutes") if item["published_at"] else "unknown"
+            age = f"{item['age_hours']:.1f}h" if item["age_hours"] is not None else "unknown"
+            rate = f"{item['views_per_hour']:.1f}" if item["views_per_hour"] is not None else "—"
             print(f"  {item['title']}")
-            print(
-                f"    Published: {published_label} UTC | Age: {age_label} | "
-                f"Status: {item['privacy_status'] or 'unknown'}"
-            )
-            print(
-                f"    Views: {_format_number(item['views'])} | "
-                f"Views/hour: {views_per_hour} | "
-                f"Engaged views: {_format_number(item['engaged_views'])}"
-            )
-            print(
-                f"    Watch time: {_format_number(item['estimated_minutes_watched'])} min | "
-                f"Avg view: {_format_duration(item['average_view_duration'])} | "
-                f"Avg % viewed: {_format_percent(item['average_view_percentage'])}"
-            )
-            print(
-                f"    Subscribers gained: {_format_number(item['subscribers_gained'])} | "
-                f"Likes: {_format_number(item['likes'])} | "
-                f"Comments: {_format_number(item['comments'])}"
-            )
+            print(f"    Published: {published} UTC | Age: {age} | Views: {_snapshot_value(item['views'])} | Views/hour: {rate}")
+            print(f"    Engaged views: {_snapshot_value(item['engaged_views'])} | Watch: {_snapshot_value(item['watch_minutes'])} min | Avg view: {_snapshot_duration(item['average_view_duration'])} | Avg %: {_snapshot_percent(item['average_view_percentage'])}")
+            print(f"    Subscribers gained: {_snapshot_value(item['subscribers_gained'])} | Likes: {_snapshot_value(item['likes'])} | Comments: {_snapshot_value(item['comments'])}")
             print(f"    Video ID: {item['video_id']}")
         print()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Print a read-only snapshot of recent YouTube performance."
-    )
+    parser = argparse.ArgumentParser(description="Print a read-only snapshot of recent YouTube performance.")
     parser.add_argument("--history-path", default="data/channel_history.json")
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--days", type=int, default=30)
     args = parser.parse_args()
-    print_snapshot(
-        history_path=args.history_path,
-        limit=args.limit,
-        days=args.days,
-    )
+    print_snapshot(history_path=args.history_path, limit=args.limit, days=args.days)
 
 
 if __name__ == "__main__":
