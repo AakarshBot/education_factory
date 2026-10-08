@@ -139,7 +139,7 @@ Rules:
 - Create original questions, not copied previous-year questions.
 - Every question must have exactly one defensible correct answer.
 - Every question must be fully self-contained in text. Never require an unseen figure, diagram, chart, image, table, map, or visual prompt.
-- Do not refer to \`given figure\`, \`shown below\`, \`in the diagram\`, \`from the image\`, or any other missing visual. Describe all required information directly in the question.
+- Do not refer to `given figure`, `shown below`, `in the diagram`, `from the image`, or any other missing visual. Describe all required information directly in the question.
 - Every question must use exactly four unique choices.
 - Set correct_choice_index to the zero-based index (0-3) of the correct choice.
 - Keep the requested exam, subject, topic, and difficulty faithful.
@@ -147,7 +147,7 @@ Rules:
 - A shortcut may be null when no useful shortcut exists.
 - source_type must be "original" and source_reference must be null.
 - For Maths, math_expression is REQUIRED and must evaluate exactly to the choice at correct_choice_index.
-- For Maths, all four choices must be numeric values only, with optional currency/percent/fraction notation such as \`₹1,700\`, \`15%\`, or \`3/4\`. Never append units, labels, or words to a Maths choice.
+- For Maths, all four choices must be numeric values only, with optional currency/percent/fraction notation such as `₹1,700`, `15%`, or `3/4`. Never append units, labels, or words to a Maths choice.
 - For Maths, use only numbers, parentheses, +, -, *, /, and ** in math_expression. Do not use words, functions, factorials, percent signs, commas, ×, ÷, or ^; plain ASCII arithmetic is preferred.
 - For Maths, choose values with exact answers that can be represented by one of the four choices; avoid rounding and repeating-decimal ambiguity.
 - For non-Maths questions, math_expression must be null.
