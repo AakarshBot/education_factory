@@ -41,11 +41,25 @@ def _sample_question() -> Question:
 
 def _lessons() -> dict[str, Lesson]:
     question = _sample_question()
+    percent = Question(
+        subject="Maths",
+        exam="SSC",
+        topic="Percentages",
+        difficulty="medium",
+        question="25% of 240 is what?",
+        choices=("60", "70", "80", "90"),
+        correct_answer="60",
+        explanation="25% is one fourth, so one fourth of 240 is 60.",
+        shortcut="25% means divide by four.",
+        source_type="original",
+        source_reference=None,
+    )
     pyq = Question(
         **{**question.to_dict(), "source_type": "pyq", "source_reference": "Banking exam — sample PYQ"}
     )
     return {
         "Practice": assemble_lesson((question,), lesson_type="practice"),
+        "Percentages visual": assemble_lesson((percent,), lesson_type="practice"),
         "Timed test": assemble_lesson((question,), lesson_type="timed_test"),
         "Concept + practice": assemble_lesson(
             (question,),

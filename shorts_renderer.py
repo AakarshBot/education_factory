@@ -27,6 +27,7 @@ from visual_primitives import (
     draw_question_card,
     draw_score_result,
     draw_timer,
+    draw_topic_visual,
 )
 
 SHORT_SIZE = (1080, 1920)
@@ -63,12 +64,13 @@ def _portrait_scene(lesson: Lesson, segment_index: int) -> Image.Image:
         draw_question_card(
             image,
             question.question,
-            (60, 120, width - 60, 700),
+            (60, 120, width - 60, 610),
             question_number=segment.question_index + 1,
             total_questions=total,
         )
-        draw_choices(image, question.choices, (60, 760, width - 60, 1550))
-        draw_progress(image, segment.question_index + 1, total, (80, 1660, 820, 1692))
+        draw_topic_visual(image, question.topic, question, (120, 660, width - 120, 1010))
+        draw_choices(image, question.choices, (60, 1050, width - 60, 1660))
+        draw_progress(image, segment.question_index + 1, total, (80, 1765, 820, 1797))
         return image
 
     if segment.kind == "timer":

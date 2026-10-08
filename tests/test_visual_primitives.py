@@ -12,6 +12,7 @@ def test_primitives_draw():
     visual_primitives.draw_flow_diagram(image, (("पढ़ो",(950,500,1200,620)),("हल करो",(1300,500,1550,620))), ((0,1),))
     visual_primitives.draw_progress(image, 7, 20, (100,1040,1600,1060))
     visual_primitives.draw_score_result(image, 17, 20, (1250,820,1800,1020))
+    visual_primitives.draw_topic_visual(image, "syllogism", "All pens are books.", (1200,100,1800,400))
     assert len(set(image.getdata())) > 5
     assert visual_primitives.BACKGROUND != visual_primitives.SURFACE
 

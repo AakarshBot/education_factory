@@ -5,21 +5,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 DEFAULT_SIZE = (1920, 1080)
 
-BACKGROUND = (15, 20, 29)
-SURFACE = (24, 31, 43)
-SURFACE_2 = (31, 40, 54)
-INK = (244, 247, 250)
-MUTED = (154, 166, 182)
-ACCENT = (74, 222, 160)
-INFO = (103, 142, 255)
-SUCCESS = (74, 222, 160)
-DANGER = (248, 113, 113)
-BORDER = (54, 66, 82)
-HIGHLIGHT = (43, 61, 77)
-SUCCESS_SURFACE = (22, 56, 46)
-DANGER_SURFACE = (58, 35, 40)
-GRID = (21, 27, 38)
-SHADOW = (9, 13, 20)
+BACKGROUND = (247, 245, 240)
+SURFACE = (255, 253, 248)
+SURFACE_2 = (241, 239, 232)
+INK = (36, 42, 43)
+MUTED = (112, 118, 116)
+ACCENT = (46, 140, 104)
+INFO = (76, 115, 116)
+SUCCESS = (46, 140, 104)
+DANGER = (190, 84, 84)
+BORDER = (211, 207, 198)
+HIGHLIGHT = (229, 239, 231)
+SUCCESS_SURFACE = (229, 241, 233)
+DANGER_SURFACE = (248, 233, 233)
+GRID = (235, 232, 224)
+SHADOW = (215, 211, 202)
 
 DEV = "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf" if os.name != "nt" else "C:/Windows/Fonts/NirmalaUI.ttf"
 DEV_B = "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if os.name != "nt" else "C:/Windows/Fonts/NirmalaUI-Bold.ttf"
@@ -320,3 +320,118 @@ def draw_score_result(image, score, total, box):
         font=pct_font,
         fill=SUCCESS if pct >= 50 else DANGER,
     )
+
+
+def _topic_key(topic):
+    return str(topic or "").lower().replace("-", " ").replace("_", " ")
+
+
+def _visual_panel(d, box, title):
+    _card(d, box, outline=BORDER, width=1, radius=24, fill=SURFACE)
+    x1, y1, x2, y2 = box
+    d.text((x1 + 28, y1 + 22), title, font=_font(20, True), fill=MUTED)
+    return x1 + 28, y1 + 66, x2 - 28, y2 - 24
+
+
+def draw_topic_visual(image, topic, question=None, box=(1200, 100, 1800, 500)):
+    d = ImageDraw.Draw(image)
+    x1, y1, x2, y2 = _visual_panel(d, box, "LEARNING VISUAL")
+    key = _topic_key(topic)
+    w, h = x2 - x1, y2 - y1
+
+    if any(token in key for token in ("syllog", "logic", "conclusion")):
+        r = min(w, h) // 5
+        cy = y1 + h // 2 + 6
+        centers = (x1 + w // 3, x1 + w // 2, x1 + 2 * w // 3)
+        labels = ("A", "B", "C")
+        for cx, label in zip(centers, labels):
+            d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=INFO, width=4)
+            bounds = d.textbbox((0, 0), label, font=_font(28, True))
+            d.text((cx - (bounds[2] - bounds[0]) / 2, cy - 18), label, font=_font(28, True), fill=INK)
+        return
+
+    if "percent" in key:
+        cx, cy = x1 + w * 0.32, y1 + h * 0.50
+        r = min(w, h) // 4
+        d.ellipse((cx-r, cy-r, cx+r, cy+r), fill=HIGHLIGHT, outline=BORDER, width=2)
+        d.pieslice((cx-r, cy-r, cx+r, cy+r), -90, 0, fill=ACCENT)
+        label = "25%"
+        bounds = d.textbbox((0, 0), label, font=_font(34, True))
+        d.text((cx-(bounds[2]-bounds[0])/2, cy-(bounds[3]-bounds[1])/2), label, font=_font(34, True), fill=INK)
+        bx1, by = x1 + w * 0.58, y1 + h * 0.38
+        d.rounded_rectangle((bx1, by, x2 - 6, by + 30), 15, fill=HIGHLIGHT)
+        d.rounded_rectangle((bx1, by, bx1 + (x2 - bx1 - 6) // 4, by + 30), 15, fill=ACCENT)
+        d.text((bx1, by + 48), "1 / 4", font=_font(27, True), fill=INFO)
+        return
+
+    if any(token in key for token in ("ratio", "proportion")):
+        by = y1 + h * 0.32
+        for i, (label, units, fill) in enumerate((("A", 2, INFO), ("B", 3, ACCENT))):
+            yy = int(by + i * h * 0.28)
+            d.text((x1, yy - 2), label, font=_font(24, True), fill=INK)
+            for unit in range(units):
+                left = x1 + 42 + unit * (w - 58) / 3
+                d.rounded_rectangle((left, yy, left + (w - 74) / 4, yy + 42), 12, fill=fill)
+        return
+
+    if any(token in key for token in ("average", "mean", "median")):
+        base_y = y1 + h * 0.67
+        left, right = x1 + 24, x2 - 24
+        d.line((left, base_y, right, base_y), fill=BORDER, width=4)
+        points = (0.12, 0.28, 0.54, 0.78, 0.90)
+        values = ("12", "16", "20", "24", "28")
+        for p, value in zip(points, values):
+            px = left + int((right-left)*p)
+            d.ellipse((px-10, base_y-10, px+10, base_y+10), fill=INFO)
+            d.text((px-18, base_y+18), value, font=_font(19, False), fill=MUTED)
+        mean_x = left + int((right-left)*0.54)
+        d.line((mean_x, y1+22, mean_x, base_y-18), fill=ACCENT, width=5)
+        d.text((mean_x-38, y1+2), "MEAN", font=_font(19, True), fill=ACCENT)
+        return
+
+    if any(token in key for token in ("direction", "distance", "coordinate")):
+        cx, cy = x1 + w // 2, y1 + h // 2 + 12
+        d.line((cx, y1+26, cx, y2-20), fill=BORDER, width=3)
+        d.line((x1+22, cy, x2-22, cy), fill=BORDER, width=3)
+        d.polygon((cx, y1+8, cx-10, y1+34, cx+10, y1+34), fill=ACCENT)
+        d.text((cx-10, y1-2), "N", font=_font(22, True), fill=ACCENT)
+        d.text((x2-24, cy-14), "E", font=_font(22, True), fill=INFO)
+        d.text((x1+8, cy-14), "W", font=_font(22, True), fill=INFO)
+        d.text((cx-10, y2-20), "S", font=_font(22, True), fill=INFO)
+        return
+
+    if any(token in key for token in ("probability", "chance")):
+        mid = (x1 + w // 2, y1 + h // 2 + 20)
+        left_box = (x1 + 70, y1 + 70, x1 + 180, y1 + 132)
+        right_box = (x2 - 180, y1 + 70, x2 - 70, y1 + 132)
+        d.line((mid[0], mid[1], left_box[2], left_box[1] + 31), fill=BORDER, width=4)
+        d.line((mid[0], mid[1], right_box[0], right_box[1] + 31), fill=BORDER, width=4)
+        for box2, label in ((left_box, "YES"), (right_box, "NO")):
+            d.rounded_rectangle(box2, 16, fill=HIGHLIGHT, outline=BORDER, width=2)
+            d.text((box2[0]+20, box2[1]+16), label, font=_font(22, True), fill=INK)
+        d.ellipse((mid[0]-34, mid[1]-34, mid[0]+34, mid[1]+34), fill=ACCENT)
+        d.text((mid[0]-12, mid[1]-14), "?", font=_font(26, True), fill=INK)
+        return
+
+    if any(token in key for token in ("grammar", "english", "tenses", "sentence")):
+        y = y1 + h * 0.48
+        words = ("SUBJECT", "VERB", "OBJECT")
+        widths = (0.28, 0.22, 0.30)
+        cursor = x1
+        fills = (HIGHLIGHT, (231, 238, 236), HIGHLIGHT)
+        for label, frac, fill in zip(words, widths, fills):
+            bw = int(w * frac)
+            d.rounded_rectangle((cursor, y, cursor+bw, y+70), 16, fill=fill, outline=BORDER, width=2)
+            d.text((cursor+18, y+20), label, font=_font(20, True), fill=INK)
+            cursor += bw + 12
+        return
+
+    centers = (x1 + w // 6, x1 + w // 2, x1 + 5 * w // 6)
+    labels = ("GIVEN", "RULE", "CHECK")
+    for cx, label in zip(centers, labels):
+        box2 = (cx - 72, y1 + h // 2 - 34, cx + 72, y1 + h // 2 + 34)
+        d.rounded_rectangle(box2, 18, fill=HIGHLIGHT, outline=BORDER, width=2)
+        bounds = d.textbbox((0, 0), label, font=_font(20, True))
+        d.text((cx-(bounds[2]-bounds[0])/2, box2[1]+19), label, font=_font(20, True), fill=INK)
+    d.line((centers[0]+72, y1+h//2, centers[1]-72, y1+h//2), fill=ACCENT, width=4)
+    d.line((centers[1]+72, y1+h//2, centers[2]-72, y1+h//2), fill=ACCENT, width=4)

@@ -89,7 +89,7 @@ The finished videos should feel like a credible digital exam/practice product, n
 
 Core visual language:
 - premium digital examination-product aesthetic
-- deep navy examination canvas with a subtle grid and restrained green/blue signals
+- soft warm exam canvas with a subtle grid and restrained green/teal signals
 - strong information hierarchy rather than oversized generic cards
 - readable question typography with compact question/progress rails
 - exam-style answer rows with explicit correct/incorrect states
@@ -112,10 +112,15 @@ Avoid:
 
 The design system may be consistent, but the instructional composition and visual hierarchy must vary with the content. Visual variation is not a substitute for substantive educational variation.
 
-Current visual implementation: the v2 product palette and scene background treatment are now active in both long-form and Shorts canvases. The next visual batch should refine lesson-specific compositions rather than create a parallel renderer.
+Current visual implementation: the v3 soft product palette is active in both long-form and Shorts canvases. Question states now include a dedicated instructional visual panel driven directly from subject/topic keywords, using deterministic diagrams rather than decorative filler. The next visual batch should refine these instructional visuals based on the rendered preview, not create a parallel renderer.
 
 Developer visual QA tool — 2026-10-08
 Added `visual_preview.py`, a zero-dependency local preview utility that calls the real long-form and Shorts renderers with representative lesson types and state scenes. It produces `output/visual_preview/visual_preview_long.png` and `visual_preview_short.png`. This is development-only and is not part of the production pipeline.
+
+Visual correction — 2026-10-08
+The first preview exposed two concrete problems: the dark blue background was visually wrong for the channel, and the preview contained layout cards without a genuine instructional visual layer. The palette was changed to a soft warm ivory/sage system while retaining the product theme. A deterministic `draw_topic_visual()` primitive was added and wired into long-form and Shorts question scenes. It renders instructional diagrams for syllogism/logic, percentages, ratio/proportion, averages, directions, probability, English grammar, plus a useful given→rule→check fallback. The preview now includes both a reasoning visual and a percentage visual so visual QA covers actual instructional imagery rather than only typography/cards.
+
+The visual layer is deliberately deterministic and dependency-free; it is part of the production renderer, not decorative preview-only scaffolding.
 ---
 
 # 2. MONETIZATION STRATEGY

@@ -20,6 +20,7 @@ from visual_primitives import (
     draw_question_card,
     draw_score_result,
     draw_timer,
+    draw_topic_visual,
 )
 
 def _canvas(size):
@@ -49,25 +50,30 @@ def _question_scene(lesson: Lesson, segment: LessonSegment, size):
     index = segment.question_index + 1
 
     if lesson.lesson_type == "practice":
-        draw_question_card(image, q.question, (110, 90, size[0] - 110, 500), question_number=index, total_questions=total)
-        draw_choices(image, q.choices, (110, 545, size[0] - 110, 980))
+        draw_question_card(image, q.question, (110, 90, 1160, 470), question_number=index, total_questions=total)
+        draw_topic_visual(image, q.topic, q.question, (1200, 90, size[0] - 110, 470))
+        draw_choices(image, q.choices, (110, 520, size[0] - 110, 990))
     elif lesson.lesson_type == "timed_test":
         draw_progress(image, index - 1, total, (110, 48, size[0] - 270, 70))
-        draw_question_card(image, q.question, (110, 110, 1450, 515), question_number=index, total_questions=total)
-        draw_timer(image, 15, (1660, 190), radius=92)
+        draw_question_card(image, q.question, (110, 110, 1120, 515), question_number=index, total_questions=total)
+        draw_topic_visual(image, q.topic, q.question, (1160, 110, 1540, 515))
+        draw_timer(image, 15, (1700, 210), radius=92)
         draw_choices(image, q.choices, (110, 555, size[0] - 110, 1000))
     elif lesson.lesson_type == "concept_practice":
-        draw_question_card(image, q.question, (110, 310, size[0] - 110, 690), question_number=index, total_questions=total)
+        draw_question_card(image, q.question, (110, 310, 1110, 690), question_number=index, total_questions=total)
+        draw_topic_visual(image, q.topic, q.question, (1160, 310, size[0] - 110, 690))
         draw_choices(image, q.choices, (110, 720, size[0] - 110, 1010))
     elif lesson.lesson_type == "pyq_analysis":
         _draw_label(draw, "PREVIOUS-YEAR QUESTION", (110, 55), 30, ACCENT)
         _draw_label(draw, q.source_reference or "Source", (110, 92), 24, MUTED)
-        draw_question_card(image, q.question, (110, 145, 1060, 690), question_number=index, total_questions=total)
-        draw_choices(image, q.choices, (1110, 145, size[0] - 110, 690))
+        draw_question_card(image, q.question, (110, 145, 980, 690), question_number=index, total_questions=total)
+        draw_topic_visual(image, q.topic, q.question, (1010, 145, 1380, 690))
+        draw_choices(image, q.choices, (1410, 145, size[0] - 110, 690))
         draw_progress(image, index, total, (110, 780, 1600, 815))
     else:
         draw_progress(image, index - 1, total, (180, 55, 1660, 82))
-        draw_question_card(image, q.question, (180, 135, size[0] - 180, 570), question_number=index, total_questions=total)
+        draw_question_card(image, q.question, (180, 135, 1180, 570), question_number=index, total_questions=total)
+        draw_topic_visual(image, q.topic, q.question, (1220, 135, 1740, 570))
         draw_choices(image, q.choices, (300, 635, size[0] - 300, 1000))
     return image
 
