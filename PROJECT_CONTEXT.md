@@ -1731,6 +1731,10 @@ The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch
 Analytics source-of-truth correction — 2026-10-09
 The read-only snapshot now enumerates the authenticated channel's own Uploads playlist before reading video statistics, rather than assuming every history ID is currently exposed by `videos.list(id=...)`. This keeps live channel discovery inside the existing YouTube Data API path, avoids `search.list`, and reports history IDs that are missing from the channel upload list. Official YouTube documentation identifies the Uploads playlist as the channel's uploaded-video source. citeturn723241search2turn723241search10
 
+
+Renderer regression fix — 2026-10-09
+The second production run reached long-form rendering but failed `visual_qa.check_image()` because `_canvas_base()` drew intentional grid/accent pixels directly on the image edges. The base canvas now keeps those decorative lines 10px inside the frame, preserving the visual design while satisfying the existing 8px unsafe-edge QA rule. A regression test covers the canvas base against `check_image()`. A local isolated Pillow harness verified the corrected edge bounding box; full repository pytest could not be executed from this environment because GitHub/network access is unavailable.
+
 ## Channel-state correction — 2026-10-09
 
 Authoritative current channel state:

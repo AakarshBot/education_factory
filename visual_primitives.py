@@ -134,7 +134,7 @@ def _lines(d, xy, text, size, bold, width, spacing=12, fill=INK, *, max_height=N
 def _canvas_base(image):
     d = ImageDraw.Draw(image)
     width, height = image.size
-    inset = 8
+    inset = 10
     for x in range(inset, width - inset, 96):
         d.line((x, inset, x, height - inset), fill=GRID, width=1)
     for y in range(inset, height - inset, 96):
