@@ -24,6 +24,7 @@ _RESPONSE_SCHEMA = {
 
 _NUMERIC_TOKEN_PATTERN = re.compile(r"\d+(?:[,.]\d+)*(?:/\d+)?")
 _ANSWER_PATTERN = re.compile(r"\bcorrect answer is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
+_PROTECTED_TOKEN_PATTERN = re.compile(r"\[\[(?:NUMBER|ANSWER|OPTIONS)_[A-Z]+\]\]")
 
 
 def _numeric_tokens(text: str) -> list[str]:
@@ -33,6 +34,74 @@ def _numeric_tokens(text: str) -> list[str]:
 def _answer_value(text: str) -> str | None:
     match = _ANSWER_PATTERN.search(text)
     return match.group(1).strip() if match else None
+
+
+def _token_suffix(index: int) -> str:
+    value = index + 1
+    suffix = ""
+    while value:
+        value, remainder = divmod(value - 1, 26)
+        suffix = chr(65 + remainder) + suffix
+    return suffix
+
+
+def _mask_invariants(segment: str) -> tuple[str, list[tuple[str, str]]]:
+    spans = []
+
+    answer = _ANSWER_PATTERN.search(segment)
+    if answer:
+        spans.append((answer.start(1), answer.end(1), "ANSWER", answer.group(1).strip()))
+
+    for match in re.finditer(re.escape("Options:"), segment):
+        if not any(start <= match.start() < end for start, end, _, _ in spans):
+            spans.append((match.start(), match.end(), "OPTIONS", match.group(0)))
+
+    for match in _NUMERIC_TOKEN_PATTERN.finditer(segment):
+        if not any(start <= match.start() < end for start, end, _, _ in spans):
+            spans.append((match.start(), match.end(), "NUMBER", match.group(0)))
+
+    spans.sort(key=lambda item: item[0])
+
+    masked_parts = []
+    replacements = []
+    cursor = 0
+    for index, (start, end, kind, original) in enumerate(spans):
+        masked_parts.append(segment[cursor:start])
+        placeholder = f"[[{kind}_{_token_suffix(index)}]]"
+        masked_parts.append(placeholder)
+        replacements.append((placeholder, original))
+        cursor = end
+    masked_parts.append(segment[cursor:])
+    return "".join(masked_parts), replacements
+
+
+def _mask_segments(segments: list[str]) -> tuple[list[str], list[list[tuple[str, str]]]]:
+    masked_segments = []
+    replacements = []
+    for segment in segments:
+        masked, segment_replacements = _mask_invariants(segment)
+        masked_segments.append(masked)
+        replacements.append(segment_replacements)
+    return masked_segments, replacements
+
+
+def _restore_invariants(
+    translated: list[str],
+    replacements: list[list[tuple[str, str]]],
+) -> list[str]:
+    restored = []
+    for index, (segment, segment_replacements) in enumerate(zip(translated, replacements)):
+        expected_tokens = [placeholder for placeholder, _ in segment_replacements]
+        found_tokens = _PROTECTED_TOKEN_PATTERN.findall(segment)
+        if found_tokens != expected_tokens:
+            raise RuntimeError(
+                f"English narration changed protected content in segment {index + 1}"
+            )
+        value = segment
+        for placeholder, original in segment_replacements:
+            value = value.replace(placeholder, original)
+        restored.append(value)
+    return restored
 
 
 def _validate_content_fidelity(source: list[str], translated: list[str]) -> None:
@@ -71,6 +140,8 @@ def generate_english_narration_segments(
 
     validate_config(require_gemini=True)
 
+    masked_segments, replacements = _mask_segments(segments)
+
     prompt = f"""
 Translate the following narration segments from {source_language} into natural, clear English for an Indian competitive-exam education video.
 
@@ -78,6 +149,8 @@ Rules:
 - Return exactly {len(segments)} segments in exactly the same order.
 - Preserve every question, option, answer, mathematical value, fact, and instruction.
 - Do not add, remove, combine, split, or reinterpret information.
+- Keep every protected token such as [[NUMBER_A]], [[ANSWER_B]], or [[OPTIONS_C]] exactly unchanged, including brackets, spelling, and order.
+- Never spell out, translate, delete, duplicate, or reorder a protected token.
 - Keep question numbering and option labels unchanged.
 - Translate only the language, while preserving the instructional meaning.
 - Use concise spoken English suitable for exam preparation.
@@ -85,7 +158,7 @@ Rules:
 - Return only the structured JSON object.
 
 Source narration:
-{json.dumps(segments, ensure_ascii=False)}
+{json.dumps(masked_segments, ensure_ascii=False)}
 """.strip()
 
     payload = {
@@ -152,5 +225,6 @@ Source narration:
         raise RuntimeError("English narration must contain exactly one non-empty segment per source segment")
 
     translated = [segment.strip() for segment in translated]
+    translated = _restore_invariants(translated, replacements)
     _validate_content_fidelity(segments, translated)
     return translated
