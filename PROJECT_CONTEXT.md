@@ -1733,21 +1733,20 @@ The read-only snapshot now enumerates the authenticated channel's own Uploads pl
 
 ## Live analytics decision — 2026-10-09
 
-The first real channel analytics snapshot has now been collected locally.
+The first real public-channel analytics sample contains exactly:
+- **1 public long-form:** Banking Reasoning — Syllogism Practice with 10 Questions — 3 views at roughly 19 hours, 0 likes/comments.
+- **1 public Short:** Syllogism Practice Questions for Banking Exams — 28 views at roughly 5 hours, 0 likes/comments.
+- YouTube Analytics watch/retention/subscriber metrics are not yet available for these 2026-10-08 uploads because the reported Analytics window currently ends on 2026-10-07. Blank Analytics fields must not be interpreted as zero performance.
 
-Observed current Data API counters:
-- Banking Reasoning — Syllogism Practice long-form: **3 views at ~18.7 hours** after publication; 0 likes/comments.
-- Syllogism Practice Short: **28 views at ~4.7 hours** after publication; 0 likes/comments.
-- The deeper YouTube Analytics metrics are blank because the report is currently only available through **2026-10-07**; this is expected for uploads published on 2026-10-08 and must not be treated as zero retention/watch-time performance.
-- The newer SSC Counting of Figures long-form and derived Short have history timestamps in the past, but the authenticated YouTube Data API returned **no video resource** for their IDs. Their displayed publication timestamps therefore come from factory history and are **not confirmation that YouTube currently exposes those videos**.
+The factory's next successful production job also created an SSC Counting of Figures long-form and derived Short in local channel history, but the user confirms these have **not been published**. They are not part of the public launch sample and should not drive editorial conclusions.
 
 Production decision:
-- **Do not run `python factory.py --max-jobs 1` yet.**
-- Do not change subject mix, lesson format, topic selection, or adaptation weights from the first two public assets. The sample is far below the existing 3-video comparison threshold and the current adaptation logic intentionally remains neutral.
-- Keep one-job-at-a-time production as the default after the platform-state check.
-- Before another production run, manually confirm in YouTube Studio that the two SSC assets (`NPkGnNH8y3Q` and `xHY_pW9e2MM`) are actually present and have the expected visibility/publication state. If they are present/public, rerun the read-only analytics command; if they are absent or still private/scheduled, resolve that platform state before producing anything else.
+- **Do not run another factory job yet.** The next SSC pair already exists from the previous production run; creating another job would stack additional unobserved content.
+- Do not change subject mix, lesson format, topic selection, or editorial adaptation from the first public pair. The existing 3-measured-video minimum for comparative adaptation has not been met.
+- Keep one-job-at-a-time production as the default.
+- Reassess after the existing next pair becomes public and enough analytics data accumulates to support a meaningful comparison.
 
-Important interpretation rule: current view counters from the Data API are usable for early evidence; delayed Analytics metrics should not be interpreted until their reporting window catches up.
+No manual YouTube Studio inspection is required for this decision. The public sample and production state provided by the user are sufficient.
 
 ## Intermediate feature gate — 2026-10-08
 
