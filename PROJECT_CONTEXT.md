@@ -1670,3 +1670,19 @@ YouTube currently exposes Country/region, Keywords, and Audience under Studio ->
 Official sources checked 2026-10-08:
 https://support.google.com/youtube/answer/2976814
 https://support.google.com/youtube/answer/9527654
+
+## First public launch execution — 2026-10-08
+
+Launch execution decision:
+- The existing Banking Reasoning — Syllogism: Practice long-form is the first public channel video.
+- The derived Short is the second public launch asset and should be published later the same day, not simultaneously with the long-form.
+- Recommended launch spacing: roughly 4–6 hours between the long-form and Short. This is an experimentation choice, not a YouTube requirement.
+- The Short should be published normally as a public Short; no special warm-up activity is required.
+- The Short's YouTube Studio Related Video link should be added to the long-form only after Advanced feature access becomes available. YouTube's current help states that adding a Related Video to a Short requires Advanced feature access and that the linked video must be public or unlisted.
+- Do not create a duplicate upload, altered copy, or artificial linking workaround while Advanced features are unavailable.
+- The first public launch is now considered real production, not testing. Analytics from the long-form and Short become the initial channel learning sample.
+
+Immediate manual state:
+- Long-form: public.
+- Short: waiting for its planned later-today public release.
+- English multi-language audio: waiting for Advanced feature access; do not delay publication because of it.
