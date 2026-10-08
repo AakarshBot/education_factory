@@ -25,7 +25,7 @@ The user should not need to perform backend work for normal production. Manual a
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
 - Production should not be changed editorially from the current one-long-form + one-Short sample; the sample remains too small for adaptation.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
-- The immediate next manual action is to sync the local checkout to main and run one factory job; no editorial or analytics-driven strategy change is being made.
+- The immediate next manual action is to sync the local checkout to main and run the focused preflight pytest command before any factory job; no editorial or analytics-driven strategy change is being made.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -1860,3 +1860,22 @@ Latest implementation commits:
 - a5f90f9c779e2762520091a4d98d6293dacb374b — corrected protected localization regression test
 - 3222ac715c651d44da73e4b23470ce9e8148e681 — real media pipeline factory preflight test
 - b1466e5197fbbde9c9a382f7b51a07679e104427 — hardened localization audit/context
+
+
+## Preflight test corrections — 2026-10-09
+
+The first local focused preflight run found five failures. None indicated a new production-stage API, narration, upload, or rendering defect at the factory's production size:
+- the publish-time resume test still expected the old 2-hour Short delay; it now expects the locked 12-hour delay;
+- the structured English-localization test returned an unprotected response even though the production contract now requires protected invariant tokens;
+- the reordered-token regression test incorrectly unpacked the per-segment replacement structure;
+- the canvas-background test expected the grid color at a coordinate that is now intentionally background after the 10px edge inset; it now checks both background and an actual grid pixel;
+- the assembled-scene smoke test used 1280x720 even though the production renderer is built and QA-checked at 1920x1080; the regression test now exercises all segment kinds at the actual production size.
+
+These are test-alignment fixes only; no production behavior was weakened or changed to make the tests pass.
+
+Latest test-fix commits:
+- 84bb0b2e02eb45a3c68851083fa5d21c9c45c019
+- 4f53241f6f10e154bc82dac2e030c661ba950992
+- 5cbe197a48aa9b998864c4a12701c7e069ae0f95
+
+Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until that suite passes.
