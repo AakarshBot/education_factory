@@ -1613,3 +1613,28 @@ Factory files:
 This is a YouTube Studio-only platform operation. The factory already generates and QA-checks the English tracks and supplies English title/description localization during upload. The Data API is not used for the audio-track attachment.
 
 Official source checked 2026-10-08: https://support.google.com/youtube/answer/13338784
+
+## Channel launch decision — 2026-10-08
+
+The factory is moving from engineering/testing into actual channel launch.
+
+Decision:
+- **Publish the previously rendered long-form video and derived Short today**, after the channel storefront is completed.
+- Do not wait for Advanced features before publishing. Advanced features are useful for later operations, but they are not the prerequisite for establishing the channel with normal uploads. YouTube currently states that advanced access can be earned through channel history or eligible ID/video verification, and channel history includes channel activity such as uploads and audience engagement.
+- Do not manufacture a fake warm-up routine. The channel's warm-up is legitimate setup plus real educational publishing and normal audience activity.
+- The first published content should use the existing successful Banking Reasoning — Syllogism: Practice production pair rather than regenerate or redesign it.
+- Keep primary Hinglish audio and current metadata. The English audio tracks can be attached later when the channel has Advanced features; lack of that feature is not a reason to delay the first publication.
+- Use the first publication as a real launch/learning sample. Do not change the content merely to create artificial novelty.
+
+Launch order:
+1. Complete channel storefront: profile logo, banner, channel description, handle/name confirmation, and basic channel links/details.
+2. Verify the channel's Feature eligibility status and confirm there is no active restriction beyond Advanced features.
+3. Publish the existing long-form video.
+4. Publish the derived Short later the same day rather than simultaneously, so the two formats have separate initial testing windows.
+5. Attach the Short to the long-form manually through YouTube's available related-video control when the Studio UI exposes it.
+6. Review first-day impressions, views, CTR/engagement, audience retention, and traffic source before deciding the next production mix.
+
+The objective is not to "warm up" an algorithm with empty activity. The objective is to make the channel look and behave like a real educational product from its first day while collecting genuine audience signals.
+
+Official feature source checked 2026-10-08:
+https://support.google.com/youtube/answer/9891124
