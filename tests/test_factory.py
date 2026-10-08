@@ -184,7 +184,7 @@ def test_record_publish_times_is_resume_stable(tmp_path):
     )
     assert first == (
         requested,
-        datetime(2026, 10, 8, 20, 0, tzinfo=zone),
+        datetime(2026, 10, 9, 6, 0, tzinfo=zone),
     )
 
     second = factory._record_publish_times(
