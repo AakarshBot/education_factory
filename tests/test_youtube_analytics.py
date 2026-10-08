@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -41,6 +41,7 @@ def response(rows):
         "columnHeaders": [
             {"name": "video"},
             {"name": "views"},
+            {"name": "engagedViews"},
             {"name": "estimatedMinutesWatched"},
             {"name": "averageViewDuration"},
             {"name": "averageViewPercentage"},
@@ -71,8 +72,8 @@ def test_fetch_video_metrics_builds_single_report_query():
     analytics = FakeAnalytics(
         response(
             [
-                ["video1", "120", "40.5", "95", "70.5", "12", "3", "4"],
-                ["video2", "30", "10", "80", "60", "4", "1", "1"],
+                ["video1", "120", "110", "40.5", "95", "70.5", "12", "3", "4"],
+                ["video2", "30", "25", "10", "80", "60", "4", "1", "1"],
             ]
         )
     )
@@ -85,6 +86,7 @@ def test_fetch_video_metrics_builds_single_report_query():
     )
 
     assert result["video1"]["views"] == 120
+    assert result["video1"]["engagedViews"] == 110
     assert result["video1"]["estimatedMinutesWatched"] == 40.5
     assert result["video1"]["averageViewPercentage"] == 70.5
     assert analytics.reports_api.calls[0] == {
@@ -99,7 +101,7 @@ def test_fetch_video_metrics_builds_single_report_query():
 
 def test_fetch_video_metrics_batches_over_500_ids():
     analytics = FakeAnalytics(
-        response([["video1", "1", "1", "1", "1", "1", "1", "1"]])
+        response([["video1", "1", "1", "1", "1", "1", "1", "1", "1"]])
     )
     ids = [f"video{i}" for i in range(501)]
     result = youtube_analytics.fetch_video_metrics(
@@ -116,7 +118,7 @@ def test_ingest_metrics_updates_matching_history(tmp_path):
     history = tmp_path / "history.json"
     save_history([entry("video1", "Percentages"), entry("video2", "Ratios")], history)
     analytics = FakeAnalytics(
-        response([["video1", "120", "40.5", "95", "70.5", "12", "3", "4"]])
+        response([["video1", "120", "110", "40.5", "95", "70.5", "12", "3", "4"]])
     )
 
     updated = youtube_analytics.ingest_metrics(
@@ -203,3 +205,147 @@ def test_fetch_video_metrics_fails_on_malformed_report():
             start_date=date(2026, 10, 1),
             end_date=date(2026, 10, 7),
         )
+
+
+
+class FakeVideosRequest:
+    def __init__(self, body=None, error=None):
+        self.body = body
+        self.error = error
+
+    def execute(self):
+        if self.error:
+            raise self.error
+        return self.body
+
+
+class FakeVideos:
+    def __init__(self, body=None, error=None):
+        self.body = body
+        self.error = error
+        self.calls = []
+
+    def list(self, **kwargs):
+        self.calls.append(kwargs)
+        return FakeVideosRequest(self.body, self.error)
+
+
+class FakeYouTube:
+    def __init__(self, body=None, error=None):
+        self.videos_api = FakeVideos(body, error)
+
+    def videos(self):
+        return self.videos_api
+
+
+def test_fetch_video_statistics_returns_current_counters():
+    youtube = FakeYouTube(
+        {
+            "items": [
+                {
+                    "id": "video1",
+                    "snippet": {
+                        "title": "Syllogism Practice",
+                        "publishedAt": "2026-10-08T18:30:00Z",
+                    },
+                    "statistics": {
+                        "viewCount": "123",
+                        "likeCount": "9",
+                        "commentCount": "2",
+                    },
+                    "status": {"privacyStatus": "public"},
+                }
+            ]
+        }
+    )
+
+    result = youtube_analytics.fetch_video_statistics(youtube, ["video1"])
+
+    assert result["video1"]["views"] == 123
+    assert result["video1"]["likes"] == 9
+    assert result["video1"]["comments"] == 2
+    assert result["video1"]["publishedAt"] == "2026-10-08T18:30:00Z"
+    assert youtube.videos_api.calls[0] == {
+        "part": "snippet,statistics,status",
+        "id": "video1",
+    }
+
+
+def test_fetch_video_statistics_rejects_api_error():
+    youtube = FakeYouTube(error=RuntimeError("network"))
+    with pytest.raises(RuntimeError, match="statistics query failed"):
+        youtube_analytics.fetch_video_statistics(youtube, ["video1"])
+
+
+def test_snapshot_combines_current_stats_and_analytics_without_writing_history(tmp_path):
+    history = tmp_path / "history.json"
+    save_history(
+        [
+            entry("video1", "Syllogism"),
+            HistoryEntry(
+                exam="SSC",
+                subject="Maths",
+                topic="Percentages",
+                lesson_type="practice",
+                title="Percentages Practice",
+                status="published",
+                created_at="2026-10-08T00:00:00Z",
+                video_id="video2",
+                published_at="2026-10-08T12:00:00Z",
+                metrics={},
+                content_format="shorts",
+            ),
+        ],
+        history,
+    )
+    youtube = FakeYouTube(
+        {
+            "items": [
+                {
+                    "id": "video1",
+                    "snippet": {
+                        "title": "Syllogism Practice",
+                        "publishedAt": "2026-10-08T00:00:00Z",
+                    },
+                    "statistics": {"viewCount": "120", "likeCount": "8", "commentCount": "1"},
+                    "status": {"privacyStatus": "public"},
+                },
+                {
+                    "id": "video2",
+                    "snippet": {
+                        "title": "Percentages Practice",
+                        "publishedAt": "2026-10-08T12:00:00Z",
+                    },
+                    "statistics": {"viewCount": "60", "likeCount": "4", "commentCount": "0"},
+                    "status": {"privacyStatus": "public"},
+                },
+            ]
+        }
+    )
+    analytics = FakeAnalytics(
+        response(
+            [
+                ["video1", "100", "90", "20", "60", "50", "8", "1", "2"],
+                ["video2", "50", "45", "10", "30", "75", "4", "0", "1"],
+            ]
+        )
+    )
+    before = history.read_text(encoding="utf-8")
+
+    snapshot, analytics_through = youtube_analytics._snapshot_entries(
+        history,
+        limit=10,
+        days=30,
+        youtube=youtube,
+        youtube_analytics=analytics,
+        now=datetime(2026, 10, 10, 0, 0, tzinfo=timezone.utc),
+    )
+
+    assert snapshot[0]["content_format"] == "shorts"
+    assert snapshot[0]["views"] == 60
+    assert snapshot[0]["engaged_views"] == 45
+    assert snapshot[0]["average_view_percentage"] == 75
+    assert snapshot[1]["views"] == 120
+    assert snapshot[1]["age_hours"] == 48
+    assert analytics_through.isoformat() == "2026-10-08"
+    assert history.read_text(encoding="utf-8") == before

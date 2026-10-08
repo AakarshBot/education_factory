@@ -14,6 +14,17 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
+### Current live state — 2026-10-09
+
+- **This is ChatGPT's channel and factory.**
+- The real YouTube channel is **Exam Session India (@examsessionindia)**.
+- The first public long-form and its derived Short are now real launch assets, with the intended **12-hour** spacing between them.
+- YouTube OAuth, the YouTube Data API, and the YouTube Analytics API are operational through the existing factory authentication path.
+- The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
+- **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
+- The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
+- Production should **not** be run blindly from this state. The next decision is made from the actual snapshot output, with the first few uploads treated as a learning sample and the existing minimum-evidence protections respected.
+- The immediate next manual action is to run the snapshot command locally and return its output; no production code should be changed based on guessed or stale numbers.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -735,7 +746,7 @@ Added `youtube_analytics.py` as the direct analytics ingestion stage.
 The analytics stage:
 - uses the supported YouTube Analytics API v2 reports endpoint through the existing Google API dependency
 - queries video-level metrics for all known video IDs using one report per batch, up to the API's documented 500-video filter limit
-- collects views, estimated minutes watched, average view duration, average view percentage, likes, comments, and subscribers gained
+- collects views, engaged views, estimated minutes watched, average view duration, average view percentage, likes, comments, and subscribers gained
 - accepts an explicit date window, with a default 30-day window ending on the previous day to avoid intentionally querying an incomplete current day
 - converts report values into numeric metrics and fails closed on malformed responses or API errors
 - writes the newest metrics back into the existing local channel-history entries rather than creating a second production ledger
@@ -743,7 +754,7 @@ The analytics stage:
 - performs no hidden retry loop
 
 OAuth correction required by the current Analytics API:
-- expanded `youtube_auth.py` to request both `youtube.upload` and `yt-analytics.readonly`
+- `youtube_auth.py` requests all three required scopes: `youtube.upload`, `youtube.readonly`, and `yt-analytics.readonly`
 - the current `reports.query` documentation requires the Analytics read scope for Analytics queries
 - installed-app OAuth does not support incremental authorization, so the final launch authorization should request all required scopes together. citeturn866611search0turn866611search5
 
@@ -766,7 +777,7 @@ YouTube Analytics supports video-level dimensions and metrics including views, e
 
 Added `tests/test_format_analysis.py` covering grouping, median handling, exclusion of scheduled/unmeasured entries, engagement/subscriber rates, lesson-type normalization, empty history, and insufficient-sample handling.
 
-The real channel has no analytics data yet, so this remains a ready-to-run analysis contract rather than a live format verdict.
+The real channel is now live; this remains a descriptive analysis contract until its existing minimum-sample rule is met.
 
 ### Step 6.3 — Subject analysis — **COMPLETE**
 Added `subject_analysis.py` as the deterministic comparison layer for the three locked launch subjects.
@@ -799,7 +810,7 @@ The analysis:
 
 Added `tests/test_topic_family_analysis.py` covering lexical clustering, plural normalization, subject separation, filtering, rate calculations, insufficient samples, and empty history.
 
-The real channel has no analytics data yet, so this remains a ready-to-run family analysis contract rather than a live list of winning topic families.
+The real channel is now live; this remains a descriptive family analysis contract until its existing minimum-sample rule is met.
 ### Step 6.5 — Automatic editorial adaptation — **COMPLETE**
 Added `editorial_adaptation.py` as the conservative decision layer over the format, subject, and topic-family analyses.
 
@@ -817,7 +828,7 @@ This deliberately makes early-channel adaptation gradual: one anomalous video ca
 
 Added `tests/test_editorial_adaptation.py` covering minimum evidence, conservative weight changes, preservation of neutral weights for non-ready groups, and adaptation bounds.
 
-The real channel has no analytics data yet, so the adaptation profile currently remains neutral until enough real published-video evidence exists.
+The adaptation profile remains neutral unless its existing minimum-evidence rule is satisfied by measured published videos.
 
 ---
 
