@@ -23,8 +23,9 @@ The user should not need to perform backend work for normal production. Manual a
 - The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
 - **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
-- Production should **not** be run blindly from this state. The next decision is made from the actual snapshot output, with the first few uploads treated as a learning sample and the existing minimum-evidence protections respected.
-- The immediate next manual action is to run the snapshot command locally and return its output; no production code should be changed based on guessed or stale numbers.
+- Production should not be changed editorially from the current one-long-form + one-Short sample; the sample remains too small for adaptation.
+- The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
+- The immediate next manual action is to sync the local checkout to main and run one factory job; no editorial or analytics-driven strategy change is being made.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -1789,14 +1790,21 @@ https://support.google.com/youtube/answer/72431
 
 ## Fresh-render regression audit — 2026-10-09
 
-The second production attempt failed at the long-form render call (`factory.py` -> `render_long_form()` -> `visual_qa.check_image()`); the traceback lines in `factory.py` are call-stack locations, not three separate failures. The actual failure was `visual content touches unsafe edge` from `visual_qa.py`.
+The second production attempt failed at the long-form render call (factory.py -> render_long_form() -> visual_qa.check_image()); the traceback lines in factory.py are call-stack locations, not three separate failures. The actual failure was visual content touching the unsafe edge from visual_qa.py.
 
-Root cause confirmed by comparing against the last successful production-render state (`558d1a90dc3b13e333467f93a6dc0c0fde0cbdab`):
-- The successful production code used the earlier plain canvas and did not have `_canvas_base()`.
-- The later visual-system rewrite added `_canvas_base()` and changed both long-form and Shorts canvases to draw a grid and top accent.
-- `_canvas_base()` initially drew those intentional decorative pixels at x=0/y=0, while the existing QA rule rejects any non-background pixel within 8px of an edge.
+Root cause confirmed by comparing against the last successful production-render state (558d1a90dc3b13e333467f93a6dc0c0fde0cbdab):
+- The successful production code used the earlier plain canvas and did not have _canvas_base().
+- The later visual-system rewrite added _canvas_base() and changed both long-form and Shorts canvases to draw a grid and top accent.
+- _canvas_base() initially drew those intentional decorative pixels at x=0/y=0, while the existing QA rule rejects any non-background pixel within 8px of an edge.
 - The first public launch did not exercise this fresh renderer because it used a previously rendered known-good asset from before the visual-system rewrite.
 
-The regression fix on `main` moves the decorative canvas lines inside the frame and adds a direct regression test against `check_image()`. No change to the educational content, orchestration, or YouTube publishing logic is required for this failure.
+The direct fix on main moves the decorative canvas lines 10px inside the frame. It keeps the existing 8px QA rule unchanged; no wrapper or compatibility layer was added.
 
-Audit decision: do not add another wrapper or weaken visual QA. The renderer should satisfy the existing safety rule directly.
+Coverage hardening then added renderer-level regression tests:
+- every assembled long-form lesson type (practice, timed_test, concept_practice, pyq_analysis, revision) now renders its production scenes at 1920x1080 and passes visual_qa.check_image();
+- the production Shorts scene path is also exercised through visual_qa.check_image() before the real MP4 test;
+- the isolated _canvas_base() regression test remains in place.
+
+The code-level audit found no second unsafe-edge defect in the current lesson/Short layouts. The remaining validation limitation is environmental: full repository pytest cannot be executed from this environment, so the renderer review relies on direct code inspection, the existing isolated Pillow QA harness, and the expanded regression tests committed to main.
+
+Audit decision: do not weaken visual QA, add another renderer, or change educational/editorial logic. The current renderer should be retried exactly as implemented.
