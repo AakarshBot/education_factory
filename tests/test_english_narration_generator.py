@@ -15,23 +15,26 @@ class FakeResponse:
         return self._body
 
 
-def _patch(monkeypatch, segments):
+def _patch(monkeypatch, source, translated):
     monkeypatch.setattr(english_narration_generator, "validate_config", lambda **_: None)
     monkeypatch.setattr(english_narration_generator, "GEMINI_API_KEY", "test-key")
 
+    _, replacements = english_narration_generator._mask_segments(source)
+    protected = []
+    for translated_segment, segment_replacements in zip(translated, replacements):
+        value = translated_segment
+        for placeholder, original in segment_replacements:
+            value = value.replace(original, placeholder)
+        protected.append(value)
+
     def fake_post(url, **kwargs):
-        payload = json.loads(
-            kwargs["json"]["contents"][0]["parts"][0]["text"].split(
-                "Source narration:\n", 1
-            )[1]
-        )
         return FakeResponse(
             body={
                 "candidates": [
                     {
                         "content": {
                             "parts": [
-                                {"text": json.dumps({"segments": segments})}
+                                {"text": json.dumps({"segments": protected})}
                             ]
                         }
                     }
@@ -53,7 +56,7 @@ def test_generate_english_narration_preserves_segment_count_and_order(monkeypatc
         "The correct answer is 60.",
         "25 percent is one fourth, so 240 divided by 4 is 60.",
     ]
-    _patch(monkeypatch, translated)
+    _patch(monkeypatch, source, translated)
 
     result = english_narration_generator.generate_english_narration_segments(source)
 
@@ -62,7 +65,7 @@ def test_generate_english_narration_preserves_segment_count_and_order(monkeypatc
 
 def test_generate_english_narration_uses_structured_json(monkeypatch):
     source = ["Question 1. Solve this."]
-    _patch(monkeypatch, ["Question 1. Solve this."])
+    _patch(monkeypatch, source, ["Question 1. Solve this."])
 
     calls = []
 
@@ -94,7 +97,7 @@ def test_generate_english_narration_uses_structured_json(monkeypatch):
 
 def test_generate_english_narration_rejects_wrong_segment_count(monkeypatch):
     source = ["Question 1. Solve this.", "The answer is 5."]
-    _patch(monkeypatch, ["Question 1. Solve this."])
+    _patch(monkeypatch, source, ["Question 1. Solve this."])
 
     with pytest.raises(RuntimeError, match="exactly one"):
         english_narration_generator.generate_english_narration_segments(source)
@@ -122,15 +125,41 @@ def test_generate_english_narration_rejects_http_failure(monkeypatch):
 
 def test_generate_english_narration_rejects_changed_numeric_content(monkeypatch):
     source = ["Question 1. 25% of 240 is? Options: A. 60 B. 70 C. 80 D. 90."]
-    _patch(monkeypatch, ["Question 1. What is 25% of 250? Options: A. 60 B. 70 C. 80 D. 90."])
-    with pytest.raises(RuntimeError, match="numeric content"):
+    _patch(
+        monkeypatch,
+        source,
+        ["Question 1. What is 25% of 250? Options: A. 60 B. 70 C. 80 D. 90."],
+    )
+    with pytest.raises(RuntimeError, match="protected content"):
         english_narration_generator.generate_english_narration_segments(source)
 
 
 def test_generate_english_narration_rejects_changed_answer(monkeypatch):
     source = ["The correct answer is 60."]
-    _patch(monkeypatch, ["The correct answer is 70."])
-    with pytest.raises(RuntimeError, match="changed the answer"):
+    _patch(monkeypatch, source, ["The correct answer is 70."])
+    with pytest.raises(RuntimeError, match="protected content"):
+        english_narration_generator.generate_english_narration_segments(source)
+
+
+def test_generate_english_narration_restores_protected_numbers(monkeypatch):
+    source = [
+        "Question 1. 25% of 240 is? Options: A. 60 B. 70 C. 80 D. 90.",
+    ]
+    masked, _ = english_narration_generator._mask_segments(source)
+    translated = [
+        masked[0].replace("[[NUMBER_B]]%", "[[NUMBER_B]] percent"),
+    ]
+    _patch(monkeypatch, source, translated)
+
+    result = english_narration_generator.generate_english_narration_segments(source)
+
+    assert result[0] == "Question 1. 25 percent of 240 is? Options: A. 60 B. 70 C. 80 D. 90."
+
+
+def test_generate_english_narration_rejects_missing_protected_token(monkeypatch):
+    source = ["Question 1. 25% of 240 is?"]
+    _patch(monkeypatch, source, ["What is 25% of 240?"])
+    with pytest.raises(RuntimeError, match="protected content"):
         english_narration_generator.generate_english_narration_segments(source)
 
 
@@ -143,5 +172,5 @@ def test_generate_english_narration_allows_language_only_translation(monkeypatch
         "Question 1. What is 25% of 240? Options: A. 60 B. 70 C. 80 D. 90.",
         "The correct answer is 60.",
     ]
-    _patch(monkeypatch, translated)
+    _patch(monkeypatch, source, translated)
     assert english_narration_generator.generate_english_narration_segments(source) == translated
