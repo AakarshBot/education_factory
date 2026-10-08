@@ -136,7 +136,12 @@ def fetch_recent_channel_videos(youtube, limit: int) -> list[dict[str, Any]]:
             for item in items
             if isinstance(item, dict) and item.get("contentDetails", {}).get("videoId")
         ]
-        return [*fetch_video_statistics(youtube, ids).values()] if ids else []
+        statistics = fetch_video_statistics(youtube, ids)
+        return [
+            {"video_id": video_id, **statistics[video_id]}
+            for video_id in ids
+            if video_id in statistics
+        ]
     except RuntimeError:
         raise
     except Exception as exc:

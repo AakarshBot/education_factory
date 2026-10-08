@@ -430,3 +430,32 @@ def test_snapshot_uses_channel_uploads_and_reports_missing_history(tmp_path):
     assert missing == ["missing"]
     assert youtube.channels_api.calls == [{"part": "contentDetails", "mine": True}]
     assert youtube.playlist_api.calls[0]["playlistId"] == "UUuploads"
+
+
+
+def test_fetch_recent_channel_videos_enumerates_uploads():
+    youtube = FakeYouTube(
+        body={
+            "items": [
+                {
+                    "id": "video1",
+                    "snippet": {"title": "Syllogism Practice", "publishedAt": "2026-10-08T00:00:00Z"},
+                    "statistics": {"viewCount": "120"},
+                    "status": {"privacyStatus": "public"},
+                }
+            ]
+        },
+        channel_body={"items": [{"contentDetails": {"relatedPlaylists": {"uploads": "UUuploads"}}]},
+        playlist_body={"items": [{"contentDetails": {"videoId": "video1"}}]},
+    )
+    result = youtube_analytics.fetch_recent_channel_videos(youtube, 10)
+    assert result == [{
+        "video_id": "video1",
+        "title": "Syllogism Practice",
+        "publishedAt": "2026-10-08T00:00:00Z",
+        "views": 120,
+        "likes": None,
+        "comments": None,
+        "privacyStatus": "public",
+        "publishAt": None,
+    }]
