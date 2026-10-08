@@ -1808,3 +1808,39 @@ Coverage hardening then added renderer-level regression tests:
 The code-level audit found no second unsafe-edge defect in the current lesson/Short layouts. The remaining validation limitation is environmental: full repository pytest cannot be executed from this environment, so the renderer review relies on direct code inspection, the existing isolated Pillow QA harness, and the expanded regression tests committed to main.
 
 Audit decision: do not weaken visual QA, add another renderer, or change educational/editorial logic. The current renderer should be retried exactly as implemented.
+
+
+## English localization regression audit — 2026-10-09
+
+The next fresh production attempt reached English localization and failed with "English narration changed numeric content in segment 1". The renderer had already passed the previously failing visual edge gate.
+
+Root cause:
+- The existing English-localization validator required digit sequences to remain textually identical.
+- Gemini can legitimately turn spoken numeric content such as 25 into "twenty-five" during English localization even when the underlying value is unchanged.
+- This was a validator false-positive, not a content-generation answer error.
+
+Direct fix committed to main:
+- Numeric tokens, generated answer values, and the "Options:" structure are replaced with protected placeholders before the localization request.
+- The localization prompt requires protected placeholders to remain exact, including order.
+- Returned text is rejected when protected tokens are missing, duplicated, added, or reordered.
+- Original protected values are restored deterministically before the existing numeric/answer/option fidelity checks run.
+- No fallback translation, retry loop, wrapper, or parallel localization pipeline was added.
+
+Regression coverage:
+- valid numeric localization/restoration is covered;
+- changed numeric content is rejected;
+- changed answer content is rejected;
+- missing protected tokens are rejected;
+- existing structured-response and segment-count tests remain covered.
+Offline simulation confirmed the placeholder ordering and restoration behavior.
+
+Commits:
+- 631fc035a486fb75c61343daad09b5286e3e04de8 — protect invariant content during English localization
+- 4e60352662777d7b3979d1a7930f6d21a627de8b — test protected English localization invariants
+
+The fresh-render audit also remains current: the only other production regression found after the last known-good production render was the canvas edge issue already fixed on main. Current production rendering and English localization now have direct regression coverage.
+
+Validation limitation:
+- Full repository pytest still cannot be executed from this environment.
+- The localization helper logic was executed in an offline simulation covering token ordering and exact restoration.
+- Do not spend another production run until the local checkout is synced to main with these two commits.
