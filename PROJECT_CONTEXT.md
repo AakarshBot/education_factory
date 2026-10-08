@@ -1638,3 +1638,18 @@ The objective is not to "warm up" an algorithm with empty activity. The objectiv
 
 Official feature source checked 2026-10-08:
 https://support.google.com/youtube/answer/9891124
+
+## Channel storefront launch layout — 2026-10-08
+
+Home-tab decision for launch:
+- Turn the **Home tab ON**.
+- Do not create a channel trailer yet; there is no separate trailer asset and the first long-form upload is better treated as the actual launch content.
+- Do not set a returning-subscriber Spotlight video yet; there are no returning subscribers and this can be assigned after the first meaningful library exists.
+- Keep the initial Home layout minimal. Use **Uploads** as the primary content section and **Short videos** as the second section once the first uploads are public. Do not add "For you" or community-oriented sections at launch because the channel has no audience history yet.
+- Revisit the Home layout after the channel has a real content library and first analytics sample.
+- Use the same logo uploaded for the profile image as the channel video watermark when Studio offers the watermark control; keep it unobtrusive.
+
+This is a storefront decision, not a factory pipeline change.
+
+Official YouTube customization guidance checked 2026-10-08:
+https://support.google.com/youtube/answer/3219384
