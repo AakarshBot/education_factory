@@ -51,7 +51,7 @@ def test_all_assembled_segment_kinds_render():
         for index in range(len(lesson.segments)):
             image = render_lesson_scene(lesson, index, size=(1920, 1080))
             assert isinstance(image, Image.Image)
-            assert image.size == (1280, 720)
+            assert image.size == (1920, 1080)
 
 
 def test_all_production_long_form_scenes_pass_visual_qa(tmp_path):
