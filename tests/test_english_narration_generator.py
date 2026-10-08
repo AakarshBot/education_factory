@@ -158,7 +158,60 @@ def test_generate_english_narration_restores_protected_numbers(monkeypatch):
 
 def test_generate_english_narration_rejects_missing_protected_token(monkeypatch):
     source = ["Question 1. 25% of 240 is?"]
-    _patch(monkeypatch, source, ["What is 25% of 240?"])
+    monkeypatch.setattr(english_narration_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(english_narration_generator, "GEMINI_API_KEY", "test-key")
+
+    monkeypatch.setattr(
+        english_narration_generator.requests,
+        "post",
+        lambda *args, **kwargs: FakeResponse(
+            body={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"segments": ["What is 25% of 240?"]})}
+                            ]
+                        }
+                    }
+                ]
+            }
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="protected content"):
+        english_narration_generator.generate_english_narration_segments(source)
+
+
+def test_generate_english_narration_rejects_reordered_protected_tokens(monkeypatch):
+    source = ["Question 1. 25% of 240 is?"]
+    masked, replacements = english_narration_generator._mask_segments(source)
+    tokens = [placeholder for placeholder, _ in replacements]
+
+    reordered = masked[0].replace(tokens[0], "__FIRST__").replace(
+        tokens[2], tokens[0]
+    ).replace(tokens[1], tokens[2]).replace("__FIRST__", tokens[1])
+
+    monkeypatch.setattr(english_narration_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(english_narration_generator, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(
+        english_narration_generator.requests,
+        "post",
+        lambda *args, **kwargs: FakeResponse(
+            body={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"segments": [reordered]})}
+                            ]
+                        }
+                    }
+                ]
+            }
+        ),
+    )
+
     with pytest.raises(RuntimeError, match="protected content"):
         english_narration_generator.generate_english_narration_segments(source)
 
