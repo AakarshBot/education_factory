@@ -5,21 +5,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 DEFAULT_SIZE = (1920, 1080)
 
-BACKGROUND = (247, 245, 240)
-SURFACE = (255, 253, 248)
-SURFACE_2 = (241, 239, 232)
-INK = (36, 42, 43)
-MUTED = (112, 118, 116)
-ACCENT = (46, 140, 104)
-INFO = (76, 115, 116)
-SUCCESS = (46, 140, 104)
-DANGER = (190, 84, 84)
-BORDER = (211, 207, 198)
-HIGHLIGHT = (229, 239, 231)
-SUCCESS_SURFACE = (229, 241, 233)
-DANGER_SURFACE = (248, 233, 233)
-GRID = (235, 232, 224)
-SHADOW = (215, 211, 202)
+BACKGROUND = (248, 247, 243)
+SURFACE = (255, 254, 250)
+SURFACE_2 = (245, 243, 237)
+INK = (34, 40, 39)
+MUTED = (104, 111, 108)
+ACCENT = (48, 137, 103)
+INFO = (82, 111, 112)
+SUCCESS = (48, 137, 103)
+DANGER = (184, 83, 83)
+BORDER = (220, 217, 208)
+HIGHLIGHT = (232, 240, 234)
+SUCCESS_SURFACE = (232, 242, 235)
+DANGER_SURFACE = (249, 235, 235)
+GRID = (240, 238, 232)
+SHADOW = (228, 224, 216)
 
 DEV = "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf" if os.name != "nt" else "C:/Windows/Fonts/NirmalaUI.ttf"
 DEV_B = "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if os.name != "nt" else "C:/Windows/Fonts/NirmalaUI-Bold.ttf"
@@ -114,17 +114,17 @@ def _lines(d, xy, text, size, bold, width, spacing=12, fill=INK):
 def _canvas_base(image):
     d = ImageDraw.Draw(image)
     width, height = image.size
-    for x in range(0, width, 80):
+    for x in range(0, width, 96):
         d.line((x, 0, x, height), fill=GRID, width=1)
-    for y in range(0, height, 80):
+    for y in range(0, height, 96):
         d.line((0, y, width, y), fill=GRID, width=1)
-    d.line((0, 0, width, 0), fill=ACCENT, width=5)
+    d.line((0, 0, width, 0), fill=ACCENT, width=3)
 
 
-def _card(d, box, outline=BORDER, width=2, radius=24, fill=SURFACE):
+def _card(d, box, outline=BORDER, width=2, radius=20, fill=SURFACE):
     x1, y1, x2, y2 = box
     d.rounded_rectangle(
-        (x1 + 8, y1 + 10, x2 + 8, y2 + 10),
+        (x1 + 6, y1 + 7, x2 + 6, y2 + 7),
         radius,
         fill=SHADOW,
     )
@@ -329,7 +329,8 @@ def _topic_key(topic):
 def _visual_panel(d, box, title):
     _card(d, box, outline=BORDER, width=1, radius=24, fill=SURFACE)
     x1, y1, x2, y2 = box
-    d.text((x1 + 28, y1 + 22), title, font=_font(20, True), fill=MUTED)
+    d.rounded_rectangle((x1 + 24, y1 + 22, x1 + 64, y1 + 26), 2, fill=ACCENT)
+    d.text((x1 + 78, y1 + 14), title, font=_font(19, True), fill=MUTED)
     return x1 + 28, y1 + 66, x2 - 28, y2 - 24
 
 

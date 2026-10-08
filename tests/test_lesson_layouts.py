@@ -22,8 +22,8 @@ def question(source_type="original", source_reference=None):
 
 def test_scene_canvas_uses_product_background():
     image = render_lesson_scene(assemble_lesson([question()], lesson_type="practice"), 0)
-    assert image.getpixel((80, 80)) == (235, 232, 224)
-    assert visual_primitives.BACKGROUND == (247, 245, 240)
+    assert image.getpixel((80, 80)) == (240, 238, 232)
+    assert visual_primitives.BACKGROUND == (248, 247, 243)
 
 
 def test_all_lesson_question_layouts_have_distinct_compositions():
