@@ -1920,3 +1920,17 @@ Commits:
 No video was uploaded by the failed run.
 
 Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until the suite passes.
+
+## Post-hardening preflight passed — 2026-10-09
+
+The focused preflight suite was rerun after the question-generation hardening:
+
+```
+python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q
+```
+
+Result: **39 passed in 23.35s**.
+
+The question-generation resilience fix is therefore covered by the local focused suite. Deterministic Maths validation remains fail-closed, with at most one automatic regeneration for a malformed generated response.
+
+Next manual step: rerun the factory for the second real production upload. If the generation retry succeeds, the factory should continue through the existing production path; if another stage fails, stop before upload and diagnose that stage rather than bypassing its QA gate.
