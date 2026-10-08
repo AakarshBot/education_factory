@@ -39,10 +39,10 @@ def audio(path,duration=1.6):
             w.writeframesraw(struct.pack("<h",value))
 
 
-def test_all_portrait_segment_kinds_pass_visual_qa(tmp_path):
-    lesson = lesson()
-    for index in range(len(lesson.segments)):
-        image = _portrait_scene(lesson, index)
+def test_portrait_scenes_pass_visual_qa(tmp_path):
+    sample = lesson()
+    for index in range(len(sample.segments)):
+        image = _portrait_scene(sample, index)
         path = tmp_path / f"scene_{index}.png"
         image.save(path, format="PNG", optimize=False)
         result = check_image(path, expected_size=SHORT_SIZE)
