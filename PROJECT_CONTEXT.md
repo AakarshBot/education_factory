@@ -832,6 +832,23 @@ The adaptation profile remains neutral unless its existing minimum-evidence rule
 
 ---
 
+### Step 6.6 — Read-only live snapshot — **COMPLETE**
+
+Added the direct read-only live-performance command in `youtube_analytics.py`.
+
+The command:
+- runs as `python youtube_analytics.py` with optional `--limit` and `--days` flags
+- reads the factory's existing local channel-history video IDs
+- uses the existing YouTube Data API client for current views, likes, comments, and publication time
+- uses the existing YouTube Analytics API client for engaged views, watch time, average view metrics, and subscribers gained
+- reports long-form and Shorts separately, with publication age and views/hour for early-stage comparison
+- never writes channel history and never changes production or editorial state
+
+The implementation uses the existing OAuth path and adds no dependency or dashboard.
+
+Focused tests cover the new Data API counter retrieval, Analytics `engagedViews`, snapshot merging, publication-age calculation, and the read-only history guarantee.
+
+Interpretation rule: YouTube Analytics is not real-time and official documentation says processing can introduce 48–72 hours of latency. Current per-video counters therefore come from the YouTube Data API, while watch/engagement metrics are treated as delayed analytics evidence. citeturn201681search5
 ## Phase 7 — Autonomous daily operation
 
 ### Step 7.1 — One-click / one-command factory run — **COMPLETE**
