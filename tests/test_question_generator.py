@@ -73,6 +73,68 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert choices_schema["maxItems"] == 4
 
 
+
+def test_generate_questions_retries_deterministic_validation_failure(monkeypatch):
+    invalid = {
+        "questions": [{
+            "subject": "maths",
+            "exam": "SSC CGL",
+            "topic": "percentages",
+            "difficulty": "medium",
+            "question": "A price of ₹2,000 is reduced by 15%. What is the selling price?",
+            "choices": ["₹1,600 students", "₹1,700 students", "₹1,800 students", "₹1,900 students"],
+            "correct_choice_index": 1,
+            "explanation": "",
+            "shortcut": None,
+            "source_type": "original",
+            "source_reference": None,
+            "math_expression": "2000 * (1 - 15 / 100)",
+        }]
+    }
+    valid = {
+        "questions": [{
+            "subject": "maths",
+            "exam": "SSC CGL",
+            "topic": "percentages",
+            "difficulty": "medium",
+            "question": "A price of ₹2,000 is reduced by 15%. What is the selling price?",
+            "choices": ["₹1,600", "₹1,700", "₹1,800", "₹1,900"],
+            "correct_choice_index": 1,
+            "explanation": "",
+            "shortcut": None,
+            "source_type": "original",
+            "source_reference": None,
+            "math_expression": "2000 * (1 - 15 / 100)",
+        }]
+    }
+    responses = iter((invalid, valid))
+    prompts = []
+
+    monkeypatch.setattr(question_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(question_generator, "GEMINI_API_KEY", "test-key")
+
+    def fake_post(url, **kwargs):
+        prompts.append(kwargs["json"]["contents"][0]["parts"][0]["text"])
+        generated = next(responses)
+        return FakeResponse(
+            body={"candidates": [{"content": {"parts": [{"text": json.dumps(generated)}]}}]}
+        )
+
+    monkeypatch.setattr(question_generator.requests, "post", fake_post)
+
+    result = question_generator.generate_questions(
+        subject="maths",
+        exam="SSC CGL",
+        topic="percentages",
+        difficulty="medium",
+        count=1,
+    )
+
+    assert result[0].correct_answer == "₹1,700"
+    assert len(prompts) == 2
+    assert "RETRY CORRECTION" in prompts[1]
+    assert "answer is not numeric" in prompts[1]
+
 def test_normalizes_common_math_symbols(monkeypatch):
     generated = {
         "questions": [{
