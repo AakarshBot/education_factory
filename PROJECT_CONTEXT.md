@@ -1690,3 +1690,23 @@ Immediate manual state:
 ## Short publish timing alignment — 2026-10-08
 
 The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch decision and the first public video's current Short schedule. This prevents future factory runs from silently reverting to the earlier 2-hour spacing.
+
+## Intermediate feature gate — 2026-10-08
+
+The next channel-platform gate is **Intermediate features**, not Advanced features.
+
+Reason:
+- YouTube currently places **custom thumbnails** under Intermediate features.
+- Phone verification unlocks Intermediate features and is also the first step toward Advanced features.
+- The channel should use custom thumbnails for long-form packaging as soon as Intermediate access is available.
+- Advanced access remains separately required for multi-language audio attachment and the Short Related Video control.
+
+Manual action:
+- In YouTube Studio -> Settings -> Channel -> Feature eligibility, inspect **Intermediate features**.
+- If **Verify phone number** is available, complete that verification.
+- Do not perform ID/video verification for Advanced yet unless YouTube specifically offers it and the user chooses to use it; channel-history access remains acceptable.
+- Once Intermediate features are active, the next factory work is the direct long-form thumbnail system.
+
+Official source checked 2026-10-08:
+https://support.google.com/youtube/answer/9891124
+https://support.google.com/youtube/answer/72431
