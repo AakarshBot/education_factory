@@ -1731,6 +1731,21 @@ The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch
 Analytics source-of-truth correction — 2026-10-09
 The read-only snapshot now enumerates the authenticated channel's own Uploads playlist before reading video statistics, rather than assuming every history ID is currently exposed by `videos.list(id=...)`. This keeps live channel discovery inside the existing YouTube Data API path, avoids `search.list`, and reports history IDs that are missing from the channel upload list. Official YouTube documentation identifies the Uploads playlist as the channel's uploaded-video source. citeturn723241search2turn723241search10
 
+## Channel-state correction — 2026-10-09
+
+Authoritative current channel state:
+- The real channel **Exam Session India (@examsessionindia)** currently has exactly **1 public long-form and 1 public Short**.
+- The user deleted the earlier first long-form because its design was poor; that deleted upload must not be treated as a live channel asset or part of the learning sample.
+- The user confirms no additional videos have been published since the current public pair.
+- IDs appearing in local factory history but not representing current published channel assets are stale production history and must not be treated as evidence that additional public videos exist.
+- The public learning sample therefore remains exactly the current one long-form + one Short.
+- Do not ask the user to inspect or explain nonexistent additional uploads again.
+
+Production decision after the first live sample:
+- Do not change topic, subject, format, or editorial strategy from one long-form + one Short; the sample is too small.
+- The next production run should be **one job at a time**, primarily to maintain the planned learning cadence rather than because of performance evidence.
+- No blind multi-job production and no analytics-driven overreaction.
+
 ## Live analytics decision — 2026-10-09
 
 The first real public-channel analytics sample contains exactly:
