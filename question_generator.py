@@ -139,7 +139,7 @@ Rules:
 - Create original questions, not copied previous-year questions.
 - Every question must have exactly one defensible correct answer.
 - Every question must be fully self-contained in text. Never require an unseen figure, diagram, chart, image, table, map, or visual prompt.
-- Do not refer to `given figure`, `shown below`, `in the diagram`, `from the image`, or any other missing visual. Describe all required information directly in the question.
+- Do not refer to \`given figure\`, \`shown below\`, \`in the diagram\`, \`from the image\`, or any other missing visual. Describe all required information directly in the question.
 - Every question must use exactly four unique choices.
 - Set correct_choice_index to the zero-based index (0-3) of the correct choice.
 - Keep the requested exam, subject, topic, and difficulty faithful.
@@ -147,6 +147,7 @@ Rules:
 - A shortcut may be null when no useful shortcut exists.
 - source_type must be "original" and source_reference must be null.
 - For Maths, math_expression is REQUIRED and must evaluate exactly to the choice at correct_choice_index.
+- For Maths, all four choices must be numeric values only, with optional currency/percent/fraction notation such as \`₹1,700\`, \`15%\`, or \`3/4\`. Never append units, labels, or words to a Maths choice.
 - For Maths, use only numbers, parentheses, +, -, *, /, and ** in math_expression. Do not use words, functions, factorials, percent signs, commas, ×, ÷, or ^; plain ASCII arithmetic is preferred.
 - For Maths, choose values with exact answers that can be represented by one of the four choices; avoid rounding and repeating-decimal ambiguity.
 - For non-Maths questions, math_expression must be null.
@@ -155,90 +156,106 @@ Rules:
 Return only the requested structured JSON.
 """.strip()
 
-    payload = {
-        "systemInstruction": {
-            "parts": [
-                {
-                    "text": (
-                        "You are the question-writing engine for an Indian competitive-exam "
-                        "education channel. Accuracy is more important than creativity. "
-                        "Never invent an answer. Follow the requested schema exactly."
-                    )
-                }
-            ]
-        },
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseFormat": {
-                "text": {
-                    "mimeType": "APPLICATION_JSON",
-                    "schema": _RESPONSE_SCHEMA,
-                }
+    system_text = (
+        "You are the question-writing engine for an Indian competitive-exam "
+        "education channel. Accuracy is more important than creativity. "
+        "Never invent an answer. Follow the requested schema exactly."
+    )
+
+    validation_error: ValidationError | None = None
+
+    for generation_attempt in range(2):
+        attempt_prompt = prompt
+        if validation_error is not None:
+            attempt_prompt += (
+                "\n\nRETRY CORRECTION: The previous response failed deterministic "
+                f"validation: {validation_error}. Regenerate the complete question set. "
+                "For Maths, every choice must be parseable as a numeric value; do not "
+                "append units, labels, or words to any Maths choice."
+            )
+
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_text}]},
+            "contents": [{"parts": [{"text": attempt_prompt}]}],
+            "generationConfig": {
+                "responseFormat": {
+                    "text": {
+                        "mimeType": "APPLICATION_JSON",
+                        "schema": _RESPONSE_SCHEMA,
+                    },
+                },
             },
-        },
-    }
+        }
 
-    response = None
-    for attempt, delay in enumerate((0, 1, 2, 4)):
-        if delay:
-            time.sleep(delay)
-        response = requests.post(
-            _GEMINI_URL.format(model=GEMINI_MODEL),
-            headers={
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=60,
-        )
-        if response.status_code not in {429, 503} or attempt == 3:
-            break
+        response = None
+        for attempt, delay in enumerate((0, 1, 2, 4)):
+            if delay:
+                time.sleep(delay)
+            response = requests.post(
+                _GEMINI_URL.format(model=GEMINI_MODEL),
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=60,
+            )
+            if response.status_code not in {429, 503} or attempt == 3:
+                break
 
-    assert response is not None
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Gemini question generation failed ({response.status_code}): "
-            f"{response.text[:500]}"
-        )
+        assert response is not None
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Gemini question generation failed ({response.status_code}): "
+                f"{response.text[:500]}"
+            )
 
-    body = response.json()
-    try:
-        text = body["candidates"][0]["content"]["parts"][0]["text"]
-        data = json.loads(text)
-        items = data["questions"]
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Gemini returned an invalid structured question response") from exc
+        body = response.json()
+        try:
+            text = body["candidates"][0]["content"]["parts"][0]["text"]
+            data = json.loads(text)
+            items = data["questions"]
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Gemini returned an invalid structured question response") from exc
 
-    if len(items) != count:
-        raise RuntimeError(
-            f"Gemini returned {len(items)} questions; expected exactly {count}"
-        )
+        if len(items) != count:
+            raise RuntimeError(
+                f"Gemini returned {len(items)} questions; expected exactly {count}"
+            )
 
-    questions: list[Question] = []
-    for item in items:
-        item = dict(item)
-        item["explanation"] = ""
-        math_expression = _normalize_math_expression(item.pop("math_expression", None))
-        correct_choice_index = item.pop("correct_choice_index", None)
+        try:
+            questions: list[Question] = []
+            for item in items:
+                item = dict(item)
+                item["explanation"] = ""
+                math_expression = _normalize_math_expression(item.pop("math_expression", None))
+                correct_choice_index = item.pop("correct_choice_index", None)
 
-        choices = item.get("choices")
-        if (
-            not isinstance(choices, list)
-            or len(choices) != 4
-            or not all(isinstance(choice, str) and choice.strip() for choice in choices)
-            or not isinstance(correct_choice_index, int)
-            or not 0 <= correct_choice_index < 4
-        ):
-            raise ValidationError("generated choices/correct_choice_index are invalid")
+                choices = item.get("choices")
+                if (
+                    not isinstance(choices, list)
+                    or len(choices) != 4
+                    or not all(isinstance(choice, str) and choice.strip() for choice in choices)
+                    or not isinstance(correct_choice_index, int)
+                    or not 0 <= correct_choice_index < 4
+                ):
+                    raise ValidationError("generated choices/correct_choice_index are invalid")
 
-        question_text = item.get("question")
-        if not isinstance(question_text, str) or not question_text.strip():
-            raise ValidationError("generated question text is invalid")
-        _validate_self_contained_text(question_text, choices)
+                question_text = item.get("question")
+                if not isinstance(question_text, str) or not question_text.strip():
+                    raise ValidationError("generated question text is invalid")
+                _validate_self_contained_text(question_text, choices)
 
-        item["correct_answer"] = choices[correct_choice_index]
-        question = Question.from_dict(item)
-        validate_question(question, math_expression=math_expression)
-        questions.append(question)
+                item["correct_answer"] = choices[correct_choice_index]
+                question = Question.from_dict(item)
+                validate_question(question, math_expression=math_expression)
+                questions.append(question)
+        except ValidationError as exc:
+            validation_error = exc
+            if generation_attempt == 1:
+                raise
+            continue
 
-    return questions
+        return questions
+
+    raise RuntimeError("question generation failed deterministic validation")
