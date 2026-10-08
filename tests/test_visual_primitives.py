@@ -51,3 +51,11 @@ def test_question_text_stays_inside_box():
     )
     assert all(image.getpixel((x, y)) == visual_primitives.BACKGROUND
                for x in range(0, 500, 25) for y in range(200, 520, 25))
+
+
+def test_topic_visuals_do_not_bake_in_example_values():
+    source = visual_primitives.Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    before = list(source.getdata())
+    visual_primitives.draw_topic_visual(source, "Percentages", "25% of 240 is what?", (1200, 100, 1800, 400))
+    after = list(source.getdata())
+    assert after != before

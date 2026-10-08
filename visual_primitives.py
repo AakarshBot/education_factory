@@ -441,38 +441,40 @@ def draw_topic_visual(image, topic, question=None, box=(1200, 100, 1800, 500)):
     w, h = x2 - x1, y2 - y1
 
     if any(token in key for token in ("syllog", "logic", "conclusion")):
-        r = min(w, h) // 5
-        cy = y1 + h // 2 + 6
+        r = min(w, h) // 6
+        cy = y1 + h // 2 + 4
         centers = (x1 + w // 3, x1 + w // 2, x1 + 2 * w // 3)
-        labels = ("A", "B", "C")
+        labels = ("SET A", "SET B", "SET C")
         for cx, label in zip(centers, labels):
             d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=INFO, width=4)
-            bounds = d.textbbox((0, 0), label, font=_font(28, True))
-            d.text((cx - (bounds[2] - bounds[0]) / 2, cy - 18), label, font=_font(28, True), fill=INK)
+            bounds = d.textbbox((0, 0), label, font=_font(20, True))
+            d.text((cx - (bounds[2] - bounds[0]) / 2, cy - 12), label, font=_font(20, True), fill=INK)
+        d.text((x1, y2 - 18), "Check only relationships forced by the statements.", font=_font(19, False), fill=MUTED)
         return
 
     if "percent" in key:
-        cx, cy = x1 + w * 0.32, y1 + h * 0.50
+        cx, cy = x1 + w * 0.30, y1 + h * 0.50
         r = min(w, h) // 4
-        d.ellipse((cx-r, cy-r, cx+r, cy+r), fill=HIGHLIGHT, outline=BORDER, width=2)
-        d.pieslice((cx-r, cy-r, cx+r, cy+r), -90, 0, fill=ACCENT)
-        label = "25%"
-        bounds = d.textbbox((0, 0), label, font=_font(34, True))
-        d.text((cx-(bounds[2]-bounds[0])/2, cy-(bounds[3]-bounds[1])/2), label, font=_font(34, True), fill=INK)
-        bx1, by = x1 + w * 0.58, y1 + h * 0.38
-        d.rounded_rectangle((bx1, by, x2 - 6, by + 30), 15, fill=HIGHLIGHT)
-        d.rounded_rectangle((bx1, by, bx1 + (x2 - bx1 - 6) // 4, by + 30), 15, fill=ACCENT)
-        d.text((bx1, by + 48), "1 / 4", font=_font(27, True), fill=INFO)
+        d.ellipse((cx-r, cy-r, cx+r, cy+r), fill=SURFACE_2, outline=BORDER, width=2)
+        for start, end, fill in ((-90, 0, ACCENT), (0, 90, HIGHLIGHT), (90, 180, HIGHLIGHT), (180, 270, HIGHLIGHT)):
+            d.pieslice((cx-r, cy-r, cx+r, cy+r), start, end, fill=fill)
+        d.ellipse((cx-r//2, cy-r//2, cx+r//2, cy+r//2), fill=SURFACE)
+        d.text((cx-34, cy-16), "PART", font=_font(22, True), fill=INFO)
+        bx1, by = x1 + w * 0.56, y1 + h * 0.34
+        d.rounded_rectangle((bx1, by, x2 - 6, by + 34), 17, fill=HIGHLIGHT)
+        d.rounded_rectangle((bx1, by, bx1 + int((x2 - bx1 - 6) * 0.58), by + 34), 17, fill=ACCENT)
+        d.text((bx1, by + 50), "PART OF A WHOLE", font=_font(22, True), fill=INK)
         return
 
     if any(token in key for token in ("ratio", "proportion")):
-        by = y1 + h * 0.32
-        for i, (label, units, fill) in enumerate((("A", 2, INFO), ("B", 3, ACCENT))):
-            yy = int(by + i * h * 0.28)
-            d.text((x1, yy - 2), label, font=_font(24, True), fill=INK)
-            for unit in range(units):
-                left = x1 + 42 + unit * (w - 58) / 3
-                d.rounded_rectangle((left, yy, left + (w - 74) / 4, yy + 42), 12, fill=fill)
+        base = y1 + h * 0.52
+        left = x1 + 24
+        d.line((left, base, x2 - 24, base), fill=BORDER, width=3)
+        d.rounded_rectangle((x1 + 54, base - 52, x1 + w * 0.46, base - 8), 14, fill=HIGHLIGHT)
+        d.rounded_rectangle((x1 + w * 0.54, base - 86, x2 - 54, base - 8), 14, fill=ACCENT)
+        d.text((x1 + 54, base + 20), "PART A", font=_font(22, True), fill=INFO)
+        d.text((x1 + w * 0.54, base + 20), "PART B", font=_font(22, True), fill=ACCENT)
+        d.text((x1, y2 - 34), "Compare relative parts.", font=_font(21, False), fill=MUTED)
         return
 
     if any(token in key for token in ("average", "mean", "median")):
@@ -480,14 +482,12 @@ def draw_topic_visual(image, topic, question=None, box=(1200, 100, 1800, 500)):
         left, right = x1 + 24, x2 - 24
         d.line((left, base_y, right, base_y), fill=BORDER, width=4)
         points = (0.12, 0.28, 0.54, 0.78, 0.90)
-        values = ("12", "16", "20", "24", "28")
-        for p, value in zip(points, values):
+        for p in points:
             px = left + int((right-left)*p)
             d.ellipse((px-10, base_y-10, px+10, base_y+10), fill=INFO)
-            d.text((px-18, base_y+18), value, font=_font(19, False), fill=MUTED)
         mean_x = left + int((right-left)*0.54)
-        d.line((mean_x, y1+22, mean_x, base_y-18), fill=ACCENT, width=5)
-        d.text((mean_x-38, y1+2), "MEAN", font=_font(19, True), fill=ACCENT)
+        d.line((mean_x, y1+24, mean_x, base_y-18), fill=ACCENT, width=5)
+        d.text((mean_x-34, y1+4), "MEAN", font=_font(19, True), fill=ACCENT)
         return
 
     if any(token in key for token in ("direction", "distance", "coordinate")):

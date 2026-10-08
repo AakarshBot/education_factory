@@ -127,6 +127,9 @@ After manual review, the user rated the new soft theme about 7/10 and asked for 
 
 Text layout polish — 2026-10-08
 Shared text primitives now size content against the actual available box height and width instead of depending on fixed font sizes alone. Question, answer, choice, solution, and highlighted-text blocks scale down when needed and keep consistent box-relative insets. Choice text also reserves space for status labels so long choices cannot run underneath CORRECT/INCORRECT. The behavior is centralized in `visual_primitives.py`, so long-form and Shorts inherit the same text fitting and indentation rules.
+
+Instructional visual accuracy polish — 2026-10-08
+Topic visuals no longer embed arbitrary example values that could conflict with the real question. Percentage, ratio/proportion, and average visuals are now conceptual diagrams without hard-coded question answers/numbers; the syllogism visual likewise presents unlabeled relationship sets rather than asserting a specific relationship. This keeps the visual layer useful while remaining truthful for arbitrary generated questions.
 ---
 
 # 2. MONETIZATION STRATEGY
