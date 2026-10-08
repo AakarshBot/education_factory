@@ -134,11 +134,12 @@ def _lines(d, xy, text, size, bold, width, spacing=12, fill=INK, *, max_height=N
 def _canvas_base(image):
     d = ImageDraw.Draw(image)
     width, height = image.size
-    for x in range(0, width, 96):
-        d.line((x, 0, x, height), fill=GRID, width=1)
-    for y in range(0, height, 96):
-        d.line((0, y, width, y), fill=GRID, width=1)
-    d.line((0, 0, width, 0), fill=ACCENT, width=3)
+    inset = 8
+    for x in range(inset, width - inset, 96):
+        d.line((x, inset, x, height - inset), fill=GRID, width=1)
+    for y in range(inset, height - inset, 96):
+        d.line((inset, y, width - inset, y), fill=GRID, width=1)
+    d.line((inset, inset, width - inset, inset), fill=ACCENT, width=3)
 
 
 def _card(d, box, outline=BORDER, width=2, radius=20, fill=SURFACE):

@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw
 import visual_primitives
+from visual_qa import check_image
 
 def test_primitives_draw():
     image = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
@@ -59,3 +60,16 @@ def test_topic_visuals_do_not_bake_in_example_values():
     visual_primitives.draw_topic_visual(source, "Percentages", "25% of 240 is what?", (1200, 100, 1800, 400))
     after = list(source.getdata())
     assert after != before
+
+
+
+def test_canvas_base_stays_inside_visual_qa_margin(tmp_path):
+    image = Image.new("RGB", visual_primitives.DEFAULT_SIZE, visual_primitives.BACKGROUND)
+    visual_primitives._canvas_base(image)
+    path = tmp_path / "canvas.png"
+    image.save(path, format="PNG")
+    result = check_image(path, expected_size=visual_primitives.DEFAULT_SIZE)
+    assert result.content_bbox[0] >= 8
+    assert result.content_bbox[1] >= 8
+    assert result.content_bbox[2] <= visual_primitives.DEFAULT_SIZE[0] - 8
+    assert result.content_bbox[3] <= visual_primitives.DEFAULT_SIZE[1] - 8
