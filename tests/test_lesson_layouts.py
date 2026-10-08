@@ -23,7 +23,8 @@ def question(source_type="original", source_reference=None):
 
 def test_scene_canvas_uses_product_background():
     image = render_lesson_scene(assemble_lesson([question()], lesson_type="practice"), 0)
-    assert image.getpixel((80, 80)) == (240, 238, 232)
+    assert image.getpixel((80, 80)) == visual_primitives.BACKGROUND
+    assert image.getpixel((106, 80)) == visual_primitives.GRID
     assert visual_primitives.BACKGROUND == (248, 247, 243)
 
 
@@ -48,7 +49,7 @@ def test_all_assembled_segment_kinds_render():
     ]
     for lesson in lessons:
         for index in range(len(lesson.segments)):
-            image = render_lesson_scene(lesson, index, size=(1280, 720))
+            image = render_lesson_scene(lesson, index, size=(1920, 1080))
             assert isinstance(image, Image.Image)
             assert image.size == (1280, 720)
 
