@@ -1902,3 +1902,21 @@ python -m pytest tests/test_factory.py tests/test_english_narration_generator.py
 Result: **39 passed in 21.26s**.
 
 This clears the pre-factory engineering gate. No production logic was changed by the final test correction. The next step is the first real factory run using the already-operational YouTube OAuth/Data/Analytics path; editorial strategy remains unchanged because the live sample is still only one long-form plus one Short.
+
+## Second production-run question-generation failure — 2026-10-09
+
+The first real second production attempt was stopped before media rendering or YouTube upload. The factory failed in `question_generator.generate_questions()` during deterministic Maths validation because Gemini returned a correct choice that was not parseable as a numeric answer (`validators.ValidationError: answer is not numeric`). The fail-closed validator behavior is correct; the resilience gap was that one malformed structured generation response aborted the entire daily job.
+
+Direct hardening committed to main:
+- Maths generation instructions now require all four Maths choices to contain numeric values only, allowing the existing currency/percent/fraction notation, and explicitly forbid units, labels, or words in choices.
+- Question generation now makes at most one automatic regeneration after a deterministic `ValidationError`, passing the validation reason back into the retry prompt. The validator remains fail-closed; there is no fallback acceptance or answer rewriting.
+- Regression coverage verifies an invalid Maths choice causes one regeneration and that the corrected response is accepted.
+
+Commits:
+- 582de5cea56b80db04f81f0b474efbd75cdb3291 — retry deterministically invalid question generation
+- c4f3f6bdba093fe4094ba506ec1e950cf424e2aa — test question generation retry on validation failure
+- 8191671b7204bddc006573951d47a8eaea7fa1f2 — clean question generation prompt escaping
+
+No video was uploaded by the failed run.
+
+Next manual step: pull main and rerun the focused preflight pytest command. Do not run the factory until the suite passes.
