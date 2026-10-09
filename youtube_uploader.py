@@ -28,11 +28,14 @@ def _utc_iso(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _scheduled_iso(value: datetime) -> str:
+def _scheduled_iso(value: datetime, *, now: datetime | None = None) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("publish_at must be timezone-aware")
+    reference = now or datetime.now(timezone.utc)
+    if reference.tzinfo is None or reference.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
     scheduled = value.astimezone(timezone.utc)
-    if scheduled <= datetime.now(timezone.utc):
+    if scheduled <= reference.astimezone(timezone.utc):
         raise ValueError("publish_at must be in the future")
     return scheduled.isoformat().replace("+00:00", "Z")
 
@@ -75,7 +78,7 @@ def upload_video(
 
     current_time = now or datetime.now(timezone.utc)
     created_at = _utc_iso(current_time)
-    scheduled_at = _scheduled_iso(publish_at) if publish_at is not None else None
+    scheduled_at = _scheduled_iso(publish_at, now=current_time) if publish_at is not None else None
 
     description = _youtube_description(metadata)
     body = {
