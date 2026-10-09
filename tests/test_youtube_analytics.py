@@ -359,7 +359,7 @@ def test_snapshot_uses_current_counters_and_does_not_write_history(tmp_path):
         )
     )
     before = history.read_text(encoding="utf-8")
-    snapshot, end_date = youtube_analytics._snapshot(
+    snapshot, end_date, _ = youtube_analytics._snapshot(
         history,
         limit=10,
         days=30,
