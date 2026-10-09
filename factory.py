@@ -58,7 +58,7 @@ DEFAULT_LANGUAGE = "Hinglish"
 AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
-SHORT_PUBLISH_DELAY = timedelta(hours=12)
+SHORT_PUBLISH_DELAY = timedelta(hours=8)
 
 
 def _new_run(output_root: Path) -> JobManifest:
@@ -291,7 +291,7 @@ def _record_publish_times(
 def _next_publish_time(now: datetime) -> datetime:
     local_now = now.astimezone(LOCAL_ZONE)
     candidate = local_now.replace(
-        hour=18,
+        hour=10,
         minute=0,
         second=0,
         microsecond=0,

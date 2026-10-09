@@ -172,10 +172,24 @@ def test_short_segment_indices_requires_question():
         factory._short_segment_indices(empty)
 
 
+def test_next_publish_time_uses_10am_ist_before_slot():
+    zone = ZoneInfo("Asia/Kolkata")
+    now = datetime(2026, 10, 8, 9, 59, tzinfo=zone)
+
+    assert factory._next_publish_time(now) == datetime(2026, 10, 8, 10, 0, tzinfo=zone)
+
+
+def test_next_publish_time_after_slot_moves_to_next_day():
+    zone = ZoneInfo("Asia/Kolkata")
+    now = datetime(2026, 10, 8, 10, 1, tzinfo=zone)
+
+    assert factory._next_publish_time(now) == datetime(2026, 10, 9, 10, 0, tzinfo=zone)
+
+
 def test_record_publish_times_is_resume_stable(tmp_path):
     manifest = factory.new_manifest(tmp_path / "job.json", "run")
     zone = ZoneInfo("Asia/Kolkata")
-    requested = datetime(2026, 10, 8, 18, 0, tzinfo=zone)
+    requested = datetime(2026, 10, 8, 10, 0, tzinfo=zone)
 
     first = factory._record_publish_times(
         manifest,
@@ -184,13 +198,13 @@ def test_record_publish_times_is_resume_stable(tmp_path):
     )
     assert first == (
         requested,
-        datetime(2026, 10, 9, 6, 0, tzinfo=zone),
+        datetime(2026, 10, 8, 18, 0, tzinfo=zone),
     )
 
     second = factory._record_publish_times(
         manifest,
         publish_mode="scheduled",
-        publish_at=datetime(2026, 10, 9, 18, 0, tzinfo=zone),
+        publish_at=datetime(2026, 10, 9, 10, 0, tzinfo=zone),
     )
     assert second == first
 

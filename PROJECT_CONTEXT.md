@@ -18,7 +18,7 @@ The user should not need to perform backend work for normal production. Manual a
 
 - **This is ChatGPT's channel and factory.**
 - The real YouTube channel is **Exam Session India (@examsessionindia)**.
-- The first public long-form and its derived Short are now real launch assets, with the intended **12-hour** spacing between them.
+- The first two long-form/Short pairs are real public launch assets. The corrected publishing slots are **10:00 IST for long-form and 18:00 IST for the derived Short** (8-hour spacing).
 - YouTube OAuth, the YouTube Data API, and the YouTube Analytics API are operational through the existing factory authentication path.
 - The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
 - **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
@@ -903,7 +903,7 @@ Default command behavior:
 - mixed difficulty
 - Hinglish
 - scheduled publishing by default
-- absent an explicit publish time, scheduled publication defaults to the next local 18:00 India time
+- absent an explicit publish time, scheduled publication defaults to the next 10:00 India time; its derived Short is scheduled at 18:00 India time
 
 No new dependency or wrapper framework was added.
 
@@ -1713,7 +1713,7 @@ https://support.google.com/youtube/answer/9527654
 Launch execution decision:
 - The existing Banking Reasoning — Syllogism: Practice long-form is the first public channel video.
 - The derived Short is the second public launch asset and should be published later the same day, not simultaneously with the long-form.
-- Default launch/production spacing: **12 hours between the long-form and derived Short**. This is the channel's operating choice, not a YouTube requirement. The current first Short is already scheduled 12 hours after the first long-form.
+- Historical launch spacing (superseded 2026-10-09): **12 hours between the long-form and derived Short**. This was the earlier operating choice, not a YouTube requirement; current target is 10:00 IST / 18:00 IST.
 - The Short should be published normally as a public Short; no special warm-up activity is required.
 - The Short's YouTube Studio Related Video link should be added to the long-form only after Advanced feature access becomes available. YouTube's current help states that adding a Related Video to a Short requires Advanced feature access and that the linked video must be public or unlisted.
 - Do not create a duplicate upload, altered copy, or artificial linking workaround while Advanced features are unavailable.
@@ -1726,7 +1726,7 @@ Immediate manual state:
 
 ## Short publish timing alignment — 2026-10-08
 
-The factory's default `SHORT_PUBLISH_DELAY` is now 12 hours, matching the launch decision and the first public video's current Short schedule. This prevents future factory runs from silently reverting to the earlier 2-hour spacing.
+Historical note, superseded 2026-10-09: `SHORT_PUBLISH_DELAY` was set to 12 hours at launch. The current target is 8 hours so the Short publishes at 18:00 IST after the 10:00 long-form.
 
 
 Analytics source-of-truth correction — 2026-10-09
@@ -1945,6 +1945,17 @@ Completed: Railway Reasoning — Direction and Distance: Practice
 
 The production orchestration prints `Completed` only after the long-form upload stage, Short upload stage, analytics ingestion, backlog completion, and final run-state completion succeed. Therefore this run cleared the full production path without a QA bypass or manual intervention.
 
-The factory default publish mode remains `scheduled`. Its scheduler selects the next 18:00 Asia/Kolkata publish time when no explicit time is supplied, and the derived Short is scheduled 12 hours after the long-form. For this run, that means the long-form is scheduled for the next 18:00 local publish slot and the Short 12 hours later. Exact YouTube public visibility should be determined from the account's current schedule/state rather than assumed from the factory's completion message alone.
+The factory's default publish mode remains `scheduled`. On 2026-10-09 the actual second pair was observed public at 10:00 IST (long-form) and 18:00 IST (Short). The scheduler had not yet caught up with this intended schedule; the correction below updates defaults for future jobs only. Existing scheduled/public videos and resume manifests are not rewritten.
 
-Editorial state remains unchanged: this is the second production pair and should be allowed to become an additional learning sample before another factory job is run. Do not immediately stack another job.
+Editorial state remains unchanged: do not immediately stack another job while the second Short has only minutes of exposure. The early sample shows 58 views on the first Short after 22.4 hours, 4 views on the first long-form after 36.3 hours, and 2 views on the second Short after 0.4 hours; the second long-form has 0 views after 8.4 hours. Likes and comments are 0. The Analytics report was requested only through 2026-10-08, so engaged views, watch time, average view metrics, and subscribers gained are not yet available for the 2026-10-09 pair. This sample does not yet justify deleting videos, changing metadata, or altering topic strategy.
+
+
+## Day 3 publishing schedule correction — 2026-10-09
+
+The actual channel schedule is **10:00 IST long-form / 18:00 IST Short**. The prior factory defaults (18:00 / 12 hours later) were inconsistent with the actual schedule and are superseded.
+
+Implementation: `factory.py` now selects the next 10:00 Asia/Kolkata long-form slot and schedules the derived Short 8 hours later at 18:00. Resume stability is preserved: previously recorded publication times remain unchanged. `tests/test_factory.py` now checks the 10:00 slot, rollover to the next day after the slot, and same-day 18:00 Short timing.
+
+Validation status: code and regression tests have been updated, but the repository's focused pytest suite has not yet been run in this session. Do not run another production job until the focused preflight passes after pulling `main`.
+
+Day 3 decision: do not produce another pair yet. Keep the channel strategy and existing videos unchanged, allow the second Short to receive meaningful exposure, then collect a fresh snapshot after the Analytics date range includes 2026-10-09 and metrics have populated.
