@@ -445,7 +445,7 @@ def test_fetch_recent_channel_videos_enumerates_uploads():
                 }
             ]
         },
-        channel_body={"items": [{"contentDetails": {"relatedPlaylists": {"uploads": "UUuploads"}}]},
+        channel_body={"items": [{"contentDetails": {"relatedPlaylists": {"uploads": "UUuploads"}}}]},
         playlist_body={"items": [{"contentDetails": {"videoId": "video1"}}]},
     )
     result = youtube_analytics.fetch_recent_channel_videos(youtube, 10)
