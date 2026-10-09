@@ -14,7 +14,7 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
-### Current live state — 2026-10-09
+### Current live state — 2026-10-10
 
 - **This is ChatGPT's channel and factory.**
 - The real YouTube channel is **Exam Session India (@examsessionindia)**.
@@ -23,6 +23,7 @@ The user should not need to perform backend work for normal production. Manual a
 - The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
 - **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
+- On 2026-10-10, the third production attempt failed during English localization at segment 19, before rendering or upload. The strict invariant check correctly rejected a translation response that did not preserve protected tokens.
 - The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
 - The corrected publishing schedule (10:00 IST long-form, 18:00 IST Short) has passed the focused preflight suite according to the user's confirmation on 2026-10-09. The user will resume this chat at **03:00 IST on 2026-10-10**; begin with `python youtube_analytics.py`, inspect the snapshot for concrete blockers, and then decide whether to run the factory once for the third pair. The intended publication targets are 10:00 IST long-form and 18:00 IST derived Short.
@@ -1963,3 +1964,34 @@ Day 3 decision (updated late 2026-10-09): no additional production run tonight. 
 ## October 10 continuation plan — 2026-10-09
 
 The user will resume this chat at **03:00 IST** before logging off, not at 08:00. First action: run the read-only analytics snapshot and inspect the second pair's current status. Then use editorial/engineering judgment to decide whether the third pair can safely be produced; do not ask the user to restate the plan. Since the focused suite was confirmed passing and `main` now schedules long-form at 10:00 IST with the derived Short at 18:00 IST, the default plan is one factory run after analytics unless a concrete blocker appears. The local factory itself must still be run by the user in their PowerShell window; provide only the exact necessary command(s) after the snapshot review.
+
+## October 10 localization failure and recovery — 2026-10-10
+
+The third production run was attempted after the read-only analytics snapshot and failed in `english_narration_generator.py` while restoring protected content:
+
+```
+RuntimeError: English narration changed protected content in segment 19
+```
+
+The failure occurs during English localization, before rendering and upload stages. Do not treat this failed run as a successful production job and do not start a fresh job until the existing run is recovered.
+
+Root cause class: Gemini returned at least one segment without preserving every protected invariant token exactly and in order. The validator is correct to fail closed; the resilience gap was treating a single model formatting/compliance miss as fatal.
+
+Direct fix committed to `main`:
+- If protected-token restoration or the existing content-fidelity checks fail, retry English localization once using the original masked source and validation error as corrective feedback.
+- The second response must pass the same strict validation. If it fails, the job still aborts before upload. No validation rule was weakened.
+- Added a regression test where the first response drops the protected answer token and the second response preserves it.
+
+Implementation commits:
+- `6ddb7511b9d7e334ab2c8b4c57fa2def37fe21d8` — bounded corrective retry in English localization.
+- `741d1fe0aa78b50b3bc4f9ee9d1bfd498b2f994e` — regression test for recovery after missing protected token.
+
+Validation status: code and regression test are committed, but this environment has not executed the local pytest suite. The user must sync `main` and run the focused preflight suite before retrying production.
+
+Next action:
+1. Pull `main`.
+2. Run the focused preflight suite:
+   `python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q`
+3. If the suite passes, resume the failed job manifest in `output/jobs/<run-id>/job.json` with `python factory.py --resume "output/jobs/<run-id>/job.json"`. Find the latest manifest whose status is failed and whose failure stage is English localization; do not start a new `python factory.py` job. Resume must reuse completed stages and the selected topic, and the saved publish times remain resume-stable.
+4. Paste the test result before resuming. If the local test fails, stop and report the failure rather than retrying production.
+
