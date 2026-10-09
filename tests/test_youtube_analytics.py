@@ -118,7 +118,7 @@ def test_ingest_metrics_updates_matching_history(tmp_path):
     history = tmp_path / "history.json"
     save_history([entry("video1", "Percentages"), entry("video2", "Ratios")], history)
     analytics = FakeAnalytics(
-        response([["video1", "120", "40.5", "95", "70.5", "12", "3", "4"]])
+        response([["video1", "120", "110", "40.5", "95", "70.5", "12", "3", "4"]])
     )
 
     updated = youtube_analytics.ingest_metrics(
@@ -303,7 +303,7 @@ def test_fetch_video_statistics_uses_current_data_api_counters():
         "likes": 9,
         "comments": 2,
         "privacyStatus": "public",
-        "publishAt": null,
+        "publishAt": None,
     }
     assert youtube.videos_api.calls == [
         {"part": "snippet,statistics,status", "id": "video1"}
@@ -337,7 +337,18 @@ def test_snapshot_uses_current_counters_and_does_not_write_history(tmp_path):
                 {"id": "video1", "snippet": {"title": "Syllogism Practice", "publishedAt": "2026-10-08T00:00:00Z"}, "statistics": {"viewCount": "120"}, "status": {"privacyStatus": "public"}},
                 {"id": "video2", "snippet": {"publishedAt": "2026-10-08T12:00:00Z"}, "statistics": {"viewCount": "60"}},
             ]
-        }
+        },
+        channel_body={
+            "items": [
+                {"contentDetails": {"relatedPlaylists": {"uploads": "UUuploads"}}}
+            ]
+        },
+        playlist_body={
+            "items": [
+                {"contentDetails": {"videoId": "video1"}},
+                {"contentDetails": {"videoId": "video2"}},
+            ]
+        },
     )
     analytics = FakeAnalytics(
         response(
