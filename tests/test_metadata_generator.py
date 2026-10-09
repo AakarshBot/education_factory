@@ -58,6 +58,8 @@ def response_payload(**overrides):
 
 
 def patch(monkeypatch, body, status=200):
+    monkeypatch.setattr(metadata_generator, "validate_config", lambda **_: None)
+
     class Response:
         status_code = status
         text = "error"
