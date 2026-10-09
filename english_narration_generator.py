@@ -126,27 +126,17 @@ def _validate_content_fidelity(source: list[str], translated: list[str]) -> None
 
 
 
-def generate_english_narration_segments(
-    segments: list[str],
+def _request_translation(
+    masked_segments: list[str],
     *,
-    source_language: str = "Hinglish",
+    source_language: str,
+    correction_feedback: str | None = None,
 ) -> list[str]:
-    if not segments:
-        raise ValueError("segments must not be empty")
-    if any(not isinstance(segment, str) or not segment.strip() for segment in segments):
-        raise ValueError("segments must contain only non-empty strings")
-    if not source_language.strip():
-        raise ValueError("source_language must not be empty")
-
-    validate_config(require_gemini=True)
-
-    masked_segments, replacements = _mask_segments(segments)
-
     prompt = f"""
 Translate the following narration segments from {source_language} into natural, clear English for an Indian competitive-exam education video.
 
 Rules:
-- Return exactly {len(segments)} segments in exactly the same order.
+- Return exactly {len(masked_segments)} segments in exactly the same order.
 - Preserve every question, option, answer, mathematical value, fact, and instruction.
 - Do not add, remove, combine, split, or reinterpret information.
 - Keep every protected token such as [[NUMBER_A]], [[ANSWER_B]], or [[OPTIONS_C]] exactly unchanged, including brackets, spelling, and order.
@@ -160,93 +150,154 @@ Rules:
 Source narration:
 {json.dumps(masked_segments, ensure_ascii=False)}
 """.strip()
+    if correction_feedback:
+        prompt += "\n\n" + correction_feedback
 
-    validation_error = None
-    for validation_attempt in range(2):
-        attempt_prompt = prompt
-        if validation_error:
-            attempt_prompt += (
-                "\n\nCORRECTION REQUIRED: The previous response failed validation: "
-                f"{validation_error}.\n"
-                "Translate the original source again. Preserve every protected token "
-                "exactly once, unchanged and in its original order. Do not add, remove, "
-                "duplicate, rename, spell out, or reorder any protected token. "
-                "Return only the required JSON object."
-            )
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": (
+                        "You are an educational localization engine. "
+                        "Translate faithfully without changing facts, answers, numbers, ordering, "
+                        "or instructional structure."
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseFormat": {
+                "text": {
+                    "mimeType": "APPLICATION_JSON",
+                    "schema": _RESPONSE_SCHEMA,
+                }
+            },
+        },
+    }
 
-        payload = {
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": (
-                            "You are an educational localization engine. "
-                            "Translate faithfully without changing facts, answers, numbers, ordering, "
-                            "or instructional structure."
-                        )
-                    }
+    response = None
+    for attempt, delay in enumerate((0, 1, 2, 4)):
+        if delay:
+            time.sleep(delay)
+        response = requests.post(
+            _GEMINI_URL.format(model=GEMINI_MODEL),
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=60,
+        )
+        if response.status_code not in {429, 503} or attempt == 3:
+            break
+
+    assert response is not None
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"English narration generation failed ({response.status_code}): "
+            f"{response.text[:500]}"
+        )
+
+    try:
+        body = response.json()
+        text = body["candidates"][0]["content"]["parts"][0]["text"]
+        data = json.loads(text)
+        translated = data["segments"]
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "Gemini returned an invalid structured English narration response"
+        ) from exc
+
+    if (
+        not isinstance(translated, list)
+        or len(translated) != len(masked_segments)
+        or any(not isinstance(segment, str) or not segment.strip() for segment in translated)
+    ):
+        raise RuntimeError(
+            "English narration must contain exactly one non-empty segment per source segment"
+        )
+
+    return [segment.strip() for segment in translated]
+
+
+def _invalid_protected_token_indices(
+    translated: list[str],
+    replacements: list[list[tuple[str, str]]],
+) -> list[int]:
+    invalid = []
+    for index, (segment, segment_replacements) in enumerate(zip(translated, replacements)):
+        expected = [placeholder for placeholder, _ in segment_replacements]
+        found = _PROTECTED_TOKEN_PATTERN.findall(segment)
+        if found != expected:
+            invalid.append(index)
+    return invalid
+
+
+def generate_english_narration_segments(
+    segments: list[str],
+    *,
+    source_language: str = "Hinglish",
+) -> list[str]:
+    if not segments:
+        raise ValueError("segments must not be empty")
+    if any(not isinstance(segment, str) or not segment.strip() for segment in segments):
+        raise ValueError("segments must contain only non-empty strings")
+    if not source_language.strip():
+        raise ValueError("source_language must not be empty")
+
+    validate_config(require_gemini=True)
+    masked_segments, replacements = _mask_segments(segments)
+    translated = _request_translation(
+        masked_segments,
+        source_language=source_language,
+    )
+
+    try:
+        restored = _restore_invariants(translated, replacements)
+        _validate_content_fidelity(segments, restored)
+        return restored
+    except RuntimeError as exc:
+        invalid_indices = _invalid_protected_token_indices(translated, replacements)
+        if invalid_indices:
+            repair_indices = invalid_indices
+            repair_segments = [masked_segments[index] for index in repair_indices]
+            feedback_parts = [
+                "CORRECTION REQUIRED: The previous response failed validation. "
+                "Repair only the source segments listed below. Preserve each required "
+                "protected token exactly once and in the exact listed order. Do not "
+                "spell out, rename, omit, duplicate, or reorder any token."
+            ]
+            for index in repair_indices:
+                expected = [
+                    placeholder for placeholder, _ in replacements[index]
                 ]
-            },
-            "contents": [{"parts": [{"text": attempt_prompt}]}],
-            "generationConfig": {
-                "responseFormat": {
-                    "text": {
-                        "mimeType": "APPLICATION_JSON",
-                        "schema": _RESPONSE_SCHEMA,
-                    }
-                },
-            },
-        }
-
-        response = None
-        for attempt, delay in enumerate((0, 1, 2, 4)):
-            if delay:
-                time.sleep(delay)
-            response = requests.post(
-                _GEMINI_URL.format(model=GEMINI_MODEL),
-                headers={
-                    "x-goog-api-key": GEMINI_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=60,
+                feedback_parts.append(
+                    f"Source segment {index + 1}: {masked_segments[index]}\n"
+                    f"Previous response: {translated[index]}\n"
+                    f"Required protected token sequence: {json.dumps(expected)}"
+                )
+            repaired = _request_translation(
+                repair_segments,
+                source_language=source_language,
+                correction_feedback="\n\n".join(feedback_parts),
             )
-            if response.status_code not in {429, 503} or attempt == 3:
-                break
-
-        assert response is not None
-        if response.status_code != 200:
-            raise RuntimeError(
-                f"English narration generation failed ({response.status_code}): "
-                f"{response.text[:500]}"
+            translated = list(translated)
+            for index, value in zip(repair_indices, repaired):
+                translated[index] = value
+        else:
+            feedback = (
+                "CORRECTION REQUIRED: The previous response failed validation: "
+                f"{exc}. Translate the original source again and preserve all protected "
+                "tokens and instructional content exactly. The previous response was:\n"
+                f"{json.dumps(translated, ensure_ascii=False)}"
+            )
+            translated = _request_translation(
+                masked_segments,
+                source_language=source_language,
+                correction_feedback=feedback,
             )
 
-        try:
-            body = response.json()
-            text = body["candidates"][0]["content"]["parts"][0]["text"]
-            data = json.loads(text)
-            translated = data["segments"]
-        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-            raise RuntimeError(
-                "Gemini returned an invalid structured English narration response"
-            ) from exc
-
-        if (
-            not isinstance(translated, list)
-            or len(translated) != len(segments)
-            or any(not isinstance(segment, str) or not segment.strip() for segment in translated)
-        ):
-            raise RuntimeError("English narration must contain exactly one non-empty segment per source segment")
-
-        translated = [segment.strip() for segment in translated]
-        try:
-            translated = _restore_invariants(translated, replacements)
-            _validate_content_fidelity(segments, translated)
-        except RuntimeError as exc:
-            if validation_attempt == 0:
-                validation_error = str(exc)
-                continue
-            raise
-
-        return translated
-
-    raise RuntimeError("English narration localization failed after one corrective attempt")
+        restored = _restore_invariants(translated, replacements)
+        _validate_content_fidelity(segments, restored)
+        return restored
