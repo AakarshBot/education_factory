@@ -270,5 +270,5 @@ def test_generate_english_narration_retries_once_after_protected_token_failure(m
     assert "previous response failed validation" in retry_prompt
     assert "Previous response: The correct answer is sixty." in retry_prompt
     assert "Required protected token sequence" in retry_prompt
-    assert len(calls[1]["json"]["contents"][0]["parts"][0]["text"].split("Source narration:")[1].split("CORRECTION REQUIRED:")[0].strip()) > 0
+    assert "The correct answer is [[ANSWER_A]]." in retry_prompt
 
