@@ -23,7 +23,7 @@ The user should not need to perform backend work for normal production. Manual a
 - The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
 - **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
-- Production should not be changed editorially from the current one-long-form + one-Short sample; the sample remains too small for adaptation.
+- The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
 - The immediate next manual action is to sync the local checkout to main and run the focused preflight pytest command before any factory job; no editorial or analytics-driven strategy change is being made.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
