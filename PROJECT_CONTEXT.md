@@ -1975,21 +1975,32 @@ RuntimeError: English narration changed protected content in segment 19
 
 The failure occurs during English localization, before rendering and upload stages. Do not treat this failed run as a successful production job and do not start a fresh job until the existing run is recovered.
 
+After the first bounded correction retry was committed and the user confirmed the focused tests passed, resuming the same job failed again at the same segment 19. This confirms a whole-batch retry with only generic error feedback did not repair the offending segment reliably.
+
 Root cause class: Gemini returned at least one segment without preserving every protected invariant token exactly and in order. The validator is correct to fail closed; the resilience gap was treating a single model formatting/compliance miss as fatal.
 
-Direct fix committed to `main`:
-- If protected-token restoration or the existing content-fidelity checks fail, retry English localization once using the original masked source and validation error as corrective feedback.
-- The second response must pass the same strict validation. If it fails, the job still aborts before upload. No validation rule was weakened.
-- Added a regression test where the first response drops the protected answer token and the second response preserves it.
+Second localization recovery attempt and focused-segment repair — 2026-10-10
+
+The user's resume of the failed job still failed at protected-content validation in segment 19. The first correction request repeated the entire narration batch and gave only generic feedback, so it could repeat the same error.
+
+New implementation committed to `main`:
+- The initial localization still submits the full segment list in one request.
+- When protected-token validation fails, the factory identifies the specific bad segment(s) and makes one corrective request only for those segments.
+- The repair prompt includes the exact masked source segment, the previous translation, and the required protected-token sequence in order.
+- Corrected segments are put back into their original positions. The entire output then passes the unchanged protected-token restoration and numeric/answer/options fidelity checks.
+- If targeted repair fails, the job still fails closed before upload. The number of corrective model requests is bounded to one repair request for the invalid segment set.
+- General content-fidelity failures without missing/reordered protected tokens retain a single bounded full-batch corrective attempt.
 
 Implementation commits:
-- `6ddb7511b9d7e334ab2c8b4c57fa2def37fe21d8` — bounded corrective retry in English localization.
-- `741d1fe0aa78b50b3bc4f9ee9d1bfd498b2f994e` — regression test for recovery after missing protected token.
+- `2216a10f4f952d3386a14ce63463e6e2ac30002c` — repair only English narration segments with invalid protected tokens.
+- `d8980b29619d7e699a1efff23126548fe1274b8d` — add assertions for targeted repair context.
+- `1d971d53b87e915c391c442d07051d1c52aea6b5` — assert the repair includes the actual masked source.
 
-Validation status: the user synced `main` and confirmed on 2026-10-10 that the focused preflight suite passed. The exact pass count was not included. This clears the local test gate for resuming the failed run.
+Validation status: these latest targeted-repair changes have not yet been run through the local pytest suite. The earlier focused suite passed before this latest change; do not rely on that earlier pass as validation of the new code.
 
-Next action:
-1. The focused preflight suite passed locally per the user's 2026-10-10 confirmation; the exact pass count was not supplied.
-2. Resume the failed English-localization job in `output/jobs/<run-id>/job.json` with `python factory.py --resume "output/jobs/<run-id>/job.json"`. Select the newest manifest whose status is failed and whose failure stage is `english_localization`; do not start a fresh `python factory.py` job. Resume reuses completed stages and the selected topic, and saved publish times remain resume-stable.
-3. Review the complete output after resuming. If another validation failure occurs, stop and diagnose it; do not bypass QA or create a new job.
+Next manual action:
+1. Pull `main`.
+2. Run `python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q`.
+3. Only if tests pass, resume the same failed manifest using `python factory.py --resume "<path-to-the-failed-job.json>"`. Do not start a new `python factory.py` job.
+4. If it still fails, stop and capture the manifest's failure details and the source/previous translated content for segment 19 so the next change is based on the actual payload, not guesswork.
 
