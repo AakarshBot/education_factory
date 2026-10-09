@@ -26,7 +26,11 @@ The user should not need to perform backend work for normal production. Manual a
 - On 2026-10-10, the third production attempt failed during English localization at segment 19, before rendering or upload. The strict invariant check correctly rejected a translation response that did not preserve protected tokens.
 - The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
-- The corrected publishing schedule (10:00 IST long-form, 18:00 IST Short) has passed the focused preflight suite according to the user's confirmation on 2026-10-09. The user will resume this chat at **03:00 IST on 2026-10-10**; begin with `python youtube_analytics.py`, inspect the snapshot for concrete blockers, and then decide whether to run the factory once for the third pair. The intended publication targets are 10:00 IST long-form and 18:00 IST derived Short.
+- The third production attempt failed at the `english_localization` stage with `English narration changed protected content in segment 19`. It stopped before rendering or upload; resume that persisted job rather than creating a new one.
+- English localization now makes one targeted repair request for segment(s) where protected tokens are missing, duplicated, or reordered; the original strict token, numeric, answer, and options checks remain unchanged.
+- Automated validation now runs through GitHub Actions on every push and pull request. The full suite passed at commit `2e036bc8cc43287aa1fe2815bd8b48b9ec6a2954`: **216 passed, 5 warnings** (Python 3.12, Linux). The warnings are non-fatal Pillow deprecations and GitHub's Node 20 action deprecation notice.
+- Do not ask the user to run pytest or diagnose code. The assistant must read the GitHub Actions result, fix any failures in the repository, and rerun CI.
+- The next necessary manual action is to sync `main` locally and resume the failed `output/jobs/*/job.json` manifest whose failure stage is `english_localization`. Do not start a fresh factory job. Keep the publishing targets 10:00 IST long-form and 18:00 IST derived Short.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -1965,42 +1969,47 @@ Day 3 decision (updated late 2026-10-09): no additional production run tonight. 
 
 The user will resume this chat at **03:00 IST** before logging off, not at 08:00. First action: run the read-only analytics snapshot and inspect the second pair's current status. Then use editorial/engineering judgment to decide whether the third pair can safely be produced; do not ask the user to restate the plan. Since the focused suite was confirmed passing and `main` now schedules long-form at 10:00 IST with the derived Short at 18:00 IST, the default plan is one factory run after analytics unless a concrete blocker appears. The local factory itself must still be run by the user in their PowerShell window; provide only the exact necessary command(s) after the snapshot review.
 
-## October 10 localization failure and recovery — 2026-10-10
+## Current engineering and production status — 2026-10-10
 
-The third production run was attempted after the read-only analytics snapshot and failed in `english_narration_generator.py` while restoring protected content:
+### Current production job
+
+The third production attempt failed before rendering or upload at `english_localization`:
 
 ```
 RuntimeError: English narration changed protected content in segment 19
 ```
 
-The failure occurs during English localization, before rendering and upload stages. Do not treat this failed run as a successful production job and do not start a fresh job until the existing run is recovered.
+The original validator was right to reject the model response. The first full-batch corrective retry also failed on resume, so the localization implementation was changed to issue one bounded targeted repair request for only the invalid protected-token segment(s), including the masked source, previous translation, and required token order. Repaired output goes through the same unchanged invariant and content-fidelity checks. Any remaining invalid content fails closed.
 
-After the first bounded correction retry was committed and the user confirmed the focused tests passed, resuming the same job failed again at the same segment 19. This confirms a whole-batch retry with only generic error feedback did not repair the offending segment reliably.
+Resume the saved failed manifest. Do not make a new job and do not weaken QA.
 
-Root cause class: Gemini returned at least one segment without preserving every protected invariant token exactly and in order. The validator is correct to fail closed; the resilience gap was treating a single model formatting/compliance miss as fatal.
+### Automated test ownership
 
-Second localization recovery attempt and focused-segment repair — 2026-10-10
+A repository workflow was added at `.github/workflows/tests.yml`. It runs the complete pytest suite on every push and pull request, installs FFmpeg and required fonts, and cancels superseded runs on the same ref. The user must not be asked to run tests or debug code.
 
-The user's resume of the failed job still failed at protected-content validation in segment 19. The first correction request repeated the entire narration batch and gave only generic feedback, so it could repeat the same error.
+Latest successful full-suite run:
+- Commit: `2e036bc8cc43287aa1fe2815bd8b48b9ec6a2954`
+- Result: **216 passed, 5 warnings**
+- Run: https://github.com/AakarshBot/education_factory/actions/runs/37996941024
+- Coverage includes the targeted English localization repair, factory resume path, production renderer QA, analytics, and scheduled uploader.
+- Warnings were non-fatal Pillow deprecations and GitHub's Node 20 action deprecation notice.
 
-New implementation committed to `main`:
-- The initial localization still submits the full segment list in one request.
-- When protected-token validation fails, the factory identifies the specific bad segment(s) and makes one corrective request only for those segments.
-- The repair prompt includes the exact masked source segment, the previous translation, and the required protected-token sequence in order.
-- Corrected segments are put back into their original positions. The entire output then passes the unchanged protected-token restoration and numeric/answer/options fidelity checks.
-- If targeted repair fails, the job still fails closed before upload. The number of corrective model requests is bounded to one repair request for the invalid segment set.
-- General content-fidelity failures without missing/reordered protected tokens retain a single bounded full-batch corrective attempt.
+Engineering fixes made during CI bring-up:
+- Corrected malformed YouTube uploads-playlist test fixture.
+- Made metadata tests independent of local API secrets.
+- Corrected TTS streaming fixtures to provide mock audio bytes.
+- Installed Noto core fonts in CI for Devanagari rendering.
+- Corrected analytics metric row shape, Python `None` assertion, missing-history return unpacking, and playlist ordering fixture.
+- Made scheduled-upload validation compare against the explicit injected clock, keeping tests deterministic.
+- Added CI concurrency so an older test run is cancelled when newer commits supersede it.
 
-Implementation commits:
-- `2216a10f4f952d3386a14ce63463e6e2ac30002c` — repair only English narration segments with invalid protected tokens.
-- `d8980b29619d7e699a1efff23126548fe1274b8d` — add assertions for targeted repair context.
-- `1d971d53b87e915c391c442d07051d1c52aea6b5` — assert the repair includes the actual masked source.
+### Exact next step
 
-Validation status: these latest targeted-repair changes have not yet been run through the local pytest suite. The earlier focused suite passed before this latest change; do not rely on that earlier pass as validation of the new code.
+The current passing commit includes the production fix and test coverage. The user needs to perform only the local action that requires the installed YouTube OAuth credentials:
 
-Next manual action:
 1. Pull `main`.
-2. Run `python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q`.
-3. Only if tests pass, resume the same failed manifest using `python factory.py --resume "<path-to-the-failed-job.json>"`. Do not start a new `python factory.py` job.
-4. If it still fails, stop and capture the manifest's failure details and the source/previous translated content for segment 19 so the next change is based on the actual payload, not guesswork.
+2. Resume the newest failed manifest with `failure.stage == "english_localization"` using `python factory.py --resume "<manifest path>"`.
+3. Do not rerun pytest locally; CI is responsible for tests.
+4. Review the output: the factory should complete only after rendering, QA, both scheduled uploads, analytics ingestion, and state/backlog completion. If localization still fails, stop; do not create a new job or bypass validation.
 
+Publishing schedule remains **10:00 IST long-form / 18:00 IST Short**. The four currently public videos remain live; available early analytics do not justify deletion or strategic changes.
