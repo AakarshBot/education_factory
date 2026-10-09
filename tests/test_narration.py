@@ -78,6 +78,7 @@ def test_synthesize_speech_with_timing_streams_audio_and_word_boundaries(
     tmp_path,
 ):
     events = [
+        {"type": "audio", "data": b"fake-audio"},
         {"type": "WordBoundary", "offset": 0, "duration": 4_000_000, "text": "Aaj"},
         {"type": "audio", "data": b"aa"},
         {"type": "WordBoundary", "offset": 4_000_000, "duration": 3_000_000, "text": "test"},
