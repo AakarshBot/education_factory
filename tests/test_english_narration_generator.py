@@ -228,3 +228,44 @@ def test_generate_english_narration_allows_language_only_translation(monkeypatch
     ]
     _patch(monkeypatch, source, translated)
     assert english_narration_generator.generate_english_narration_segments(source) == translated
+
+
+def test_generate_english_narration_retries_once_after_protected_token_failure(monkeypatch):
+    source = ["The correct answer is 60."]
+    masked, _ = english_narration_generator._mask_segments(source)
+    responses = [
+        ["The correct answer is sixty."],
+        masked,
+    ]
+    calls = []
+
+    monkeypatch.setattr(english_narration_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(english_narration_generator, "GEMINI_API_KEY", "test-key")
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+        translated = responses.pop(0)
+        return FakeResponse(
+            body={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"segments": translated})}
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(english_narration_generator.requests, "post", fake_post)
+
+    result = english_narration_generator.generate_english_narration_segments(source)
+
+    assert result == source
+    assert len(calls) == 2
+    retry_prompt = calls[1]["json"]["contents"][0]["parts"][0]["text"]
+    assert "CORRECTION REQUIRED" in retry_prompt
+    assert "previous response failed validation" in retry_prompt
+
