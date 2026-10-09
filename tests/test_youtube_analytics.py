@@ -345,8 +345,8 @@ def test_snapshot_uses_current_counters_and_does_not_write_history(tmp_path):
         },
         playlist_body={
             "items": [
-                {"contentDetails": {"videoId": "video1"}},
                 {"contentDetails": {"videoId": "video2"}},
+                {"contentDetails": {"videoId": "video1"}},
             ]
         },
     )
