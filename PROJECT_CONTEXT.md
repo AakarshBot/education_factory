@@ -25,7 +25,7 @@ The user should not need to perform backend work for normal production. Manual a
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
 - The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
-- The immediate next manual action is to sync the local checkout to main and run the focused preflight pytest command before any factory job; no editorial or analytics-driven strategy change is being made.
+- The corrected publishing schedule (10:00 IST long-form, 18:00 IST Short) has passed the focused preflight suite according to the user's confirmation on 2026-10-09. Do not run another production job yet; next action is a read-only analytics snapshot on 2026-10-10 after the second pair has had more exposure.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -1956,6 +1956,6 @@ The actual channel schedule is **10:00 IST long-form / 18:00 IST Short**. The pr
 
 Implementation: `factory.py` now selects the next 10:00 Asia/Kolkata long-form slot and schedules the derived Short 8 hours later at 18:00. Resume stability is preserved: previously recorded publication times remain unchanged. `tests/test_factory.py` now checks the 10:00 slot, rollover to the next day after the slot, and same-day 18:00 Short timing.
 
-Validation status: code and regression tests have been updated, but the repository's focused pytest suite has not yet been run in this session. Do not run another production job until the focused preflight passes after pulling `main`.
+Validation status: the user synced the corrected `main` and confirmed that the focused preflight pytest suite passed on 2026-10-09. The exact pass count was not included in the confirmation. The schedule correction is cleared for future production runs.
 
-Day 3 decision: do not produce another pair yet. Keep the channel strategy and existing videos unchanged, allow the second Short to receive meaningful exposure, then collect a fresh snapshot after the Analytics date range includes 2026-10-09 and metrics have populated.
+Day 3 decision: do not produce another pair on 2026-10-09. Let the second Short and long-form accumulate more exposure, then run `python youtube_analytics.py` on 2026-10-10. Check whether the report includes October 9 and whether engaged views, watch time, average view metrics, and subscribers gained have populated. Keep the existing videos, metadata, and locked strategy unchanged until there is a more meaningful sample.
