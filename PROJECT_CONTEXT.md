@@ -25,7 +25,7 @@ The user should not need to perform backend work for normal production. Manual a
 - The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
 - The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
 - The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
-- The corrected publishing schedule (10:00 IST long-form, 18:00 IST Short) has passed the focused preflight suite according to the user's confirmation on 2026-10-09. Do not run another production job yet; next action is a read-only analytics snapshot on 2026-10-10 after the second pair has had more exposure.
+- The corrected publishing schedule (10:00 IST long-form, 18:00 IST Short) has passed the focused preflight suite according to the user's confirmation on 2026-10-09. The user will resume this chat at **03:00 IST on 2026-10-10**; begin with `python youtube_analytics.py`, inspect the snapshot for concrete blockers, and then decide whether to run the factory once for the third pair. The intended publication targets are 10:00 IST long-form and 18:00 IST derived Short.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
@@ -1958,4 +1958,8 @@ Implementation: `factory.py` now selects the next 10:00 Asia/Kolkata long-form s
 
 Validation status: the user synced the corrected `main` and confirmed that the focused preflight pytest suite passed on 2026-10-09. The exact pass count was not included in the confirmation. The schedule correction is cleared for future production runs.
 
-Day 3 decision: do not produce another pair on 2026-10-09. Let the second Short and long-form accumulate more exposure, then run `python youtube_analytics.py` on 2026-10-10. Check whether the report includes October 9 and whether engaged views, watch time, average view metrics, and subscribers gained have populated. Keep the existing videos, metadata, and locked strategy unchanged until there is a more meaningful sample.
+Day 3 decision (updated late 2026-10-09): no additional production run tonight. At 03:00 IST on 2026-10-10, first run `python youtube_analytics.py` and inspect current counters/visibility. The report may still lag on date-level metrics; missing Analytics metrics alone are not a reason to skip production. If the factory state and existing publishing queue show no concrete blocker, proceed with one new factory run so the third long-form targets 10:00 IST and its Short targets 18:00 IST. Keep the existing videos, metadata, and locked strategy unchanged unless new evidence supports a change.
+
+## October 10 continuation plan — 2026-10-09
+
+The user will resume this chat at **03:00 IST** before logging off, not at 08:00. First action: run the read-only analytics snapshot and inspect the second pair's current status. Then use editorial/engineering judgment to decide whether the third pair can safely be produced; do not ask the user to restate the plan. Since the focused suite was confirmed passing and `main` now schedules long-form at 10:00 IST with the derived Short at 18:00 IST, the default plan is one factory run after analytics unless a concrete blocker appears. The local factory itself must still be run by the user in their PowerShell window; provide only the exact necessary command(s) after the snapshot review.
