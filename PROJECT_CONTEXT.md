@@ -1986,12 +1986,10 @@ Implementation commits:
 - `6ddb7511b9d7e334ab2c8b4c57fa2def37fe21d8` — bounded corrective retry in English localization.
 - `741d1fe0aa78b50b3bc4f9ee9d1bfd498b2f994e` — regression test for recovery after missing protected token.
 
-Validation status: code and regression test are committed, but this environment has not executed the local pytest suite. The user must sync `main` and run the focused preflight suite before retrying production.
+Validation status: the user synced `main` and confirmed on 2026-10-10 that the focused preflight suite passed. The exact pass count was not included. This clears the local test gate for resuming the failed run.
 
 Next action:
-1. Pull `main`.
-2. Run the focused preflight suite:
-   `python -m pytest tests/test_factory.py tests/test_english_narration_generator.py tests/test_lesson_layouts.py tests/test_shorts_renderer.py tests/test_visual_primitives.py tests/test_visual_qa.py -q`
-3. If the suite passes, resume the failed job manifest in `output/jobs/<run-id>/job.json` with `python factory.py --resume "output/jobs/<run-id>/job.json"`. Find the latest manifest whose status is failed and whose failure stage is English localization; do not start a new `python factory.py` job. Resume must reuse completed stages and the selected topic, and the saved publish times remain resume-stable.
-4. Paste the test result before resuming. If the local test fails, stop and report the failure rather than retrying production.
+1. The focused preflight suite passed locally per the user's 2026-10-10 confirmation; the exact pass count was not supplied.
+2. Resume the failed English-localization job in `output/jobs/<run-id>/job.json` with `python factory.py --resume "output/jobs/<run-id>/job.json"`. Select the newest manifest whose status is failed and whose failure stage is `english_localization`; do not start a fresh `python factory.py` job. Resume reuses completed stages and the selected topic, and saved publish times remain resume-stable.
+3. Review the complete output after resuming. If another validation failure occurs, stop and diagnose it; do not bypass QA or create a new job.
 
