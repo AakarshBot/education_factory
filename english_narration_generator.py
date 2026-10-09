@@ -161,70 +161,92 @@ Source narration:
 {json.dumps(masked_segments, ensure_ascii=False)}
 """.strip()
 
-    payload = {
-        "systemInstruction": {
-            "parts": [
-                {
-                    "text": (
-                        "You are an educational localization engine. "
-                        "Translate faithfully without changing facts, answers, numbers, ordering, "
-                        "or instructional structure."
-                    )
-                }
-            ]
-        },
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseFormat": {
-                "text": {
-                    "mimeType": "APPLICATION_JSON",
-                    "schema": _RESPONSE_SCHEMA,
-                }
+    validation_error = None
+    for validation_attempt in range(2):
+        attempt_prompt = prompt
+        if validation_error:
+            attempt_prompt += (
+                "\n\nCORRECTION REQUIRED: The previous response failed validation: "
+                f"{validation_error}.\n"
+                "Translate the original source again. Preserve every protected token "
+                "exactly once, unchanged and in its original order. Do not add, remove, "
+                "duplicate, rename, spell out, or reorder any protected token. "
+                "Return only the required JSON object."
+            )
+
+        payload = {
+            "systemInstruction": {
+                "parts": [
+                    {
+                        "text": (
+                            "You are an educational localization engine. "
+                            "Translate faithfully without changing facts, answers, numbers, ordering, "
+                            "or instructional structure."
+                        )
+                    }
+                ]
             },
-        },
-    }
-
-    response = None
-    for attempt, delay in enumerate((0, 1, 2, 4)):
-        if delay:
-            time.sleep(delay)
-        response = requests.post(
-            _GEMINI_URL.format(model=GEMINI_MODEL),
-            headers={
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json",
+            "contents": [{"parts": [{"text": attempt_prompt}]}],
+            "generationConfig": {
+                "responseFormat": {
+                    "text": {
+                        "mimeType": "APPLICATION_JSON",
+                        "schema": _RESPONSE_SCHEMA,
+                    }
+                },
             },
-            json=payload,
-            timeout=60,
-        )
-        if response.status_code not in {429, 503} or attempt == 3:
-            break
+        }
 
-    assert response is not None
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"English narration generation failed ({response.status_code}): "
-            f"{response.text[:500]}"
-        )
+        response = None
+        for attempt, delay in enumerate((0, 1, 2, 4)):
+            if delay:
+                time.sleep(delay)
+            response = requests.post(
+                _GEMINI_URL.format(model=GEMINI_MODEL),
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=60,
+            )
+            if response.status_code not in {429, 503} or attempt == 3:
+                break
 
-    try:
-        body = response.json()
-        text = body["candidates"][0]["content"]["parts"][0]["text"]
-        data = json.loads(text)
-        translated = data["segments"]
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-        raise RuntimeError(
-            "Gemini returned an invalid structured English narration response"
-        ) from exc
+        assert response is not None
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"English narration generation failed ({response.status_code}): "
+                f"{response.text[:500]}"
+            )
 
-    if (
-        not isinstance(translated, list)
-        or len(translated) != len(segments)
-        or any(not isinstance(segment, str) or not segment.strip() for segment in translated)
-    ):
-        raise RuntimeError("English narration must contain exactly one non-empty segment per source segment")
+        try:
+            body = response.json()
+            text = body["candidates"][0]["content"]["parts"][0]["text"]
+            data = json.loads(text)
+            translated = data["segments"]
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                "Gemini returned an invalid structured English narration response"
+            ) from exc
 
-    translated = [segment.strip() for segment in translated]
-    translated = _restore_invariants(translated, replacements)
-    _validate_content_fidelity(segments, translated)
-    return translated
+        if (
+            not isinstance(translated, list)
+            or len(translated) != len(segments)
+            or any(not isinstance(segment, str) or not segment.strip() for segment in translated)
+        ):
+            raise RuntimeError("English narration must contain exactly one non-empty segment per source segment")
+
+        translated = [segment.strip() for segment in translated]
+        try:
+            translated = _restore_invariants(translated, replacements)
+            _validate_content_fidelity(segments, translated)
+        except RuntimeError as exc:
+            if validation_attempt == 0:
+                validation_error = str(exc)
+                continue
+            raise
+
+        return translated
+
+    raise RuntimeError("English narration localization failed after one corrective attempt")
