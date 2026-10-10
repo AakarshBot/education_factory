@@ -80,6 +80,85 @@ def adaptation(weights=None):
 
 
 
+def test_explicit_editorial_job_normalizes_scope_without_fabricating_a_score():
+    job = factory._explicit_editorial_job(
+        "ssc",
+        "maths",
+        "Percentage and Successive Percentage Change",
+    )
+
+    assert job.exam == "SSC"
+    assert job.subject == "Maths"
+    assert job.topic == "Percentage and Successive Percentage Change"
+    assert job.total_score == 0.0
+    assert job.supporting_signal_indices == ()
+    assert "no automatic demand score" in job.rationale
+
+
+@pytest.mark.parametrize(
+    ("exam", "subject", "topic"),
+    [
+        ("UPSC", "Maths", "Percentages"),
+        ("SSC", "General Knowledge", "Percentages"),
+        ("SSC", "Maths", " "),
+        ("SSC", "Maths", "x" * 121),
+    ],
+)
+def test_explicit_editorial_job_rejects_invalid_scope(exam, subject, topic):
+    with pytest.raises(ValueError):
+        factory._explicit_editorial_job(exam, subject, topic)
+
+
+def test_factory_explicit_topic_override_skips_automatic_demand_selection(
+    monkeypatch,
+    tmp_path,
+):
+    generated = {}
+
+    def fail_if_discovered():
+        pytest.fail("explicit topic override must not run demand discovery")
+
+    def stop_after_question_request(**kwargs):
+        generated.update(kwargs)
+        raise RuntimeError("stop after verifying editorial selection")
+
+    monkeypatch.setattr(factory, "discover_demand", fail_if_discovered)
+    monkeypatch.setattr(factory, "generate_questions", stop_after_question_request)
+
+    with pytest.raises(RuntimeError, match="stop after verifying editorial selection"):
+        factory.run_factory(
+            output_root=tmp_path,
+            history_path=tmp_path / "history.json",
+            backlog_path=tmp_path / "backlog.json",
+            factory_state_path=tmp_path / "factory_state.json",
+            exam_override="ssc",
+            subject_override="maths",
+            topic_override="Percentage and Successive Percentage Change",
+        )
+
+    manifests = list((tmp_path / "jobs").glob("*/job.json"))
+    assert len(manifests) == 1
+    manifest = json.loads(manifests[0].read_text(encoding="utf-8"))
+
+    assert manifest["status"] == "failed"
+    assert manifest["failure"]["stage"] == "questions_generated"
+    assert manifest["stages"]["editorial_selection"]["status"] == "complete"
+    assert manifest["selected"]["selection_mode"] == "explicit_override"
+    assert manifest["selected"]["exam"] == "SSC"
+    assert manifest["selected"]["subject"] == "Maths"
+    assert manifest["selected"]["topic"] == "Percentage and Successive Percentage Change"
+    assert manifest["selected"]["lesson_type"] == "practice"
+    assert "backlog_key" not in manifest["selected"]
+    assert generated == {
+        "exam": "SSC",
+        "subject": "Maths",
+        "topic": "Percentage and Successive Percentage Change",
+        "difficulty": "mixed",
+        "count": 10,
+        "language": "Hinglish",
+    }
+
+
 def test_select_job_applies_topic_family_adaptation():
     class Job:
         def __init__(self, topic, score):
