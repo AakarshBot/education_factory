@@ -220,6 +220,27 @@ def _select_job(
     )
 
 
+def _explicit_editorial_job(exam: str, subject: str, topic: str) -> EditorialJob:
+    exams = {"ssc": "SSC", "banking": "Banking", "railway": "Railway"}
+    subjects = {"maths": "Maths", "reasoning": "Reasoning", "english": "English"}
+    if not isinstance(exam, str) or exam.strip().lower() not in exams:
+        raise ValueError("exam override must be SSC, Banking, or Railway")
+    if not isinstance(subject, str) or subject.strip().lower() not in subjects:
+        raise ValueError("subject override must be Maths, Reasoning, or English")
+    if not isinstance(topic, str) or not topic.strip() or len(topic.strip()) > 120:
+        raise ValueError("topic override must contain 1 to 120 characters")
+
+    return EditorialJob(
+        priority=1,
+        exam=exams[exam.strip().lower()],
+        subject=subjects[subject.strip().lower()],
+        topic=topic.strip(),
+        total_score=0.0,
+        supporting_signal_indices=(),
+        rationale="Explicit editorial override; no automatic demand score was assigned.",
+    )
+
+
 def _job_from_manifest(manifest: JobManifest) -> EditorialJob:
     selected = manifest.selected
     try:
@@ -314,8 +335,21 @@ def run_factory(
     backlog_path: str | Path = DEFAULT_BACKLOG_FILE,
     factory_state_path: str | Path = DEFAULT_STATE_FILE,
     runs_per_day: int = 2,
+    exam_override: str | None = None,
+    subject_override: str | None = None,
+    topic_override: str | None = None,
     resume: str | Path | None = None,
 ) -> Lesson:
+    overrides = (exam_override, subject_override, topic_override)
+    if any(value is not None for value in overrides) and not all(
+        value is not None for value in overrides
+    ):
+        raise ValueError(
+            "exam_override, subject_override, and topic_override must be supplied together"
+        )
+    if resume is not None and any(value is not None for value in overrides):
+        raise ValueError("topic overrides are saved in the manifest and cannot be passed with resume")
+
     if resume is None:
         if max_jobs < 1:
             raise ValueError("max_jobs must be at least 1")
@@ -339,6 +373,9 @@ def run_factory(
             "backlog_path": str(Path(backlog_path).resolve()),
             "factory_state_path": str(Path(factory_state_path).resolve()),
             "runs_per_day": runs_per_day,
+            "exam_override": exam_override,
+            "subject_override": subject_override,
+            "topic_override": topic_override,
         }
         manifest.save()
     else:
@@ -358,6 +395,14 @@ def run_factory(
         backlog_path = config.get("backlog_path", backlog_path)
         factory_state_path = config.get("factory_state_path", factory_state_path)
         runs_per_day = int(config.get("runs_per_day", runs_per_day))
+        exam_override = config.get("exam_override")
+        subject_override = config.get("subject_override")
+        topic_override = config.get("topic_override")
+        restored_overrides = (exam_override, subject_override, topic_override)
+        if any(value is not None for value in restored_overrides) and not all(
+            value is not None for value in restored_overrides
+        ):
+            raise RuntimeError("resume manifest contains an incomplete topic override")
         validate_runs_per_day(runs_per_day)
 
     current_stage = "initialization"
@@ -372,68 +417,91 @@ def run_factory(
             lesson_type = str(manifest.selected["lesson_type"])
         else:
             current_stage = "editorial_selection"
-            history = load_history(history_file)
-            formats = analyze_formats(history)
-            subjects = analyze_subjects(history)
-            families = analyze_topic_families(history)
-            adaptation = build_editorial_adaptation(formats, subjects, families)
-
-            backlog_file = Path(backlog_path)
-            backlog = release_stale_claims(load_backlog(backlog_file))
-            recent_topics = recent_topic_keys(history)
-            backlog = [
-                entry
-                for entry in backlog
-                if entry.key not in recent_topics
-            ]
-
-            pending_count = len(pending_jobs(backlog))
-            if pending_count < max_jobs:
-                signals = discover_demand()
-                scores = score_topics(
-                    signals,
-                    recent_titles=tuple(
-                        entry.title for entry in history if entry.title.strip()
-                    ),
-                    language=language,
+            if exam_override is not None:
+                job = _explicit_editorial_job(
+                    exam_override,
+                    subject_override,
+                    topic_override,
                 )
-                jobs = build_editorial_queue(
-                    scores,
-                    max_jobs=max_jobs - pending_count,
-                    history=history,
+                lesson_type = "practice"
+                manifest.selected.update(
+                    {
+                        "priority": job.priority,
+                        "exam": job.exam,
+                        "subject": job.subject,
+                        "topic": job.topic,
+                        "total_score": job.total_score,
+                        "supporting_signal_indices": [],
+                        "rationale": job.rationale,
+                        "lesson_type": lesson_type,
+                        "selection_mode": "explicit_override",
+                    }
                 )
-                backlog = merge_jobs(backlog, jobs)
+                manifest.checkpoint("editorial_selection")
+            else:
+                history = load_history(history_file)
+                formats = analyze_formats(history)
+                subjects = analyze_subjects(history)
+                families = analyze_topic_families(history)
+                adaptation = build_editorial_adaptation(formats, subjects, families)
 
-            jobs = pending_jobs(backlog)
-            job = _select_job(jobs, adaptation, tuple(families))
-            backlog = claim_job(
-                backlog,
-                job,
-                run_id=manifest.run_id,
-            )
-            save_backlog(backlog, backlog_file)
+                backlog_file = Path(backlog_path)
+                backlog = release_stale_claims(load_backlog(backlog_file))
+                recent_topics = recent_topic_keys(history)
+                backlog = [
+                    entry
+                    for entry in backlog
+                    if entry.key not in recent_topics
+                ]
 
-            lesson_type = _select_lesson_type(adaptation)
-            manifest.selected.update(
-                {
-                    "priority": job.priority,
-                    "exam": job.exam,
-                    "subject": job.subject,
-                    "topic": job.topic,
-                    "total_score": job.total_score,
-                    "supporting_signal_indices": list(job.supporting_signal_indices),
-                    "rationale": job.rationale,
-                    "lesson_type": lesson_type,
-                    "backlog_key": list(
-                        (
-                            job.exam.strip().lower(),
-                            job.subject.strip().lower(),
-                            job.topic.strip().lower(),
-                        )
-                    ),
-                }
-            )
-            manifest.checkpoint("editorial_selection")
+                pending_count = len(pending_jobs(backlog))
+                if pending_count < max_jobs:
+                    signals = discover_demand()
+                    scores = score_topics(
+                        signals,
+                        recent_titles=tuple(
+                            entry.title for entry in history if entry.title.strip()
+                        ),
+                        language=language,
+                    )
+                    jobs = build_editorial_queue(
+                        scores,
+                        max_jobs=max_jobs - pending_count,
+                        history=history,
+                    )
+                    backlog = merge_jobs(backlog, jobs)
+
+                jobs = pending_jobs(backlog)
+                job = _select_job(jobs, adaptation, tuple(families))
+                backlog = claim_job(
+                    backlog,
+                    job,
+                    run_id=manifest.run_id,
+                )
+                save_backlog(backlog, backlog_file)
+
+                lesson_type = _select_lesson_type(adaptation)
+                manifest.selected.update(
+                    {
+                        "priority": job.priority,
+                        "exam": job.exam,
+                        "subject": job.subject,
+                        "topic": job.topic,
+                        "total_score": job.total_score,
+                        "supporting_signal_indices": list(job.supporting_signal_indices),
+                        "rationale": job.rationale,
+                        "lesson_type": lesson_type,
+                        "backlog_key": list(
+                            (
+                                job.exam.strip().lower(),
+                                job.subject.strip().lower(),
+                                job.topic.strip().lower(),
+                            )
+                        ),
+                    }
+                )
+                manifest.checkpoint("editorial_selection")
+
 
         long_publish_at, short_publish_at = _record_publish_times(
             manifest,
@@ -940,6 +1008,9 @@ def main() -> None:
     parser.add_argument("--backlog-path", default=str(DEFAULT_BACKLOG_FILE))
     parser.add_argument("--factory-state-path", default=str(DEFAULT_STATE_FILE))
     parser.add_argument("--runs-per-day", type=int, choices=(1, 2), default=2)
+    parser.add_argument("--exam-override", choices=("SSC", "Banking", "Railway"), default=None)
+    parser.add_argument("--subject-override", choices=("Maths", "Reasoning", "English"), default=None)
+    parser.add_argument("--topic-override", default=None)
     parser.add_argument("--resume", default=None)
     args = parser.parse_args()
 
@@ -954,6 +1025,9 @@ def main() -> None:
         backlog_path=args.backlog_path,
         factory_state_path=args.factory_state_path,
         runs_per_day=args.runs_per_day,
+        exam_override=args.exam_override,
+        subject_override=args.subject_override,
+        topic_override=args.topic_override,
         resume=args.resume,
     )
     print(f"Completed: {lesson.title}")
