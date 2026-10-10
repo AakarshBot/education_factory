@@ -14,23 +14,23 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
-### Current live state — 2026-10-10
+### Current live state — 2026-10-11
 
-- **This is ChatGPT's channel and factory.**
-- The real YouTube channel is **Exam Session India (@examsessionindia)**.
-- The first two long-form/Short pairs are real public launch assets. The corrected publishing slots are **10:00 IST for long-form and 18:00 IST for the derived Short** (8-hour spacing).
+- **This is ChatGPT's channel and factory.** The real YouTube channel is **Exam Session India (@examsessionindia)**.
+- The intended publishing slots remain **10:00 IST for long-form and 18:00 IST for the derived Short** (8-hour spacing).
 - YouTube OAuth, the YouTube Data API, and the YouTube Analytics API are operational through the existing factory authentication path.
-- The existing local `data/channel_history.json` is the production ledger for videos created by the factory.
-- **New in this step:** `python youtube_analytics.py` is the direct, read-only live-performance snapshot command. It uses current YouTube Data API counters for views/likes/comments and YouTube Analytics metrics for engaged views, watch time, average view metrics, and subscribers gained; it also reports publication age and views/hour.
-- The snapshot command does **not** write to channel history, change production state, or alter editorial decisions.
-- On 2026-10-10, the third production attempt failed during English localization at segment 19, before rendering or upload. The strict invariant check correctly rejected a translation response that did not preserve protected tokens.
-- The current public sample is two long-form videos plus two derived Shorts. It is still too small for reliable editorial adaptation; do not delete or repackage videos from these early view counts alone.
-- The fresh-render audit is now complete. The current main renderer satisfies the existing visual edge-QA contract, and regression coverage now exercises the production long-form scenes plus rendered Short scenes.
-- The third production attempt failed at the `english_localization` stage with `English narration changed protected content in segment 19`. It stopped before rendering or upload; resume that persisted job rather than creating a new one.
-- English localization now makes one targeted repair request for segment(s) where protected tokens are missing, duplicated, or reordered; the original strict token, numeric, answer, and options checks remain unchanged.
-- Automated validation now runs through GitHub Actions on every push and pull request. The full suite passed at commit `2e036bc8cc43287aa1fe2815bd8b48b9ec6a2954`: **216 passed, 5 warnings** (Python 3.12, Linux). The warnings are non-fatal Pillow deprecations and GitHub's Node 20 action deprecation notice.
-- Do not ask the user to run pytest or diagnose code. The assistant must read the GitHub Actions result, fix any failures in the repository, and rerun CI.
-- The next necessary manual action is to sync `main` locally and resume the failed `output/jobs/*/job.json` manifest whose failure stage is `english_localization`. Do not start a fresh factory job. Keep the publishing targets 10:00 IST long-form and 18:00 IST derived Short.
+- `data/channel_history.json` is the local production ledger; `python youtube_analytics.py` is the read-only snapshot for current Data API counters and Analytics metrics.
+- Latest GitHub Actions run #13, commit `b808a998370e2d1d1deefccdc140f5e431d2aee0`, completed successfully. The full suite previously passed **216 tests, 5 non-fatal warnings**; do not ask the user to run tests or debug code.
+- Public uploads confirmed by the 2026-10-11 local analytics snapshot:
+  - Long-form: Railway Maths — Mean, Mode, and Median (5 views at age 17.4h); Railway Reasoning — Direction and Distance (1 view at age 41.4h); Banking Reasoning — Syllogism (4 views at age 69.3h).
+  - Shorts: Mean/Mode/Median (19 views at age 9.4h); Direction and Distance (50 views at age 33.4h); Syllogism (75 views at age 55.4h).
+  - These are very small early samples; do not delete/repackage content or make strong editorial conclusions from views alone. Analytics requested through 2026-10-09, so newer videos do not yet have complete watch-time/retention data.
+- The 2026-10-10 Railway Maths long-form and derived Short are confirmed public. No duplicate production run is needed for that pair.
+- Local job manifest `output/jobs/20261009-182244-594642/job.json` remains marked `running`, created 2026-10-09, selected topic Banking English — Cloze Test. It has completed only editorial selection and question generation; no uploads are recorded. Its stored publish times (`2026-10-10T18:00:00+05:30` and `2026-10-11T06:00:00+05:30`) are stale. Before resuming, update these stored times to the next upcoming 10:00 IST long-form slot and 18:00 IST Short slot, then resume this existing manifest. Do not start a new job first.
+- Analytics reports two historical video IDs absent from the channel uploads list (`NPkGnNH8y3Q`, `xHY_pW9e2MM`). A local PowerShell filter for those IDs returned no matching rows, so the discrepancy remains unresolved; investigate without assuming they are still public. Do not let this alone trigger deletion or re-upload.
+- The old notes claiming the third production attempt is still awaiting manual recovery are outdated: the job `20261010-025139-752809` for Railway Maths — Mean, Mode, and Median completed successfully, and its public pair is verified.
+- English localization has a targeted repair for protected-token issues. Visual identity uses the soft warm ivory/sage palette with deterministic instructional visuals.
+- Next step: safely refresh the stale schedule fields on the existing Cloze Test job and resume it. Then verify upload IDs/publication scheduling and update this context again with actual results.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
