@@ -211,6 +211,17 @@ def test_startup_recovery_closes_stale_job_and_removes_only_its_claim(tmp_path, 
     assert "closed 1 abandoned job(s)" in capsys.readouterr().out
 
 
+def test_factory_refuses_to_resume_cancelled_job(tmp_path):
+    manifest_path = tmp_path / "jobs" / "cancelled-run" / "job.json"
+    manifest = factory.new_manifest(manifest_path, "cancelled-run")
+    manifest.selected["run_config"] = {"max_jobs": 10}
+    manifest.save()
+    manifest.fail("editorial_cancellation", RuntimeError("cancelled by editorial decision"))
+
+    with pytest.raises(RuntimeError, match="cancelled or automatically closed"):
+        factory.run_factory(resume=manifest_path)
+
+
 def test_startup_recovery_returns_recent_failed_job_for_automatic_resume(tmp_path):
     now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
     manifest_path = tmp_path / "output" / "jobs" / "retry-run" / "job.json"

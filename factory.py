@@ -520,6 +520,10 @@ def run_factory(
         manifest.save()
     else:
         manifest = load_manifest(resume)
+        if (manifest.failure or {}).get("stage") in _CANCELLED_FAILURE_STAGES:
+            raise RuntimeError(
+                "This job was cancelled or automatically closed and cannot be resumed."
+            )
         if manifest.status == "complete":
             return Lesson.from_dict(read_json(_stored_output(manifest, "lesson")))
 
