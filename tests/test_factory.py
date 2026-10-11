@@ -2,7 +2,7 @@ import json
 import math
 import struct
 import wave
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -13,6 +13,8 @@ from lesson import Lesson, LessonSegment
 from metadata_generator import VideoMetadata
 from topic_family_analysis import TopicFamilyPerformance
 from question import Question
+from editorial_queue import EditorialJob
+from production_backlog import claim_job, load_backlog, merge_jobs, save_backlog
 
 
 def question():
@@ -157,6 +159,104 @@ def test_factory_explicit_topic_override_skips_automatic_demand_selection(
         "count": 10,
         "language": "Hinglish",
     }
+
+
+def _recovery_job(topic):
+    return EditorialJob(
+        priority=1,
+        exam="SSC",
+        subject="Maths",
+        topic=topic,
+        total_score=90.0,
+        supporting_signal_indices=(),
+        rationale="test recovery queue item",
+    )
+
+
+def test_startup_recovery_closes_stale_job_and_removes_only_its_claim(tmp_path, capsys):
+    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
+    created = now - timedelta(hours=8)
+    output_root = tmp_path / "output"
+    manifest_path = output_root / "jobs" / "old-run" / "job.json"
+    manifest = factory.new_manifest(manifest_path, "old-run")
+    manifest.created_at = created.isoformat()
+    manifest.selected["run_config"] = {"max_jobs": 10}
+    manifest.selected["backlog_key"] = ["ssc", "maths", "percentages"]
+    manifest.save()
+
+    percentages = _recovery_job("Percentages")
+    ratio = _recovery_job("Ratio")
+    entries = merge_jobs([], [percentages, ratio], now=created)
+    entries = claim_job(entries, percentages, run_id="old-run", now=created)
+    entries = claim_job(entries, ratio, run_id="keep-run", now=created)
+    backlog_path = tmp_path / "backlog.json"
+    save_backlog(entries, backlog_path)
+
+    recovery = factory._recover_interrupted_jobs(
+        output_root,
+        backlog_path,
+        now=now,
+        max_age_hours=6,
+    )
+
+    assert recovery is None
+    saved = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert saved["status"] == "failed"
+    assert saved["failure"]["stage"] == "automatic_stale_cleanup"
+    assert saved["stages"]["automatic_stale_cleanup"]["status"] == "complete"
+    remaining = load_backlog(backlog_path)
+    assert len(remaining) == 1
+    assert remaining[0].topic == "Ratio"
+    assert remaining[0].claimed_run_id == "keep-run"
+    assert "closed 1 abandoned job(s)" in capsys.readouterr().out
+
+
+def test_startup_recovery_returns_recent_failed_job_for_automatic_resume(tmp_path):
+    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
+    manifest_path = tmp_path / "output" / "jobs" / "retry-run" / "job.json"
+    manifest = factory.new_manifest(manifest_path, "retry-run")
+    manifest.created_at = (now - timedelta(hours=1)).isoformat()
+    manifest.selected["run_config"] = {"max_jobs": 10}
+    manifest.save()
+    manifest.fail("long_render", RuntimeError("temporary render failure"))
+
+    recovery = factory._recover_interrupted_jobs(
+        tmp_path / "output",
+        tmp_path / "backlog.json",
+        now=now,
+        max_age_hours=6,
+    )
+
+    assert recovery == manifest_path
+    saved = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert saved["status"] == "failed"
+    assert saved["failure"]["stage"] == "long_render"
+
+
+def test_startup_recovery_never_resumes_cancelled_job_and_clears_its_claim(tmp_path):
+    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
+    manifest_path = tmp_path / "output" / "jobs" / "cancelled-run" / "job.json"
+    manifest = factory.new_manifest(manifest_path, "cancelled-run")
+    manifest.created_at = (now - timedelta(hours=1)).isoformat()
+    manifest.selected["run_config"] = {"max_jobs": 10}
+    manifest.save()
+    manifest.fail("editorial_cancellation", RuntimeError("cancelled by editorial decision"))
+
+    entry_job = _recovery_job("Cloze Test")
+    entries = merge_jobs([], [entry_job], now=now)
+    entries = claim_job(entries, entry_job, run_id="cancelled-run", now=now)
+    backlog_path = tmp_path / "backlog.json"
+    save_backlog(entries, backlog_path)
+
+    recovery = factory._recover_interrupted_jobs(
+        tmp_path / "output",
+        backlog_path,
+        now=now,
+        max_age_hours=6,
+    )
+
+    assert recovery is None
+    assert load_backlog(backlog_path) == []
 
 
 def test_select_job_applies_topic_family_adaptation():

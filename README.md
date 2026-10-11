@@ -29,15 +29,14 @@ No speculative wrappers, compatibility layers, duplicate pipelines, placeholder 
 
 The project context is the source of truth for the current build state and exact next step.
 
-## Current state — 2026-10-10
+## Current state — 2026-10-12
 
 - **Live channel:** Exam Session India (@examsessionindia).
-- YouTube OAuth, Data API uploads, and Analytics API access are operational through the existing factory authentication path.
-- Two public long-form/Short pairs have been produced. The latest lesson is Railway Reasoning — Direction and Distance: Practice.
-- Read-only analytics snapshot: `python youtube_analytics.py`.
-- **Publishing schedule:** long-form at 10:00 IST, derived Short at 18:00 IST (8 hours later).
-- The third production job is saved as failed at English localization (segment 19); it stopped before rendering/upload. Resume that same manifest after syncing `main`; do not start a new factory job.
-- English localization now performs a single targeted repair request for invalid protected-token segments, then applies the same strict invariant checks.
-- Automated GitHub Actions testing is live. The full suite passed at commit `2e036bc8cc43287aa1fe2815bd8b48b9ec6a2954`: **216 passed, 5 warnings**. Check [Actions](https://github.com/AakarshBot/education_factory/actions) for current validation; do not ask the user to run tests.
-- The early four-video sample is too small to justify deleting videos, changing metadata, or altering the locked India-first SSC/Banking/Railway educational strategy.
-- The native Shorts “Related Video” control is not exposed by the YouTube Data API, so no undocumented automation was added.
+- YouTube OAuth, Data API uploads, and Analytics API access are operational.
+- Publishing schedule: long-form at 10:00 IST, derived Short at 18:00 IST (8 hours later).
+- Latest complete production run: SSC Reasoning — Coding-Decoding: Alphabet Shifts and Position Patterns. Both uploads are scheduled; manifest: `output/jobs/20261012-015646-925002/job.json`.
+- **Normal operation:** run `python factory.py`. On startup, the factory automatically resumes a recent recoverable job, closes abandoned incomplete jobs older than six hours, and removes only backlog claims belonging to those abandoned runs. An intentionally cancelled job is never resumed. No manual manifest scan, `--resume`, analytics command, or local pytest run is part of routine operation.
+- Analytics ingestion runs as a factory stage. Scheduled videos should be checked by the next normal production run after their release slots; do not launch a second run just to inspect publication status.
+- Latest verified CI before the startup-recovery change passed at commit `e054d0502966130db392f164c35ca40c5518f850`, run #21: https://github.com/AakarshBot/education_factory/actions/runs/38173350390. The startup-recovery change is being validated by CI.
+- The early video sample is too small to justify deleting videos, changing metadata, or altering the locked India-first SSC/Banking/Railway educational strategy.
+- Native Shorts “Related Video” controls are not exposed by the YouTube Data API; no undocumented automation is used.
