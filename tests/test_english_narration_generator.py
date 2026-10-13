@@ -45,6 +45,13 @@ def _patch(monkeypatch, source, translated):
     monkeypatch.setattr(english_narration_generator.requests, "post", fake_post)
 
 
+def test_validation_error_parser_targets_reported_segment():
+    assert english_narration_generator._validation_segment_indices(
+        RuntimeError("English narration changed protected content in segment 5"),
+        8,
+    ) == [4]
+
+
 def test_generate_english_narration_preserves_segment_count_and_order(monkeypatch):
     source = [
         "Question 1. 25% of 240 is? Options: A. 60 B. 70 C. 80 D. 90.",

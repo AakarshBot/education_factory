@@ -235,7 +235,7 @@ def _invalid_protected_token_indices(
 
 
 def _validation_segment_indices(error: RuntimeError, segment_count: int) -> list[int]:
-    match = re.search(r"segment (\\d+)", str(error), re.IGNORECASE)
+    match = re.search(r"segment (\d+)", str(error), re.IGNORECASE)
     if match:
         index = int(match.group(1)) - 1
         if 0 <= index < segment_count:
@@ -299,15 +299,15 @@ def generate_english_narration_segments(
                     placeholder for placeholder, _ in replacements[index]
                 ]
                 feedback_parts.append(
-                    f"Source segment {index + 1}: {masked_segments[index]}\\n"
-                    f"Previous response: {translated[index]}\\n"
-                    f"Validation error: {exc}\\n"
+                    f"Source segment {index + 1}: {masked_segments[index]}\n"
+                    f"Previous response: {translated[index]}\n"
+                    f"Validation error: {exc}\n"
                     f"Required protected token sequence: {json.dumps(expected)}"
                 )
             repaired = _request_translation(
                 repair_segments,
                 source_language=source_language,
-                correction_feedback="\\n\\n".join(feedback_parts),
+                correction_feedback="\n\n".join(feedback_parts),
             )
             translated = list(translated)
             for index, value in zip(repair_indices, repaired):
