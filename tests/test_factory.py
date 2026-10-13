@@ -531,6 +531,18 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     }
 
 
+def test_post_run_analytics_failure_does_not_fail_completed_production(monkeypatch, tmp_path, capsys):
+    def fail_snapshot(**kwargs):
+        raise RuntimeError("analytics unavailable")
+
+    monkeypatch.setattr(factory, "print_snapshot", fail_snapshot)
+    factory._print_post_run_analytics(tmp_path / "history.json")
+
+    output = capsys.readouterr().out
+    assert "analytics unavailable" in output
+    assert "Production is complete; do not rerun this job." in output
+
+
 def _write_test_audio(path: Path, duration: float = 1.0) -> None:
     rate = 8000
     frames = int(rate * duration)

@@ -108,8 +108,11 @@ Output language: {language}
 Use ONLY these supplied facts:
 {json.dumps(facts, ensure_ascii=False)}
 
-Return exactly 5 distinct title candidates. The first title must be the strongest overall choice.
-Titles should be concise, specific, useful to the intended Indian competitive-exam audience, and normally around 45-65 characters when practical. They must describe what the video actually teaches or practices.
+Return exactly 5 meaningfully different title candidates for two placements. Do not create five near-duplicates by merely rearranging words.
+- Candidate 1 is the primary long-form title and should be the strongest overall choice: lead with the clearest exam/topic search phrase, then make the practice or learning payoff explicit.
+- Candidate 2 is reserved for the derived YouTube Short. The Short uses one question cycle from this lesson, so make this title a concise, truthful challenge or pattern-focused hook. Do not imply that the Short contains all questions from the full lesson or claim a specific letter sequence/answer that is not in the supplied facts.
+- Candidates 3-5 are genuinely different alternatives, exploring distinct supported angles such as direct search intent, solving with explanations, a question challenge, or a concept/method focus when the facts support it.
+Titles should be concise, specific, useful to the intended Indian competitive-exam audience, and normally around 45-65 characters when practical. Include the exam and exact topic naturally; include the question count only when it helps distinguish the full lesson. Avoid generic "Practice Questions" wording as the whole value proposition.
 Do not use fake urgency, guaranteed results, "100% sure", exaggerated claims, or unrelated trending terms.
 
 Write one unique description that explains what the viewer will practice or learn and naturally includes the exam, subject, and topic. Keep it useful rather than keyword-stuffed.

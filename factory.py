@@ -37,7 +37,7 @@ from shorts_renderer import render_short
 from subject_analysis import analyze_subjects
 from topic_family_analysis import TopicFamilyPerformance, analyze_topic_families
 from topic_scorer import score_topics
-from youtube_analytics import ingest_metrics
+from youtube_analytics import ingest_metrics, print_snapshot
 from youtube_auth import get_youtube_client
 from production_backlog import (
     DEFAULT_BACKLOG_FILE,
@@ -437,6 +437,19 @@ def _next_publish_time(now: datetime) -> datetime:
     if candidate <= local_now:
         candidate += timedelta(days=1)
     return candidate
+
+
+def _print_post_run_analytics(history_path: str | Path) -> None:
+    """Print a read-only channel performance snapshot after production completes."""
+    print("\\n=== Post-run YouTube snapshot (latest 10 uploads) ===")
+    try:
+        print_snapshot(history_path=history_path, limit=10)
+    except Exception as exc:
+        # A reporting failure must never turn a completed upload into a failed job.
+        print(
+            "Post-run analytics snapshot unavailable: "
+            f"{exc}. Production is complete; do not rerun this job."
+        )
 
 
 def run_factory(
@@ -1113,6 +1126,7 @@ def run_factory(
             factory_state_file,
         )
         manifest.complete()
+        _print_post_run_analytics(history_file)
         return lesson
 
     except Exception as exc:

@@ -70,6 +70,31 @@ def patch(monkeypatch, body, status=200):
     monkeypatch.setattr(metadata_generator.requests, "post", lambda *args, **kwargs: Response())
 
 
+def test_metadata_prompt_separates_long_form_title_from_short_hook(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, headers, json, timeout):
+        captured.update(json)
+
+        class Response:
+            status_code = 200
+            text = ""
+
+            def json(self):
+                return response_payload()
+
+        return Response()
+
+    monkeypatch.setattr(metadata_generator.requests, "post", fake_post)
+    metadata_generator._request_metadata(lesson(), "Hinglish")
+    prompt = captured["contents"][0]["parts"][0]["text"]
+
+    assert "Candidate 1 is the primary long-form title" in prompt
+    assert "Candidate 2 is reserved for the derived YouTube Short" in prompt
+    assert "one question cycle" in prompt
+    assert "meaningfully different title candidates" in prompt
+
+
 def test_generate_metadata_uses_first_title_as_primary(monkeypatch):
     monkeypatch.setattr(metadata_generator, "GEMINI_API_KEY", "key")
     patch(monkeypatch, response_payload())
