@@ -124,23 +124,27 @@ def test_generate_english_narration_rejects_http_failure(monkeypatch):
         )
 
 
-def test_generate_english_narration_rejects_changed_numeric_content(monkeypatch):
+def test_generate_english_narration_falls_back_if_numeric_content_cannot_be_repaired(monkeypatch, capsys):
     source = ["Question 1. 25% of 240 is? Options: A. 60 B. 70 C. 80 D. 90."]
     _patch(
         monkeypatch,
         source,
         ["Question 1. What is 25% of 250? Options: A. 60 B. 70 C. 80 D. 90."],
     )
-    with pytest.raises(RuntimeError, match="protected content"):
-        english_narration_generator.generate_english_narration_segments(source)
 
+    result = english_narration_generator.generate_english_narration_segments(source)
 
-def test_generate_english_narration_rejects_changed_answer(monkeypatch):
+    assert result == source
+    assert "kept original Hinglish narration" in capsys.readouterr().out
+
+def test_generate_english_narration_falls_back_if_answer_token_cannot_be_repaired(monkeypatch, capsys):
     source = ["The correct answer is 60."]
     _patch(monkeypatch, source, ["The correct answer is 70."])
-    with pytest.raises(RuntimeError, match="protected content"):
-        english_narration_generator.generate_english_narration_segments(source)
 
+    result = english_narration_generator.generate_english_narration_segments(source)
+
+    assert result == source
+    assert "kept original Hinglish narration" in capsys.readouterr().out
 
 def test_generate_english_narration_restores_protected_numbers(monkeypatch):
     source = [
@@ -157,11 +161,10 @@ def test_generate_english_narration_restores_protected_numbers(monkeypatch):
     assert result[0] == "Question 1. 25 percent of 240 is? Options: A. 60 B. 70 C. 80 D. 90."
 
 
-def test_generate_english_narration_rejects_missing_protected_token(monkeypatch):
+def test_generate_english_narration_falls_back_if_protected_token_keeps_disappearing(monkeypatch, capsys):
     source = ["Question 1. 25% of 240 is?"]
     monkeypatch.setattr(english_narration_generator, "validate_config", lambda **_: None)
     monkeypatch.setattr(english_narration_generator, "GEMINI_API_KEY", "test-key")
-
     monkeypatch.setattr(
         english_narration_generator.requests,
         "post",
@@ -180,15 +183,17 @@ def test_generate_english_narration_rejects_missing_protected_token(monkeypatch)
         ),
     )
 
-    with pytest.raises(RuntimeError, match="protected content"):
-        english_narration_generator.generate_english_narration_segments(source)
+    result = english_narration_generator.generate_english_narration_segments(source)
 
+    assert result == source
+    assert "kept original Hinglish narration" in capsys.readouterr().out
 
-def test_generate_english_narration_rejects_reordered_protected_tokens(monkeypatch):
+def test_generate_english_narration_falls_back_if_protected_tokens_are_reordered(monkeypatch, capsys):
     source = ["Question 1. 25% of 240 is?"]
-    masked, replacements = english_narration_generator._mask_segments(source)
+    _, replacements = english_narration_generator._mask_segments(source)
     tokens = [placeholder for placeholder, _ in replacements[0]]
-
+    reordered = source[0]
+    masked, _ = english_narration_generator._mask_segments(source)
     reordered = masked[0].replace(tokens[0], "__FIRST__").replace(
         tokens[2], tokens[0]
     ).replace(tokens[1], tokens[2]).replace("__FIRST__", tokens[1])
@@ -213,9 +218,10 @@ def test_generate_english_narration_rejects_reordered_protected_tokens(monkeypat
         ),
     )
 
-    with pytest.raises(RuntimeError, match="protected content"):
-        english_narration_generator.generate_english_narration_segments(source)
+    result = english_narration_generator.generate_english_narration_segments(source)
 
+    assert result == source
+    assert "kept original Hinglish narration" in capsys.readouterr().out
 
 def test_generate_english_narration_allows_language_only_translation(monkeypatch):
     source = [

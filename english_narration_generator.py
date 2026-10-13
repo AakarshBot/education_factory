@@ -234,6 +234,15 @@ def _invalid_protected_token_indices(
     return invalid
 
 
+def _validation_segment_indices(error: RuntimeError, segment_count: int) -> list[int]:
+    match = re.search(r"segment (\\d+)", str(error), re.IGNORECASE)
+    if match:
+        index = int(match.group(1)) - 1
+        if 0 <= index < segment_count:
+            return [index]
+    return list(range(segment_count))
+
+
 def generate_english_narration_segments(
     segments: list[str],
     *,
@@ -253,51 +262,74 @@ def generate_english_narration_segments(
         source_language=source_language,
     )
 
-    try:
-        restored = _restore_invariants(translated, replacements)
-        _validate_content_fidelity(segments, restored)
-        return restored
-    except RuntimeError as exc:
-        invalid_indices = _invalid_protected_token_indices(translated, replacements)
-        if invalid_indices:
-            repair_indices = invalid_indices
+    max_repair_rounds = 2
+    fallback_indices: list[int] = []
+    last_error: RuntimeError | None = None
+
+    # Make two targeted correction attempts after the first translation. Validation
+    # stays strict; persistently malformed segments fall back to the exact source
+    # narration rather than corrupting numbers/answers or failing the entire job.
+    for repair_round in range(max_repair_rounds + 1):
+        try:
+            restored = _restore_invariants(translated, replacements)
+            _validate_content_fidelity(segments, restored)
+            return restored
+        except RuntimeError as exc:
+            last_error = exc
+            invalid_indices = _invalid_protected_token_indices(translated, replacements)
+            if invalid_indices:
+                repair_indices = invalid_indices
+            else:
+                repair_indices = _validation_segment_indices(exc, len(segments))
+
+            if repair_round >= max_repair_rounds:
+                fallback_indices = repair_indices
+                break
+
             repair_segments = [masked_segments[index] for index in repair_indices]
             feedback_parts = [
                 "CORRECTION REQUIRED: The previous response failed validation. "
-                "Repair only the source segments listed below. Preserve each required "
-                "protected token exactly once and in the exact listed order. Do not "
-                "spell out, rename, omit, duplicate, or reorder any token."
+                "Repair only the source segments listed below. Preserve every protected "
+                "token exactly once and in its required order. Do not spell out, rename, "
+                "omit, duplicate, or reorder any token. If a token appears in a sentence, "
+                "keep the surrounding translation grammatical without changing the token."
             ]
             for index in repair_indices:
                 expected = [
                     placeholder for placeholder, _ in replacements[index]
                 ]
                 feedback_parts.append(
-                    f"Source segment {index + 1}: {masked_segments[index]}\n"
-                    f"Previous response: {translated[index]}\n"
+                    f"Source segment {index + 1}: {masked_segments[index]}\\n"
+                    f"Previous response: {translated[index]}\\n"
+                    f"Validation error: {exc}\\n"
                     f"Required protected token sequence: {json.dumps(expected)}"
                 )
             repaired = _request_translation(
                 repair_segments,
                 source_language=source_language,
-                correction_feedback="\n\n".join(feedback_parts),
+                correction_feedback="\\n\\n".join(feedback_parts),
             )
             translated = list(translated)
             for index, value in zip(repair_indices, repaired):
                 translated[index] = value
-        else:
-            feedback = (
-                "CORRECTION REQUIRED: The previous response failed validation: "
-                f"{exc}. Translate the original source again and preserve all protected "
-                "tokens and instructional content exactly. The previous response was:\n"
-                f"{json.dumps(translated, ensure_ascii=False)}"
-            )
-            translated = _request_translation(
-                masked_segments,
-                source_language=source_language,
-                correction_feedback=feedback,
-            )
 
-        restored = _restore_invariants(translated, replacements)
-        _validate_content_fidelity(segments, restored)
-        return restored
+    if not fallback_indices:
+        fallback_indices = _validation_segment_indices(
+            last_error or RuntimeError("unknown English localization validation error"),
+            len(segments),
+        )
+    # The original segment is the safe fallback: its protected information is
+    # unchanged, and a small number of source-language segments is preferable to
+    # a failed production job or an incorrect English translation.
+    for index in fallback_indices:
+        translated[index] = masked_segments[index]
+
+    print(
+        "English localization warning: kept original "
+        f"{source_language} narration for segment(s) "
+        f"{', '.join(str(index + 1) for index in sorted(set(fallback_indices)))} "
+        f"after {max_repair_rounds} correction attempts; protected content was preserved."
+    )
+    restored = _restore_invariants(translated, replacements)
+    _validate_content_fidelity(segments, restored)
+    return restored
