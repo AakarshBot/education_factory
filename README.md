@@ -39,5 +39,6 @@ The project context is the source of truth for the current build state and exact
 - The snapshot did not visibly list the corresponding Simple Interest Short or its ID. Confirm via the next normal factory snapshot; do not start a separate run just to check, and do not create a duplicate.
 - Metrics are available only through October 12. Shorts currently show more discovery than recent long-form, while two recent long-forms showed only 9–12 seconds average view duration in small samples. Do not delete videos or mass-retitle; investigate long-form opening/pacing before broad strategy changes.
 - Routine operation: sync `main`, then run `python factory.py`; recovery, upload stages, analytics ingestion, and the read-only post-run snapshot are handled by the factory. Do not ask the user to run local tests.
+- The post-run header formatting regression was validated by GitHub Actions run #30: 229 tests passed, with 5 non-fatal warnings. The local user does not need to run tests.
 
 - Native Shorts “Related Video” controls are not exposed by the YouTube Data API; no undocumented automation is used.
