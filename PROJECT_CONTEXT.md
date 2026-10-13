@@ -27,7 +27,8 @@ The user should not need to perform backend work for normal production. Manual a
 - The next title/packaging decision must combine comparable-age views/engaged views and watch metrics with YouTube Studio impressions and CTR if available. The Analytics schema used by this factory does not provide thumbnail impressions/CTR, so never assert title causes from views alone.
 - Normal operation is one command: `python factory.py`. The new post-run snapshot appears automatically; do not ask for a separate `python youtube_analytics.py`, manual manifest scan, or local pytest.
 - Unresolved historical upload IDs: `NPkGnNH8y3Q`, `xHY_pW9e2MM`. Do not assume public/deleted or re-upload them solely from the mismatch.
-- **Next step:** commit the changes for automatic post-run analytics output and distinct long-form/Short title prompting; verify CI. On next cycle, only one normal `python factory.py` run is needed after syncing this code.
+- **Validation:** commit `31c276ef035f158524f449d30e7638e977b04d7c` passed GitHub Actions run #25: **228 tests passed, 5 non-fatal warnings** (https://github.com/AakarshBot/education_factory/actions/runs/38467616985). The post-run snapshot is a non-fatal report stage after the manifest is marked complete; the Short-title prompt has a dedicated one-question-cycle requirement.
+- **Next step:** no further code action is required before the next production cycle. Sync `main` once, then use only `python factory.py`. The next run's stdout will automatically include the channel snapshot; no separate analytics command or manual manifest inspection.
 Every implementation step must leave this context file current enough that a new chat can continue from the repository state without relying on prior conversation memory.
 
 After each completed step:
