@@ -441,7 +441,7 @@ def _next_publish_time(now: datetime) -> datetime:
 
 def _print_post_run_analytics(history_path: str | Path) -> None:
     """Print a read-only channel performance snapshot after production completes."""
-    print("\\n=== Post-run YouTube snapshot (latest 10 uploads) ===")
+    print("\n=== Post-run YouTube snapshot (latest 10 uploads) ===")
     try:
         print_snapshot(history_path=history_path, limit=10)
     except Exception as exc:

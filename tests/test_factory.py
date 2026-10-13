@@ -539,6 +539,8 @@ def test_post_run_analytics_failure_does_not_fail_completed_production(monkeypat
     factory._print_post_run_analytics(tmp_path / "history.json")
 
     output = capsys.readouterr().out
+    assert output.startswith("\n=== Post-run YouTube snapshot (latest 10 uploads) ===\n")
+    assert "\\n===" not in output
     assert "analytics unavailable" in output
     assert "Production is complete; do not rerun this job." in output
 
