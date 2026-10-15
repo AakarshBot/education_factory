@@ -79,6 +79,8 @@ def _require_supported_edge_tts() -> None:
             "fail against Microsoft's current speech endpoint with HTTP 403. "
             'Upgrade it with: python -m pip install --upgrade "edge-tts>=7.3.1,<8"'
         )
+
+
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
