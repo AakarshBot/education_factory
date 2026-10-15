@@ -617,3 +617,56 @@ def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
     assert manifest["stages"]["short_render"]["status"] == "complete"
     assert Path(manifest["outputs"]["long_video"]).exists()
     assert Path(manifest["outputs"]["short_video"]).exists()
+
+
+
+def test_edge_tts_version_guard_accepts_pinned_release(monkeypatch):
+    monkeypatch.setattr(
+        factory,
+        "installed_package_version",
+        lambda _: "7.3.1",
+    )
+
+    factory._require_supported_edge_tts()
+
+
+@pytest.mark.parametrize("installed_version", ["7.2.8", "7.3.0", "8.0.0", "unknown"])
+def test_edge_tts_version_guard_rejects_unsupported_release(
+    monkeypatch,
+    installed_version,
+):
+    monkeypatch.setattr(
+        factory,
+        "installed_package_version",
+        lambda _: installed_version,
+    )
+
+    with pytest.raises(RuntimeError, match="edge-tts>=7.3.1"):
+        factory._require_supported_edge_tts()
+
+
+def test_factory_cleans_stale_jobs_before_rejecting_old_edge_tts(
+    monkeypatch,
+    tmp_path,
+):
+    output_root = tmp_path / "output"
+    stale_manifest_path = output_root / "jobs" / "stale-run" / "job.json"
+    stale_manifest = factory.new_manifest(stale_manifest_path, "stale-run")
+    stale_manifest.save()
+
+    backlog_path = tmp_path / "backlog.json"
+    save_backlog([], backlog_path)
+    monkeypatch.setattr(
+        factory,
+        "installed_package_version",
+        lambda _: "7.2.8",
+    )
+
+    with pytest.raises(RuntimeError, match="edge-tts>=7.3.1"):
+        factory.run_factory(
+            output_root=output_root,
+            backlog_path=backlog_path,
+        )
+
+    assert not stale_manifest_path.parent.exists()
+    assert list((output_root / "jobs").glob("*/job.json")) == []
