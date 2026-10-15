@@ -139,6 +139,10 @@ Rules:
 - Create original questions, not copied previous-year questions.
 - Every question must have exactly one defensible correct answer.
 - Every question must be fully self-contained in text. Never require an unseen figure, diagram, chart, image, table, map, or visual prompt.
+- Order the set as a deliberate learning progression, not a random list. Question 1 is the opening challenge: make it immediately understandable, exam-authentic, and compelling by testing a recognizable pattern or common misconception within the requested topic.
+- Keep Question 1 approachable enough to attempt immediately. Do not front-load the hardest item, use trick wording, create ambiguity, or require hidden information.
+- Let later questions progress from a core pattern to useful applications or harder variations. Vary the underlying method or pattern rather than repeating near-duplicate questions with changed numbers.
+- Keep question stems concise and remove generic setup or filler that does not help solve the question.
 - Do not refer to `given figure`, `shown below`, `in the diagram`, `from the image`, or any other missing visual. Describe all required information directly in the question.
 - Every question must use exactly four unique choices.
 - Set correct_choice_index to the zero-based index (0-3) of the correct choice.

@@ -71,6 +71,10 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert choices_schema["type"] == "array"
     assert choices_schema["minItems"] == 4
     assert choices_schema["maxItems"] == 4
+    prompt_text = calls[0][1]["json"]["contents"][0]["parts"][0]["text"]
+    assert "Question 1 is the opening challenge" in prompt_text
+    assert "Do not front-load the hardest item" in prompt_text
+    assert "vary the underlying method or pattern" in prompt_text
 
 
 
