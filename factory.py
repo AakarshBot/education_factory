@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
+from importlib.metadata import PackageNotFoundError, version as installed_package_version
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -53,6 +54,31 @@ from production_backlog import (
 from youtube_uploader import upload_video
 
 DEFAULT_OUTPUT_ROOT = Path("output")
+
+
+def _require_supported_edge_tts() -> None:
+    try:
+        installed_version = installed_package_version("edge-tts")
+    except PackageNotFoundError:
+        installed_version = "not installed"
+
+    version_match = re.match(r"^(\\d+)\\.(\\d+)\\.(\\d+)", installed_version)
+    version_parts = (
+        tuple(int(part) for part in version_match.groups())
+        if version_match is not None
+        else None
+    )
+    if (
+        version_parts is None
+        or version_parts < (7, 3, 1)
+        or version_parts >= (8, 0, 0)
+    ):
+        raise RuntimeError(
+            "This factory requires edge-tts>=7.3.1,<8; "
+            f"the installed version is {installed_version!r}. Older releases "
+            "fail against Microsoft's current speech endpoint with HTTP 403. "
+            'Upgrade it with: python -m pip install --upgrade "edge-tts>=7.3.1,<8"'
+        )
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
@@ -477,6 +503,7 @@ def run_factory(
             raise ValueError("publish_mode must be 'scheduled' or 'public'")
         validate_runs_per_day(runs_per_day)
         _cleanup_unfinished_jobs(output_root, backlog_path)
+        _require_supported_edge_tts()
         manifest = _new_run(Path(output_root))
         manifest.selected["run_config"] = {
             "max_jobs": max_jobs,
@@ -1112,7 +1139,7 @@ def run_factory(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run or resume one autonomous education-factory production job."
+        description="Run one fresh autonomous education-factory production job."
     )
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT))
     parser.add_argument("--history-path", default=str(DEFAULT_HISTORY_FILE))
