@@ -14,18 +14,31 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
-### Current live state — 2026-10-16 (exponent retry fixed; stale jobs discarded)
+### Current live state — 2026-10-16 (Edge TTS 403 compatibility fix)
 
 - **Channel and schedule:** Exam Session India (@examsessionindia). Long-form remains scheduled for 10:00 IST and its derived Short for 18:00 IST.
-- **Most recent attempted run:** the user's local `python factory.py` execution failed in question generation with `validators.ValidationError: unsupported exponent`. It stopped before narration, rendering, or upload stages, so this specific run did not upload either video.
-- **Math expression fix committed:** commit `0f1d9d949e79cf5a0ab1f948805fc56196a36fb3` explicitly constrains generated powers to integer exponents from -12 through 12 and gives a targeted retry instruction when validation reports an unsupported exponent. Deterministic bounds and answer verification remain strict; the fix does not accept over-bound exponents or weaken QA.
-- **Startup behavior changed:** normal factory startup no longer auto-resumes unfinished jobs. It discards every non-complete job directory before creating a new run, regardless of age. It removes any backlog claims associated with discarded runs. If an incomplete manifest already recorded YouTube upload IDs, a compact receipt is written to `output/abandoned_uploads/<run-id>.json` before the working directory is deleted; uploaded YouTube videos are never deleted by cleanup. Completed job directories are left intact. The CLI no longer exposes `--resume`; normal use always starts a fresh production job.
-- **CI validation:** GitHub Actions run #34 passed the full suite: **229 passed, 5 warnings in 31.39s** on commit `0f1d9d949e79cf5a0ab1f948805fc56196a36fb3`: https://github.com/AakarshBot/education_factory/actions/runs/38822855543. Coverage now includes rejection of exponents beyond the safe bound, a targeted retry for unsupported exponents, cleanup of all unfinished jobs, claim removal, and preservation of recorded upload IDs. No tests failed.
-- **Previously validated content-quality change remains active:** the question-generation prompt calls for a clear, immediately attemptable Question 1, a varied progression of methods, and no filler. CI was green before and after the exponent/cleanup patch. Answer validation, protected numerical content, rendering, uploader, and the 10:00/18:00 IST schedule were not weakened or changed.
-- **Simple Interest pair still needs normal-snapshot verification:** the long-form ID is `IYHW9v5uo9Y`; the old post-run snapshot did not show the Short's ID. At the next normal completed run, check the factory's standard post-run snapshot. Do not launch a separate investigative run, assume the Short is missing/deleted, or create another upload. If it remains absent from the normal snapshot, investigate the snapshot/playlist discrepancy before changing production.
-- **Channel metrics limitation:** the latest repository snapshot covers analytics only through `2026-10-12`. The small sample showed weak early long-form retention (examples around 2.5–2.7% average viewed) and better but variable Shorts discovery (examples around 26–49% viewed). These are directional only; no deletion or bulk title change is justified.
-- **Next production topic:** use automatic India-region demand scoring and the recent-topic guard; do not force a manual topic override. Keep SSC, Banking, Railway, and Maths/Reasoning/English coverage.
-- **Exact next user action:** sync `main`, then run `python factory.py` once. Startup will delete the user's failed unfinished local job directory, clear its claim, and start a new job. Do not run pytest locally, use `--resume`, scan manifests, or launch extra investigative runs.
+- **Most recent attempted run:** startup cleanup discarded 14 unfinished jobs, archived 0 upload receipts, and removed 1 matching backlog claim. The new run then failed in long-form narration with `edge_tts` WebSocket handshake HTTP 403. It stopped before rendering or uploading; this failed run itself did not upload videos.
+- **Root cause confirmed upstream:** Microsoft changed the Edge speech endpoint's authentication handshake. The upstream `edge-tts` maintainer marked the failure resolved in 7.3.0 on 2026-10-13; current PyPI release is 7.3.1. Older installed versions such as 7.2.8 can return the exact 403 seen here.
+- **Dependency corrected:** `requirements.txt` now requires `edge-tts>=7.3.1,<8`. Normal startup now performs cleanup first, then checks the installed package version before creating a new job or spending time generating content. An incompatible/missing install exits with one exact upgrade command instead of failing deep in narration.
+- **Regression coverage added:** tests accept 7.3.1, reject older/unsupported versions, and verify stale jobs are discarded before the compatibility gate exits. No narration quality gate, output validation, upload logic, question validation, or publishing schedule was weakened.
+- **Code commits:** compatibility guard `199e2c9367c3ddb3a6997bf30db957310628f85d`; dependency pin `c7b844b56f792805a1acd69decdbece2d873bbc9`; regex correction `6fecf401e82a855bebc00da1db5956cbeced063f`; regression tests `3e6e68f3a36b9997de664b546d176add864caf1b`; latest code/style commit before this context update `85acbaf074d0d36dc2171d8c621b0c7fc65c7d8e`.
+- **CI validation:** the full GitHub Actions suite is configured to run on pushes. The connected commit-status endpoint has not returned a result for the latest source commit yet. Confirm that the repository's full workflow passes before asking for another production run. Do not ask the user to run pytest locally.
+- **Simple Interest pair:** long-form ID remains `IYHW9v5uo9Y`; the Short's ID/visibility remains unresolved from the previous snapshot. At the next normal successful run, check the standard post-run snapshot. Do not launch a separate investigative run or create a duplicate.
+- **Content strategy remains unchanged:** use automatic India-region demand scoring and recent-topic duplicate avoidance; don't force a topic override. Keep SSC, Banking, Railway and Maths/Reasoning/English coverage. Long-form 10:00 IST / Short 18:00 IST.
+- **Exact next local action after CI is green:** sync `main`, upgrade only Edge TTS, then run the factory once:
+  ```powershell
+  git switch main
+  if ($LASTEXITCODE -ne 0) { throw "Could not switch to main" }
+
+  git pull --ff-only origin main
+  if ($LASTEXITCODE -ne 0) { throw "Could not sync main" }
+
+  python -m pip install --upgrade "edge-tts>=7.3.1,<8"
+  if ($LASTEXITCODE -ne 0) { throw "Could not update Edge TTS" }
+
+  python factory.py
+  ```
+  Do not resume jobs, run local pytest, or add a topic override.
 
 This current live state supersedes older notes below that describe automatic recovery/resumption of incomplete production jobs.
 
