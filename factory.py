@@ -62,7 +62,7 @@ def _require_supported_edge_tts() -> None:
     except PackageNotFoundError:
         installed_version = "not installed"
 
-    version_match = re.match(r"^(\\d+)\\.(\\d+)\\.(\\d+)", installed_version)
+    version_match = re.match(r"^(\d+)\.(\d+)\.(\d+)", installed_version)
     version_parts = (
         tuple(int(part) for part in version_match.groups())
         if version_match is not None
