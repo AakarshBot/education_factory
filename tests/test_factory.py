@@ -173,100 +173,79 @@ def _recovery_job(topic):
     )
 
 
-def test_startup_recovery_closes_stale_job_and_removes_only_its_claim(tmp_path, capsys):
-    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
-    created = now - timedelta(hours=8)
+def test_startup_cleanup_discards_all_unfinished_jobs_and_removes_their_claims(
+    tmp_path,
+    capsys,
+):
+    now = datetime(2026, 10, 16, 12, 0, tzinfo=timezone.utc)
     output_root = tmp_path / "output"
-    manifest_path = output_root / "jobs" / "old-run" / "job.json"
-    manifest = factory.new_manifest(manifest_path, "old-run")
-    manifest.created_at = created.isoformat()
-    manifest.selected["run_config"] = {"max_jobs": 10}
-    manifest.selected["backlog_key"] = ["ssc", "maths", "percentages"]
-    manifest.save()
+
+    old_path = output_root / "jobs" / "old-run" / "job.json"
+    old = factory.new_manifest(old_path, "old-run")
+    old.created_at = (now - timedelta(days=3)).isoformat()
+    old.selected["run_config"] = {"max_jobs": 10}
+    old.save()
+    (old_path.parent / "partial.json").write_text("partial", encoding="utf-8")
+
+    recent_path = output_root / "jobs" / "recent-run" / "job.json"
+    recent = factory.new_manifest(recent_path, "recent-run")
+    recent.created_at = (now - timedelta(minutes=10)).isoformat()
+    recent.fail("questions_generated", RuntimeError("unsupported exponent"))
+
+    complete_path = output_root / "jobs" / "complete-run" / "job.json"
+    complete = factory.new_manifest(complete_path, "complete-run")
+    complete.complete()
 
     percentages = _recovery_job("Percentages")
     ratio = _recovery_job("Ratio")
-    entries = merge_jobs([], [percentages, ratio], now=created)
-    entries = claim_job(entries, percentages, run_id="old-run", now=created)
-    entries = claim_job(entries, ratio, run_id="keep-run", now=created)
+    cloze = _recovery_job("Cloze Test")
+    entries = merge_jobs([], [percentages, ratio, cloze], now=now)
+    entries = claim_job(entries, percentages, run_id="old-run", now=now)
+    entries = claim_job(entries, ratio, run_id="recent-run", now=now)
+    entries = claim_job(entries, cloze, run_id="complete-run", now=now)
     backlog_path = tmp_path / "backlog.json"
     save_backlog(entries, backlog_path)
 
-    recovery = factory._recover_interrupted_jobs(
-        output_root,
-        backlog_path,
-        now=now,
-        max_age_hours=6,
-    )
+    factory._cleanup_unfinished_jobs(output_root, backlog_path, now=now)
 
-    assert recovery is None
-    saved = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert saved["status"] == "failed"
-    assert saved["failure"]["stage"] == "automatic_stale_cleanup"
-    assert saved["stages"]["automatic_stale_cleanup"]["status"] == "complete"
+    assert not old_path.parent.exists()
+    assert not recent_path.parent.exists()
+    assert complete_path.exists()
     remaining = load_backlog(backlog_path)
     assert len(remaining) == 1
-    assert remaining[0].topic == "Ratio"
-    assert remaining[0].claimed_run_id == "keep-run"
-    assert "closed 1 abandoned job(s)" in capsys.readouterr().out
+    assert remaining[0].topic == "Cloze Test"
+    assert remaining[0].claimed_run_id == "complete-run"
+    output = capsys.readouterr().out
+    assert "discarded 2 unfinished job(s)" in output
+    assert "removed 2 matching backlog claim(s)" in output
 
 
-def test_factory_refuses_to_resume_cancelled_job(tmp_path):
-    manifest_path = tmp_path / "jobs" / "cancelled-run" / "job.json"
-    manifest = factory.new_manifest(manifest_path, "cancelled-run")
-    manifest.selected["run_config"] = {"max_jobs": 10}
+def test_startup_cleanup_archives_upload_ids_before_deleting_job_files(tmp_path):
+    now = datetime(2026, 10, 16, 12, 0, tzinfo=timezone.utc)
+    output_root = tmp_path / "output"
+    manifest_path = output_root / "jobs" / "partial-upload" / "job.json"
+    manifest = factory.new_manifest(manifest_path, "partial-upload")
+    manifest.upload_ids["long_form"] = "known-video-id"
+    manifest.selected.update({"exam": "SSC", "subject": "Maths", "topic": "Ratio"})
     manifest.save()
-    manifest.fail("editorial_cancellation", RuntimeError("cancelled by editorial decision"))
-
-    with pytest.raises(RuntimeError, match="cancelled or automatically closed"):
-        factory.run_factory(resume=manifest_path)
-
-
-def test_startup_recovery_returns_recent_failed_job_for_automatic_resume(tmp_path):
-    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
-    manifest_path = tmp_path / "output" / "jobs" / "retry-run" / "job.json"
-    manifest = factory.new_manifest(manifest_path, "retry-run")
-    manifest.created_at = (now - timedelta(hours=1)).isoformat()
-    manifest.selected["run_config"] = {"max_jobs": 10}
-    manifest.save()
-    manifest.fail("long_render", RuntimeError("temporary render failure"))
-
-    recovery = factory._recover_interrupted_jobs(
-        tmp_path / "output",
-        tmp_path / "backlog.json",
-        now=now,
-        max_age_hours=6,
-    )
-
-    assert recovery == manifest_path
-    saved = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert saved["status"] == "failed"
-    assert saved["failure"]["stage"] == "long_render"
-
-
-def test_startup_recovery_never_resumes_cancelled_job_and_clears_its_claim(tmp_path):
-    now = datetime(2026, 10, 12, 12, 0, tzinfo=timezone.utc)
-    manifest_path = tmp_path / "output" / "jobs" / "cancelled-run" / "job.json"
-    manifest = factory.new_manifest(manifest_path, "cancelled-run")
-    manifest.created_at = (now - timedelta(hours=1)).isoformat()
-    manifest.selected["run_config"] = {"max_jobs": 10}
-    manifest.save()
-    manifest.fail("editorial_cancellation", RuntimeError("cancelled by editorial decision"))
-
-    entry_job = _recovery_job("Cloze Test")
-    entries = merge_jobs([], [entry_job], now=now)
-    entries = claim_job(entries, entry_job, run_id="cancelled-run", now=now)
+    artifact = manifest_path.parent / "long_form.mp4"
+    artifact.write_bytes(b"rendered")
+    job = _recovery_job("Ratio")
     backlog_path = tmp_path / "backlog.json"
-    save_backlog(entries, backlog_path)
-
-    recovery = factory._recover_interrupted_jobs(
-        tmp_path / "output",
+    save_backlog(
+        claim_job(merge_jobs([], [job], now=now), job, run_id="partial-upload", now=now),
         backlog_path,
-        now=now,
-        max_age_hours=6,
     )
 
-    assert recovery is None
+    factory._cleanup_unfinished_jobs(output_root, backlog_path, now=now)
+
+    receipt = json.loads(
+        (output_root / "abandoned_uploads" / "partial-upload.json").read_text(encoding="utf-8")
+    )
+    assert receipt["status"] == "abandoned"
+    assert receipt["upload_ids"] == {"long_form": "known-video-id"}
+    assert not manifest_path.parent.exists()
+    assert not artifact.exists()
     assert load_backlog(backlog_path) == []
 
 

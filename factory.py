@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -59,95 +60,77 @@ AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
 SHORT_PUBLISH_DELAY = timedelta(hours=8)
-STALE_JOB_HOURS = 6
-_CANCELLED_FAILURE_STAGES = {"editorial_cancellation", "automatic_stale_cleanup"}
+_CANCELLED_FAILURE_STAGES = {
+    "editorial_cancellation",
+    "automatic_stale_cleanup",
+    "automatic_abandonment",
+}
 
 
-def _recover_interrupted_jobs(
+def _cleanup_unfinished_jobs(
     output_root: str | Path,
     backlog_path: str | Path,
     *,
     now: datetime | None = None,
-    max_age_hours: int = STALE_JOB_HOURS,
-) -> Path | None:
-    """Recover recent interrupted jobs and close abandoned jobs automatically.
+) -> None:
+    """Discard every unfinished local job before starting a fresh production run.
 
-    Recent recoverable manifests are resumed by the normal factory entry point.
-    Older unfinished manifests are marked failed and their own claimed backlog
-    entry is removed. Existing YouTube IDs remain in the manifest; this function
-    never deletes or re-uploads videos.
+    Jobs are never auto-resumed. If a job already recorded YouTube upload IDs,
+    preserve a compact receipt outside the active jobs directory before deleting
+    its working files. Uploads themselves are never deleted.
     """
-    if max_age_hours < 1:
-        raise ValueError("max_age_hours must be at least 1")
-
     reference = now or datetime.now(timezone.utc)
     if reference.tzinfo is None or reference.utcoffset() is None:
         raise ValueError("now must be timezone-aware")
-    cutoff = reference.astimezone(timezone.utc) - timedelta(hours=max_age_hours)
+
     jobs_dir = Path(output_root) / "jobs"
-    recoverable: list[tuple[datetime, Path]] = []
     abandoned_run_ids: set[str] = set()
-    closed_count = 0
+    directories_to_delete: list[Path] = []
+    archived_count = 0
 
     for manifest_path in sorted(jobs_dir.glob("*/job.json")):
         manifest = load_manifest(manifest_path)
         if manifest.status == "complete":
             continue
 
-        try:
-            created_at = datetime.fromisoformat(
-                manifest.created_at.replace("Z", "+00:00")
-            )
-        except ValueError as exc:
-            raise RuntimeError(
-                f"Cannot safely recover job with invalid created_at: {manifest_path}"
-            ) from exc
-        if created_at.tzinfo is None or created_at.utcoffset() is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        created_at = created_at.astimezone(timezone.utc)
-
-        failure_stage = (manifest.failure or {}).get("stage")
-        deliberately_cancelled = failure_stage in _CANCELLED_FAILURE_STAGES
-        if deliberately_cancelled:
-            if manifest.status != "failed":
-                manifest.status = "failed"
-                manifest.save()
-            abandoned_run_ids.add(manifest.run_id)
-            continue
-
-        if created_at < cutoff:
-            abandoned_run_ids.add(manifest.run_id)
-            if manifest.status == "running":
-                recorded_uploads = json.dumps(manifest.upload_ids, ensure_ascii=False)
-                manifest.status = "failed"
-                manifest.failure = {
-                    "stage": "automatic_stale_cleanup",
-                    "error": (
-                        f"Automatically closed because this job remained incomplete for "
-                        f"more than {max_age_hours} hours. Recorded upload IDs were "
-                        f"preserved: {recorded_uploads}. No YouTube videos were deleted "
-                        "or uploaded by startup cleanup."
-                    ),
-                }
-                manifest.stages["automatic_stale_cleanup"] = {"status": "complete"}
-                manifest.save()
-                closed_count += 1
-            continue
-
-        if isinstance(manifest.selected.get("run_config"), dict):
-            recoverable.append((created_at, manifest_path))
-            continue
-
-        # A manifest without its run configuration cannot be resumed safely.
-        manifest.status = "failed"
-        manifest.failure = {
-            "stage": "automatic_stale_cleanup",
-            "error": "Automatically closed because the run configuration was never saved.",
-        }
-        manifest.stages["automatic_stale_cleanup"] = {"status": "complete"}
-        manifest.save()
         abandoned_run_ids.add(manifest.run_id)
-        closed_count += 1
+        directories_to_delete.append(manifest_path.parent)
+
+        if manifest.upload_ids:
+            receipt_path = (
+                Path(output_root)
+                / "abandoned_uploads"
+                / f"{manifest_path.parent.name}.json"
+            )
+            write_json(
+                receipt_path,
+                {
+                    "run_id": manifest.run_id,
+                    "status": "abandoned",
+                    "created_at": manifest.created_at,
+                    "abandoned_at": reference.isoformat(),
+                    "selected": {
+                        key: manifest.selected[key]
+                        for key in (
+                            "exam",
+                            "subject",
+                            "topic",
+                            "title",
+                            "lesson_type",
+                            "long_publish_at",
+                            "short_publish_at",
+                        )
+                        if key in manifest.selected
+                    },
+                    "upload_ids": dict(manifest.upload_ids),
+                    "previous_failure": manifest.failure,
+                    "reason": (
+                        "Unfinished jobs are discarded at startup and are never "
+                        "resumed. Recorded YouTube uploads are preserved."
+                    ),
+                },
+            )
+            archived_count += 1
 
     removed_claims = 0
     if abandoned_run_ids:
@@ -165,17 +148,18 @@ def _recover_interrupted_jobs(
         if removed_claims:
             save_backlog(retained, backlog_file)
 
-    if closed_count or removed_claims:
+    # Delete only after receipts and backlog changes have been saved. If any
+    # filesystem operation fails, let startup fail closed before making a new job.
+    for directory in directories_to_delete:
+        shutil.rmtree(directory)
+
+    if directories_to_delete or removed_claims:
         print(
             "Factory cleanup: "
-            f"closed {closed_count} abandoned job(s); "
+            f"discarded {len(directories_to_delete)} unfinished job(s); "
+            f"archived {archived_count} upload receipt(s); "
             f"removed {removed_claims} matching backlog claim(s)."
         )
-
-    if not recoverable:
-        return None
-    # Finish the oldest interrupted run first so its reserved work is not bypassed.
-    return min(recoverable, key=lambda item: (item[0], str(item[1])))[1]
 
 
 def _new_run(output_root: Path) -> JobManifest:
@@ -492,29 +476,7 @@ def run_factory(
         if publish_mode not in {"scheduled", "public"}:
             raise ValueError("publish_mode must be 'scheduled' or 'public'")
         validate_runs_per_day(runs_per_day)
-        recovery_path = _recover_interrupted_jobs(
-            output_root,
-            backlog_path,
-        )
-        if recovery_path is not None:
-            print(
-                "Factory recovery: resuming unfinished job "
-                f"{recovery_path.parent.name}; no duplicate job was created."
-            )
-            return run_factory(
-                output_root=output_root,
-                history_path=history_path,
-                max_jobs=max_jobs,
-                question_count=question_count,
-                difficulty=difficulty,
-                language=language,
-                publish_mode=publish_mode,
-                publish_at=publish_at,
-                backlog_path=backlog_path,
-                factory_state_path=factory_state_path,
-                runs_per_day=runs_per_day,
-                resume=recovery_path,
-            )
+        _cleanup_unfinished_jobs(output_root, backlog_path)
         manifest = _new_run(Path(output_root))
         manifest.selected["run_config"] = {
             "max_jobs": max_jobs,
@@ -1169,7 +1131,6 @@ def main() -> None:
     parser.add_argument("--exam-override", choices=("SSC", "Banking", "Railway"), default=None)
     parser.add_argument("--subject-override", choices=("Maths", "Reasoning", "English"), default=None)
     parser.add_argument("--topic-override", default=None)
-    parser.add_argument("--resume", default=None)
     args = parser.parse_args()
 
     lesson = run_factory(
@@ -1186,7 +1147,6 @@ def main() -> None:
         exam_override=args.exam_override,
         subject_override=args.subject_override,
         topic_override=args.topic_override,
-        resume=args.resume,
     )
     print(f"Completed: {lesson.title}")
 

@@ -51,6 +51,11 @@ def test_unsafe_math_expression_fails():
         evaluate_math_expression("__import__('os').system('echo bad')")
 
 
+def test_math_expression_rejects_exponent_above_safe_bound():
+    with pytest.raises(ValidationError, match="unsupported exponent"):
+        evaluate_math_expression("2 ** 13")
+
+
 def test_math_question_requires_machine_checkable_expression():
     question = make_math_question()
     with pytest.raises(ValidationError, match="machine-checkable expression"):

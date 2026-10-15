@@ -153,6 +153,7 @@ Rules:
 - For Maths, math_expression is REQUIRED and must evaluate exactly to the choice at correct_choice_index.
 - For Maths, all four choices must be numeric values only, with optional currency/percent/fraction notation such as `₹1,700`, `15%`, or `3/4`. Never append units, labels, or words to a Maths choice.
 - For Maths, use only numbers, parentheses, +, -, *, /, and ** in math_expression. Do not use words, functions, factorials, percent signs, commas, ×, ÷, or ^; plain ASCII arithmetic is preferred.
+- If math_expression uses **, its exponent must be an integer from -12 through 12. Prefer small powers only; never use a larger exponent. If a problem needs a larger power, use a different question with smaller values.
 - For Maths, choose values with exact answers that can be represented by one of the four choices; avoid rounding and repeating-decimal ambiguity.
 - For non-Maths questions, math_expression must be null.
 - Do not put explanations or extra commentary outside the JSON object.
@@ -171,11 +172,22 @@ Return only the requested structured JSON.
     for generation_attempt in range(2):
         attempt_prompt = prompt
         if validation_error is not None:
+            if "unsupported exponent" in str(validation_error).lower():
+                correction = (
+                    "The previous math_expression used an unsupported exponent. "
+                    "Regenerate the complete question set using only integer exponents "
+                    "from -12 through 12; rewrite any question needing a larger power "
+                    "with smaller values. Recheck that each expression exactly matches "
+                    "its selected numeric answer."
+                )
+            else:
+                correction = (
+                    "For Maths, every choice must be parseable as a numeric value; do not "
+                    "append units, labels, or words to any Maths choice."
+                )
             attempt_prompt += (
                 "\n\nRETRY CORRECTION: The previous response failed deterministic "
-                f"validation: {validation_error}. Regenerate the complete question set. "
-                "For Maths, every choice must be parseable as a numeric value; do not "
-                "append units, labels, or words to any Maths choice."
+                f"validation: {validation_error}. {correction}"
             )
 
         payload = {

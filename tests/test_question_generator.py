@@ -75,6 +75,7 @@ def test_generate_questions_uses_structured_response_and_validates(monkeypatch):
     assert "Question 1 is the opening challenge" in prompt_text
     assert "Do not front-load the hardest item" in prompt_text
     assert "Vary the underlying method or pattern" in prompt_text
+    assert "integer from -12 through 12" in prompt_text
 
 
 
@@ -138,6 +139,62 @@ def test_generate_questions_retries_deterministic_validation_failure(monkeypatch
     assert len(prompts) == 2
     assert "RETRY CORRECTION" in prompts[1]
     assert "answer is not numeric" in prompts[1]
+
+
+def test_generate_questions_repairs_unsupported_exponent(monkeypatch):
+    def item(question, choices, answer_index, expression):
+        return {
+            "subject": "maths",
+            "exam": "SSC CGL",
+            "topic": "powers",
+            "difficulty": "medium",
+            "question": question,
+            "choices": choices,
+            "correct_choice_index": answer_index,
+            "explanation": "",
+            "shortcut": None,
+            "source_type": "original",
+            "source_reference": None,
+            "math_expression": expression,
+        }
+
+    invalid = {
+        "questions": [
+            item("What is 2 raised to the power 13?", ["4096", "8192", "16384", "2048"], 1, "2 ** 13")
+        ]
+    }
+    valid = {
+        "questions": [
+            item("What is 2 cubed?", ["6", "8", "4", "12"], 1, "2 ** 3")
+        ]
+    }
+    responses = iter((invalid, valid))
+    prompts = []
+
+    monkeypatch.setattr(question_generator, "validate_config", lambda **_: None)
+    monkeypatch.setattr(question_generator, "GEMINI_API_KEY", "test-key")
+
+    def fake_post(url, **kwargs):
+        prompts.append(kwargs["json"]["contents"][0]["parts"][0]["text"])
+        generated = next(responses)
+        return FakeResponse(
+            body={"candidates": [{"content": {"parts": [{"text": json.dumps(generated)}]}}]}
+        )
+
+    monkeypatch.setattr(question_generator.requests, "post", fake_post)
+
+    result = question_generator.generate_questions(
+        subject="maths",
+        exam="SSC CGL",
+        topic="powers",
+        difficulty="medium",
+        count=1,
+    )
+
+    assert result[0].correct_answer == "8"
+    assert len(prompts) == 2
+    assert "unsupported exponent" in prompts[1]
+    assert "integer exponents from -12 through 12" in prompts[1]
 
 def test_normalizes_common_math_symbols(monkeypatch):
     generated = {
