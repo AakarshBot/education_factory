@@ -470,3 +470,23 @@ def test_fetch_recent_channel_videos_enumerates_uploads():
         "privacyStatus": "public",
         "publishAt": None,
     }]
+
+
+
+def test_snapshot_missing_history_is_limited_to_requested_upload_sample(capsys, monkeypatch, tmp_path):
+    history = tmp_path / "history.json"
+    save_history([entry("older-video", "Older topic")], history)
+    youtube = FakeYouTube(
+        body={"items": []},
+        channel_body={"items": [{"contentDetails": {"relatedPlaylists": {"uploads": "UUuploads"}}}]},
+        playlist_body={"items": []},
+    )
+    monkeypatch.setattr(youtube_analytics, "get_youtube_client", lambda: youtube)
+    monkeypatch.setattr(youtube_analytics, "get_youtube_analytics_client", lambda: FakeAnalytics(response([])))
+
+    youtube_analytics.print_snapshot(history_path=history, limit=10, days=30)
+
+    output = capsys.readouterr().out
+    assert "History IDs not found among the latest 10 uploads returned" in output
+    assert "older uploads were not checked" in output
+
