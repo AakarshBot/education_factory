@@ -115,8 +115,6 @@ def test_authenticate_reauthorizes_when_refresh_token_is_invalid_grant(
     client = tmp_path / "client.json"
     token = tmp_path / "token.json"
     client.write_text("client", encoding="utf-8")
-    stale_credentials = FakeCredentials(valid=False, expired=True, refresh_token=True)
-
     class InvalidGrantCredentials(FakeCredentials):
         def refresh(self, request):
             raise youtube_auth.RefreshError("invalid_grant: Bad Request")
