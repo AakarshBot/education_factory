@@ -314,7 +314,7 @@ def print_snapshot(*, history_path: str | Path = "data/channel_history.json", li
     print(f"Analytics requested through: {analytics_through.isoformat()}")
     print("Current counters: views/likes/comments | Analytics: engaged views/watch time/average view metrics/subscribers")
     if missing_history:
-        print("History IDs not present in the channel uploads list:")
+        print(f"History IDs not found among the latest {limit} uploads returned (older uploads were not checked):")
         for video_id in missing_history:
             print(f"  {video_id}")
         print()
