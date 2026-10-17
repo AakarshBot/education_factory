@@ -86,6 +86,15 @@ def validate_question(question: Question, *, math_expression: str | None = None)
         raise ValidationError("Maths questions require a machine-checkable expression")
 
     if question.subject.lower() == "maths":
+        if question.choices is not None:
+            for choice_index, choice in enumerate(question.choices, start=1):
+                try:
+                    parse_numeric_answer(choice)
+                except ValidationError as exc:
+                    raise ValidationError(
+                        f"Maths choice {choice_index} is not numeric: {choice!r}"
+                    ) from exc
+
         validate_math_answer(math_expression, question.correct_answer)
 
     if question.choices is not None:
