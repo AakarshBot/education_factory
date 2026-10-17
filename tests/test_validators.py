@@ -69,6 +69,19 @@ def test_math_question_uses_expression_and_passes():
     )
 
 
+def test_every_math_choice_must_be_numeric():
+    question = make_math_question(
+        answer="₹1,700 students",
+        choices=("₹1,600", "₹1,700 students", "₹1,800", "₹1,900"),
+    )
+
+    with pytest.raises(ValidationError, match="Maths choice 2 is not numeric"):
+        validate_question(
+            question,
+            math_expression="2000 * (1 - 15 / 100)",
+        )
+
+
 def test_multiple_choice_answer_must_be_present_and_unique():
     question = make_math_question(
         choices=("₹1,600", "₹1,700", "₹1,800", "₹1,900")
