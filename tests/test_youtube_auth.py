@@ -108,6 +108,51 @@ def test_authenticate_rejects_missing_client_file(tmp_path):
         )
 
 
+def test_authenticate_reauthorizes_when_refresh_token_is_invalid_grant(
+    monkeypatch,
+    tmp_path,
+):
+    client = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    client.write_text("client", encoding="utf-8")
+    stale_credentials = FakeCredentials(valid=False, expired=True, refresh_token=True)
+
+    class InvalidGrantCredentials(FakeCredentials):
+        def refresh(self, request):
+            raise youtube_auth.RefreshError("invalid_grant: Bad Request")
+
+    stale_credentials = InvalidGrantCredentials(
+        valid=False,
+        expired=True,
+        refresh_token=True,
+    )
+    fresh_credentials = FakeCredentials(valid=True, scopes=youtube_auth.SCOPES)
+    calls = {"browser": 0}
+
+    class FakeFlow:
+        def run_local_server(self, port):
+            calls["browser"] += 1
+            assert port == 0
+            return fresh_credentials
+
+    monkeypatch.setattr(youtube_auth, "_load_credentials", lambda path: stale_credentials)
+    monkeypatch.setattr(
+        youtube_auth.InstalledAppFlow,
+        "from_client_secrets_file",
+        lambda path, scopes: FakeFlow(),
+    )
+
+    result = youtube_auth.authenticate_youtube(
+        client_secrets_file=client,
+        token_file=token,
+    )
+
+    assert result is fresh_credentials
+    assert calls["browser"] == 1
+    assert token.exists()
+    assert json.loads(token.read_text(encoding="utf-8")) == {"token": "fake"}
+
+
 def test_authenticate_fails_closed_when_refresh_fails(monkeypatch, tmp_path):
     client = tmp_path / "client.json"
     token = tmp_path / "token.json"
