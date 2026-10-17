@@ -87,7 +87,7 @@ def test_generate_questions_retries_deterministic_validation_failure(monkeypatch
             "topic": "percentages",
             "difficulty": "medium",
             "question": "A price of ₹2,000 is reduced by 15%. What is the selling price?",
-            "choices": ["₹1,600 students", "₹1,700 students", "₹1,800 students", "₹1,900 students"],
+            "choices": ["₹1,600", "₹1,700 students", "₹1,800", "₹1,900"],
             "correct_choice_index": 1,
             "explanation": "",
             "shortcut": None,
@@ -112,7 +112,7 @@ def test_generate_questions_retries_deterministic_validation_failure(monkeypatch
             "math_expression": "2000 * (1 - 15 / 100)",
         }]
     }
-    responses = iter((invalid, valid))
+    responses = iter((invalid, invalid, valid))
     prompts = []
 
     monkeypatch.setattr(question_generator, "validate_config", lambda **_: None)
@@ -136,9 +136,11 @@ def test_generate_questions_retries_deterministic_validation_failure(monkeypatch
     )
 
     assert result[0].correct_answer == "₹1,700"
-    assert len(prompts) == 2
+    assert len(prompts) == 3
     assert "RETRY CORRECTION" in prompts[1]
-    assert "answer is not numeric" in prompts[1]
+    assert "Maths choice 2 is not numeric" in prompts[1]
+    assert "Correct that exact question and option" in prompts[1]
+    assert "Maths choice 2 is not numeric" in prompts[2]
 
 
 def test_generate_questions_repairs_unsupported_exponent(monkeypatch):
