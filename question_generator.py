@@ -169,7 +169,7 @@ Return only the requested structured JSON.
 
     validation_error: ValidationError | None = None
 
-    for generation_attempt in range(2):
+    for generation_attempt in range(3):
         attempt_prompt = prompt
         if validation_error is not None:
             if "unsupported exponent" in str(validation_error).lower():
@@ -179,6 +179,15 @@ Return only the requested structured JSON.
                     "from -12 through 12; rewrite any question needing a larger power "
                     "with smaller values. Recheck that each expression exactly matches "
                     "its selected numeric answer."
+                )
+            elif "not numeric" in str(validation_error).lower():
+                correction = (
+                    "The validation error identifies a Maths choice that is not numeric. "
+                    "Correct that exact question and option. All four choices for every "
+                    "Maths question must be numeric values only. Allowed formats include "
+                    "1700, 1,700, ₹1,700, 15%, and 3/4. Never include words, units, labels, "
+                    "equations, or explanations in a choice. Ensure correct_choice_index "
+                    "selects a numeric value that exactly matches math_expression."
                 )
             else:
                 correction = (
@@ -264,7 +273,12 @@ Return only the requested structured JSON.
 
                 item["correct_answer"] = choices[correct_choice_index]
                 question = Question.from_dict(item)
-                validate_question(question, math_expression=math_expression)
+                try:
+                    validate_question(question, math_expression=math_expression)
+                except ValidationError as exc:
+                    raise ValidationError(
+                        f"question {len(questions) + 1}: {exc}"
+                    ) from exc
                 questions.append(question)
         except ValidationError as exc:
             validation_error = exc
