@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -14,6 +15,17 @@ SCOPES = (
     "https://www.googleapis.com/auth/youtube.readonly",
     "https://www.googleapis.com/auth/yt-analytics.readonly",
 )
+
+
+def _authorize_interactively(client_secrets: Path) -> Credentials:
+    try:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            str(client_secrets),
+            SCOPES,
+        )
+        return flow.run_local_server(port=0)
+    except Exception as exc:
+        raise RuntimeError("YouTube OAuth authorization failed") from exc
 
 
 def _load_credentials(token_file: Path) -> Credentials | None:
@@ -53,17 +65,14 @@ def authenticate_youtube(
     ):
         try:
             credentials.refresh(Request())
+        except RefreshError as exc:
+            if "invalid_grant" not in str(exc).lower():
+                raise RuntimeError("YouTube OAuth token refresh failed") from exc
+            credentials = _authorize_interactively(client_secrets)
         except Exception as exc:
             raise RuntimeError("YouTube OAuth token refresh failed") from exc
     else:
-        try:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                str(client_secrets),
-                SCOPES,
-            )
-            credentials = flow.run_local_server(port=0)
-        except Exception as exc:
-            raise RuntimeError("YouTube OAuth authorization failed") from exc
+        credentials = _authorize_interactively(client_secrets)
 
     if not credentials or not credentials.valid:
         raise RuntimeError("YouTube OAuth did not return valid credentials")
