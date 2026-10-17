@@ -14,19 +14,16 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
-### Current live state — 2026-10-18 (numeric-choice validation and bounded retry)
+### Current live state — 2026-10-18 (salvage render after OAuth invalid_grant)
 
 - **Channel and schedule:** Exam Session India (@examsessionindia). Long-form remains scheduled for 10:00 IST and its derived Short for 18:00 IST.
-- **Most recent attempted run:** after Edge TTS dependency correction, normal startup cleanup discarded 1 unfinished job, archived 0 upload receipts, and removed 1 matching backlog claim. The new run then failed during question generation with `validators.ValidationError: answer is not numeric`. It stopped before narration/rendering/upload, so this attempt did not upload either video.
-- **Root cause:** the generator's retry asked generally for numeric Maths choices but did not identify the exact bad option, and it allowed only one retry. Deterministic validation did the right thing by rejecting the malformed selected choice; do not weaken the validation or silently rewrite the answer.
-- **Direct fix committed to main:** `validators.py` now deterministically rejects any nonnumeric Maths choice, not merely a bad selected answer. `question_generator.py` identifies the question and offending choice in the validation reason, sends a specific correction on numeric-choice errors, and allows one additional bounded generation attempt (three total). Every returned question must still pass the same expression-to-answer validation. No fallback acceptance, answer rewriting, rendering change, or publishing change.
-- **Regression coverage added:** `tests/test_validators.py` verifies all Maths options must be numeric. `tests/test_question_generator.py` simulates two malformed responses followed by a valid third response and verifies the targeted correction points at the exact bad option.
-- **Code commits:** all-choice validation `6dfc151eac726daa76e0832fe79ce936d4239d17`; targeted retry and third attempt `8668a429af2522b6f7feaa7bd628cab26efe278b`; generator recovery test `e8b65e6ec5f044418507892e15df1762bb84d7c7`; validator regression test `9363ec73c914f146d35833e37ab92fb4093e3766`; retry boundary correction `84c6ba567fee0292bc85aa6f5e81d6f9a19072ab`.
-- **Edge TTS compatibility remains fixed:** `requirements.txt` pins `edge-tts>=7.3.1,<8`; startup rejects the known-broken older dependency before creating another job. The latest run passed startup and reached question generation.
-- **CI validation:** full GitHub Actions test suite is running for the latest code. Do not ask the user to run pytest locally and do not run another production job until the final code/context commit has a green CI result.
-- **Simple Interest pair:** long-form ID remains `IYHW9v5uo9Y`; the Short's ID/visibility remains unresolved from the previous snapshot. At the next normal successful run, review the standard post-run snapshot. Do not launch a separate investigative run or create a duplicate.
-- **Content strategy remains unchanged:** use automatic India-region demand scoring and recent-topic duplicate avoidance; no forced topic override. Keep SSC, Banking, Railway and Maths/Reasoning/English coverage. Long-form 10:00 IST / Short 18:00 IST.
-- **Exact next local action after CI is green:** sync `main` and run one normal factory job:
+- **Most recent attempted run:** startup cleanup discarded 1 unfinished job, archived 0 upload receipts, and removed 1 backlog claim. The latest job then completed question generation, narration, audio QA, both video renders, per-scene image checks, rendered-video checks, and metadata preparation; it failed only when obtaining the YouTube API client, before either upload, with `google.auth.exceptions.RefreshError: invalid_grant`. No upload IDs were recorded for this job.
+- **Salvage decision:** the job is a candidate for one-time recovery because all local audio/render QA stages ran before the auth stage. The local manifest and video files are expected under `output/jobs/<run-id>/`. Do not run ordinary `python factory.py` before salvaging: normal startup intentionally deletes unfinished jobs. Use the internal `run_factory(resume=...)` API once for this specific manifest only; the CLI still has no resume option and default runs still delete unfinished jobs.
+- **OAuth diagnosis:** `invalid_grant` indicates the refresh token is expired, revoked, or otherwise invalid; Google specifically documents that OAuth projects with external audience status `Testing` have non-profile authorizations expire after 7 days. The repository does not prove the current Cloud Console audience status, so that is a plausible explanation, not a confirmed account setting. Reauthorizing is necessary for the upload.
+- **OAuth hardening committed:** `youtube_auth.py` now catches Google's `RefreshError` only when it contains `invalid_grant` and opens the existing local-browser consent flow to obtain a fresh token. Other refresh failures remain fail-closed. Fresh credentials are written to the configured token file. Regression test added in `tests/test_youtube_auth.py`.
+- **Recent commits:** OAuth reauth implementation `b59080702f5c5b592c3f5d704310181745ec78fa`; invalid-token test `23488a6a41cf8b95c7f753bb4a04fb549f98a6e3`; test cleanup `5f9b8a674ede837cec9b6cfdff094fd456540a96`. The recent Maths choice validator/retry changes are also active and passed CI: run #48 **236 passed, 5 warnings in 27.94s**, https://github.com/AakarshBot/education_factory/actions/runs/39069888038.
+- **CI gate for latest OAuth change:** GitHub Actions must finish green on the final context/source commit before the one-time salvage. Do not ask the user to run local tests. Keep OAuth recovery separate from the default factory workflow.
+- **One-time recovery after CI is green:** sync `main`, then run the inline Python call below. It selects exactly one failed job whose failure stage is `youtube_auth`, invokes the already-present internal resume path (not a new CLI option), and reuses the generated/QA-passed local assets. If Google rejects the refresh token again, the patched auth code opens browser consent; sign into the channel's Google account and approve the requested YouTube scopes. Do not run normal factory first.
   ```powershell
   git switch main
   if ($LASTEXITCODE -ne 0) { throw "Could not switch to main" }
@@ -34,10 +31,11 @@ The user should not need to perform backend work for normal production. Manual a
   git pull --ff-only origin main
   if ($LASTEXITCODE -ne 0) { throw "Could not sync main" }
 
-  python factory.py
+  python -c "from pathlib import Path; from job_manifest import load_manifest; from factory import run_factory; ps=[p for p in Path('output/jobs').glob('*/job.json') if (lambda m: m.status == 'failed' and (m.failure or {}).get('stage') == 'youtube_auth')(load_manifest(p))]; assert len(ps) == 1, 'Expected exactly one failed youtube_auth job'; p=ps[0]; print('Recovering job:', p.parent.name); print('Completed:', run_factory(resume=p).title)"
   ```
-  Do not resume jobs, run pytest locally, use a topic override, or add manual cleanup commands.
-
+- **After this one-time recovery:** return to the normal operating policy. Future runs use `python factory.py` and discard unfinished jobs. Consider changing the OAuth consent publishing status from `Testing` to `In production` in Google Cloud Console if it is currently Testing; otherwise reauthorization may be required every 7 days for YouTube scopes.
+- **Content strategy remains unchanged:** India-first SSC/Banking/Railway; Maths/Reasoning/English; automatic demand selection and duplicate avoidance; 10:00 IST long-form / 18:00 IST Short. Check the normal post-upload snapshot for the Simple Interest Short ID/visibility; do not create a duplicate.
+  
 This current live state supersedes older notes below that describe automatic recovery/resumption of incomplete production jobs.
 
 
