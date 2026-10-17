@@ -14,18 +14,19 @@ The user should not need to perform backend work for normal production. Manual a
 
 ### Interaction rule for future chats
 
-### Current live state — 2026-10-16 (Edge TTS 403 compatibility fix)
+### Current live state — 2026-10-18 (numeric-choice validation and bounded retry)
 
 - **Channel and schedule:** Exam Session India (@examsessionindia). Long-form remains scheduled for 10:00 IST and its derived Short for 18:00 IST.
-- **Most recent attempted run:** startup cleanup discarded 14 unfinished jobs, archived 0 upload receipts, and removed 1 matching backlog claim. The new run then failed in long-form narration with `edge_tts` WebSocket handshake HTTP 403. It stopped before rendering or uploading; this failed run itself did not upload videos.
-- **Root cause confirmed upstream:** Microsoft changed the Edge speech endpoint's authentication handshake. The upstream `edge-tts` maintainer marked the failure resolved in 7.3.0 on 2026-10-13; current PyPI release is 7.3.1. Older installed versions such as 7.2.8 can return the exact 403 seen here.
-- **Dependency corrected:** `requirements.txt` now requires `edge-tts>=7.3.1,<8`. Normal startup now performs cleanup first, then checks the installed package version before creating a new job or spending time generating content. An incompatible/missing install exits with one exact upgrade command instead of failing deep in narration.
-- **Regression coverage added:** tests accept 7.3.1, reject older/unsupported versions, and verify stale jobs are discarded before the compatibility gate exits. No narration quality gate, output validation, upload logic, question validation, or publishing schedule was weakened.
-- **Code commits:** compatibility guard `199e2c9367c3ddb3a6997bf30db957310628f85d`; dependency pin `c7b844b56f792805a1acd69decdbece2d873bbc9`; regex correction `6fecf401e82a855bebc00da1db5956cbeced063f`; regression tests `3e6e68f3a36b9997de664b546d176add864caf1b`; latest code/style commit before this context update `85acbaf074d0d36dc2171d8c621b0c7fc65c7d8e`.
-- **CI validation:** the full GitHub Actions suite is configured to run on pushes. The connected commit-status endpoint has not returned a result for the latest source commit yet. Confirm that the repository's full workflow passes before asking for another production run. Do not ask the user to run pytest locally.
-- **Simple Interest pair:** long-form ID remains `IYHW9v5uo9Y`; the Short's ID/visibility remains unresolved from the previous snapshot. At the next normal successful run, check the standard post-run snapshot. Do not launch a separate investigative run or create a duplicate.
-- **Content strategy remains unchanged:** use automatic India-region demand scoring and recent-topic duplicate avoidance; don't force a topic override. Keep SSC, Banking, Railway and Maths/Reasoning/English coverage. Long-form 10:00 IST / Short 18:00 IST.
-- **Exact next local action after CI is green:** sync `main`, upgrade only Edge TTS, then run the factory once:
+- **Most recent attempted run:** after Edge TTS dependency correction, normal startup cleanup discarded 1 unfinished job, archived 0 upload receipts, and removed 1 matching backlog claim. The new run then failed during question generation with `validators.ValidationError: answer is not numeric`. It stopped before narration/rendering/upload, so this attempt did not upload either video.
+- **Root cause:** the generator's retry asked generally for numeric Maths choices but did not identify the exact bad option, and it allowed only one retry. Deterministic validation did the right thing by rejecting the malformed selected choice; do not weaken the validation or silently rewrite the answer.
+- **Direct fix committed to main:** `validators.py` now deterministically rejects any nonnumeric Maths choice, not merely a bad selected answer. `question_generator.py` identifies the question and offending choice in the validation reason, sends a specific correction on numeric-choice errors, and allows one additional bounded generation attempt (three total). Every returned question must still pass the same expression-to-answer validation. No fallback acceptance, answer rewriting, rendering change, or publishing change.
+- **Regression coverage added:** `tests/test_validators.py` verifies all Maths options must be numeric. `tests/test_question_generator.py` simulates two malformed responses followed by a valid third response and verifies the targeted correction points at the exact bad option.
+- **Code commits:** all-choice validation `6dfc151eac726daa76e0832fe79ce936d4239d17`; targeted retry and third attempt `8668a429af2522b6f7feaa7bd628cab26efe278b`; generator recovery test `e8b65e6ec5f044418507892e15df1762bb84d7c7`; validator regression test `9363ec73c914f146d35833e37ab92fb4093e3766`; retry boundary correction `84c6ba567fee0292bc85aa6f5e81d6f9a19072ab`.
+- **Edge TTS compatibility remains fixed:** `requirements.txt` pins `edge-tts>=7.3.1,<8`; startup rejects the known-broken older dependency before creating another job. The latest run passed startup and reached question generation.
+- **CI validation:** full GitHub Actions test suite is running for the latest code. Do not ask the user to run pytest locally and do not run another production job until the final code/context commit has a green CI result.
+- **Simple Interest pair:** long-form ID remains `IYHW9v5uo9Y`; the Short's ID/visibility remains unresolved from the previous snapshot. At the next normal successful run, review the standard post-run snapshot. Do not launch a separate investigative run or create a duplicate.
+- **Content strategy remains unchanged:** use automatic India-region demand scoring and recent-topic duplicate avoidance; no forced topic override. Keep SSC, Banking, Railway and Maths/Reasoning/English coverage. Long-form 10:00 IST / Short 18:00 IST.
+- **Exact next local action after CI is green:** sync `main` and run one normal factory job:
   ```powershell
   git switch main
   if ($LASTEXITCODE -ne 0) { throw "Could not switch to main" }
@@ -33,12 +34,9 @@ The user should not need to perform backend work for normal production. Manual a
   git pull --ff-only origin main
   if ($LASTEXITCODE -ne 0) { throw "Could not sync main" }
 
-  python -m pip install --upgrade "edge-tts>=7.3.1,<8"
-  if ($LASTEXITCODE -ne 0) { throw "Could not update Edge TTS" }
-
   python factory.py
   ```
-  Do not resume jobs, run local pytest, or add a topic override.
+  Do not resume jobs, run pytest locally, use a topic override, or add manual cleanup commands.
 
 This current live state supersedes older notes below that describe automatic recovery/resumption of incomplete production jobs.
 
