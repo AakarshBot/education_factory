@@ -282,7 +282,7 @@ Return only the requested structured JSON.
                 questions.append(question)
         except ValidationError as exc:
             validation_error = exc
-            if generation_attempt == 1:
+            if generation_attempt == 2:
                 raise
             continue
 
