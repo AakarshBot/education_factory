@@ -75,6 +75,7 @@ def build_editorial_queue(
     history: Sequence[HistoryEntry] = (),
     history_days: int = 30,
     now: datetime | None = None,
+    allow_related_fallback: bool = True,
 ) -> list[EditorialJob]:
     if not scores:
         raise ValueError("scores must not be empty")
@@ -132,7 +133,7 @@ def build_editorial_queue(
         if len(jobs) == max_jobs:
             break
 
-    if not jobs and related_fallbacks:
+    if not jobs and related_fallbacks and allow_related_fallback:
         score = related_fallbacks[0]
         jobs.append(
             EditorialJob(
