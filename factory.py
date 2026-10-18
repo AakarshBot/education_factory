@@ -51,7 +51,8 @@ from production_backlog import (
     release_stale_claims,
     save_backlog,
 )
-from youtube_uploader import upload_video
+from thumbnail_generator import generate_thumbnail
+from youtube_uploader import upload_thumbnail, upload_video
 
 DEFAULT_OUTPUT_ROOT = Path("output")
 
@@ -816,6 +817,17 @@ def run_factory(
                 outputs={"long_video": str(video_path.resolve())},
             )
 
+        thumbnail_path = _output_path(manifest, "long_form_thumbnail.png")
+        if not stage_complete(manifest, "long_thumbnail"):
+            current_stage = "long_thumbnail"
+            generate_thumbnail(lesson, thumbnail_path)
+            manifest.checkpoint(
+                "long_thumbnail",
+                outputs={"long_thumbnail": str(thumbnail_path.resolve())},
+            )
+        else:
+            thumbnail_path = _stored_output(manifest, "long_thumbnail")
+
         english_audio_path = _output_path(manifest, "english_narration.mp3")
         english_timing_path = _output_path(manifest, "english_word_timings.json")
         if not stage_complete(manifest, "english_audio"):
@@ -1046,6 +1058,28 @@ def run_factory(
             manifest.checkpoint("long_upload")
         else:
             long_video_id = manifest.upload_ids["long_form"]
+
+        if not stage_complete(manifest, "long_thumbnail_upload"):
+            current_stage = "long_thumbnail_upload"
+            try:
+                upload_thumbnail(youtube, long_video_id, thumbnail_path)
+                manifest.selected["long_thumbnail_uploaded"] = True
+                manifest.selected.pop("long_thumbnail_error", None)
+                manifest.checkpoint("long_thumbnail_upload")
+                print(f"Custom thumbnail uploaded for long-form video {long_video_id}.")
+            except Exception as exc:
+                warning = str(exc).strip()[:500] or type(exc).__name__
+                manifest.selected["long_thumbnail_uploaded"] = False
+                manifest.selected["long_thumbnail_error"] = warning
+                manifest.stages["long_thumbnail_upload"] = {
+                    "status": "warning",
+                    "error": warning,
+                }
+                manifest.save()
+                print(
+                    f"Warning: custom thumbnail was not set for {long_video_id}; "
+                    f"video production will continue. {warning}"
+                )
 
         if not stage_complete(manifest, "short_upload"):
             current_stage = "short_upload"
