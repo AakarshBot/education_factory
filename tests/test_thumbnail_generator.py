@@ -42,7 +42,8 @@ def test_generate_thumbnail_is_1280_by_720_png_below_upload_limit(tmp_path):
     with Image.open(path) as image:
         assert image.format == "PNG"
         assert image.size == THUMBNAIL_SIZE
-        assert len(set(image.getdata())) > 10
+        colors = image.getcolors(maxcolors=image.width * image.height)
+        assert colors is not None and len(colors) > 10
 
 
 def test_generate_thumbnail_handles_long_topic(tmp_path):
