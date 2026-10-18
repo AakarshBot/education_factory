@@ -622,6 +622,7 @@ def run_factory(
                         scores,
                         max_jobs=max_jobs - pending_count,
                         history=history,
+                        allow_related_fallback=pending_count == 0,
                     )
                     backlog = merge_jobs(backlog, jobs)
 
