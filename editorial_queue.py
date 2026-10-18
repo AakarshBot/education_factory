@@ -80,7 +80,10 @@ def build_editorial_queue(
         raise ValueError("scores must not be empty")
     if max_jobs < 1:
         raise ValueError("max_jobs must be at least 1")
-    excluded_topics = recent_topic_keys(history, days=history_days, now=now)
+    reference = now or datetime.now(timezone.utc)
+    if reference.tzinfo is None or reference.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
+    excluded_topics = recent_topic_keys(history, days=history_days, now=reference)
 
     ranked = sorted(
         scores,
@@ -110,7 +113,7 @@ def build_editorial_queue(
             score.topic,
             history,
             days=RELATED_TOPIC_COOLDOWN_DAYS,
-            now=now,
+            now=reference,
         ):
             related_fallbacks.append(score)
             continue
