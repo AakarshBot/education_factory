@@ -199,6 +199,30 @@ def test_queue_uses_related_topic_only_when_no_distinct_candidate_exists():
     assert "Fallback: no distinct eligible topic" in jobs[0].rationale
 
 
+
+def test_queue_does_not_use_related_fallback_when_disabled():
+    jobs = build_editorial_queue(
+        [
+            make_score(
+                exam="Banking",
+                subject="English",
+                topic="Error Detection",
+                total_score=95.0,
+            )
+        ],
+        history=[
+            history(
+                "Advanced Error Detection",
+                exam="Banking",
+                subject="English",
+            )
+        ],
+        now=NOW,
+        allow_related_fallback=False,
+    )
+
+    assert jobs == []
+
 def test_queue_does_not_skip_failed_topics():
     jobs = build_editorial_queue(
         [make_score(topic="Percentages")],
