@@ -540,7 +540,7 @@ def _write_test_audio(path: Path, duration: float = 1.0) -> None:
             wav.writeframesraw(struct.pack("<h", value))
 
 
-def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
+def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path, capsys):
     calls = {"tts": 0, "uploads": 0}
 
     class Job:
@@ -599,7 +599,11 @@ def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
         return f"video-{calls['uploads']}"
 
     monkeypatch.setattr(factory, "upload_video", fake_upload)
-    monkeypatch.setattr(factory, "upload_thumbnail", lambda *args, **kwargs: {"items": [{}]})
+
+    def fail_thumbnail(*args, **kwargs):
+        raise RuntimeError("thumbnail permission test")
+
+    monkeypatch.setattr(factory, "upload_thumbnail", fail_thumbnail)
     monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: [])
 
     result = factory.run_factory(
@@ -620,8 +624,10 @@ def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
     assert manifest["status"] == "complete"
     assert manifest["stages"]["long_render"]["status"] == "complete"
     assert manifest["stages"]["long_thumbnail"]["status"] == "complete"
-    assert manifest["stages"]["long_thumbnail_upload"]["status"] == "complete"
-    assert manifest["selected"]["long_thumbnail_uploaded"] is True
+    assert manifest["stages"]["long_thumbnail_upload"]["status"] == "warning"
+    assert manifest["selected"]["long_thumbnail_uploaded"] is False
+    assert "thumbnail permission test" in manifest["selected"]["long_thumbnail_error"]
+    assert "video production will continue" in capsys.readouterr().out
     assert manifest["stages"]["short_render"]["status"] == "complete"
     assert Path(manifest["outputs"]["long_video"]).exists()
     assert Path(manifest["outputs"]["short_video"]).exists()
