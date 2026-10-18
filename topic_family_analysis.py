@@ -88,6 +88,11 @@ def _related(left: frozenset[str], right: frozenset[str]) -> bool:
     return len(left & right) / len(left | right) >= 0.5
 
 
+def topics_are_related(left_topic: str, right_topic: str) -> bool:
+    """Return whether two topic labels share a meaningful topic family."""
+    return _related(_topic_tokens(left_topic), _topic_tokens(right_topic))
+
+
 def _metric(entry: HistoryEntry, name: str) -> float | None:
     value = entry.metrics.get(name)
     if value is None:
