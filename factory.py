@@ -15,7 +15,7 @@ from concept_generator import generate_concept_summary
 from demand_discovery import discover_demand
 from editorial_adaptation import build_editorial_adaptation
 from factory_state import DEFAULT_STATE_FILE, load_state, record_run, save_state, validate_runs_per_day
-from editorial_queue import EditorialJob, build_editorial_queue
+from editorial_queue import EditorialJob, build_editorial_queue, has_recent_related_topic
 from explanation_generator import generate_explanations
 from english_narration_generator import generate_english_narration_segments
 from format_analysis import analyze_formats
@@ -601,6 +601,11 @@ def run_factory(
                     entry
                     for entry in backlog
                     if entry.key not in recent_topics
+                    and not has_recent_related_topic(
+                        entry.subject,
+                        entry.topic,
+                        history,
+                    )
                 ]
 
                 pending_count = len(pending_jobs(backlog))
