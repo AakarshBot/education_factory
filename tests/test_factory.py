@@ -444,6 +444,7 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     monkeypatch.setattr(factory, "generate_metadata", lambda *args, **kwargs: metadata())
     monkeypatch.setattr(factory, "get_youtube_client", lambda: object())
     monkeypatch.setattr(factory, "upload_video", lambda *args, **kwargs: "video-id")
+    monkeypatch.setattr(factory, "upload_thumbnail", lambda *args, **kwargs: {"items": [{}]})
     monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: [])
 
     with pytest.raises(RuntimeError, match="render failed"):
@@ -493,6 +494,9 @@ def test_factory_resume_skips_completed_generation_and_audio(monkeypatch, tmp_pa
     assert final["status"] == "complete"
     assert final["failure"] is None
     assert final["stages"]["english_metadata"]["status"] == "complete"
+    assert final["stages"]["long_thumbnail"]["status"] == "complete"
+    assert final["stages"]["long_thumbnail_upload"]["status"] == "complete"
+    assert final["selected"]["long_thumbnail_uploaded"] is True
     assert final["stages"]["english_localization"]["status"] == "complete"
     assert final["stages"]["english_audio"]["status"] == "complete"
     assert final["stages"]["english_audio_qa"]["status"] == "complete"
@@ -536,7 +540,7 @@ def _write_test_audio(path: Path, duration: float = 1.0) -> None:
             wav.writeframesraw(struct.pack("<h", value))
 
 
-def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
+def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path, capsys):
     calls = {"tts": 0, "uploads": 0}
 
     class Job:
@@ -595,6 +599,11 @@ def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
         return f"video-{calls['uploads']}"
 
     monkeypatch.setattr(factory, "upload_video", fake_upload)
+
+    def fail_thumbnail(*args, **kwargs):
+        raise RuntimeError("thumbnail permission test")
+
+    monkeypatch.setattr(factory, "upload_thumbnail", fail_thumbnail)
     monkeypatch.setattr(factory, "ingest_metrics", lambda **kwargs: [])
 
     result = factory.run_factory(
@@ -614,6 +623,11 @@ def test_factory_preflight_exercises_real_media_pipeline(monkeypatch, tmp_path):
     manifest = json.loads(manifest_paths[0].read_text(encoding="utf-8"))
     assert manifest["status"] == "complete"
     assert manifest["stages"]["long_render"]["status"] == "complete"
+    assert manifest["stages"]["long_thumbnail"]["status"] == "complete"
+    assert manifest["stages"]["long_thumbnail_upload"]["status"] == "warning"
+    assert manifest["selected"]["long_thumbnail_uploaded"] is False
+    assert "thumbnail permission test" in manifest["selected"]["long_thumbnail_error"]
+    assert "video production will continue" in capsys.readouterr().out
     assert manifest["stages"]["short_render"]["status"] == "complete"
     assert Path(manifest["outputs"]["long_video"]).exists()
     assert Path(manifest["outputs"]["short_video"]).exists()

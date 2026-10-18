@@ -148,3 +148,33 @@ def upload_video(
         ) from exc
 
     return str(response["id"])
+
+
+def upload_thumbnail(youtube, video_id: str, thumbnail_path: str | Path) -> dict:
+    """Set a generated PNG as a video's custom thumbnail."""
+    if not isinstance(video_id, str) or not video_id.strip():
+        raise ValueError("video_id must not be empty")
+
+    image = Path(thumbnail_path).expanduser()
+    if not image.exists() or not image.is_file() or image.stat().st_size == 0:
+        raise RuntimeError(f"thumbnail file does not exist or is empty: {image}")
+    if image.suffix.lower() != ".png":
+        raise ValueError("thumbnail must be a PNG file")
+    if image.stat().st_size > 2 * 1024 * 1024:
+        raise RuntimeError("thumbnail exceeds YouTube's 2 MiB upload limit")
+
+    try:
+        response = youtube.thumbnails().set(
+            videoId=video_id.strip(),
+            media_body=MediaFileUpload(
+                str(image),
+                mimetype="image/png",
+                resumable=False,
+            ),
+        ).execute()
+    except Exception as exc:
+        raise RuntimeError("YouTube thumbnail upload failed") from exc
+
+    if not isinstance(response, dict) or not response.get("items"):
+        raise RuntimeError("YouTube thumbnail upload returned no thumbnail resource")
+    return response
