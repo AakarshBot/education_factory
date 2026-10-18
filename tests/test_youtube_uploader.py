@@ -340,3 +340,65 @@ def test_upload_rejects_invalid_content_format(monkeypatch, tmp_path):
             mode="public",
             content_format="vertical",
         )
+
+
+
+def test_upload_thumbnail_sets_png_for_video(monkeypatch, tmp_path):
+    patch_media(monkeypatch)
+    thumbnail = tmp_path / "thumbnail.png"
+    thumbnail.write_bytes(b"png-data")
+
+    class Request:
+        def execute(self):
+            return {"kind": "youtube#thumbnailSetResponse", "items": [{"high": {"width": 1280, "height": 720}}]}
+
+    class Thumbnails:
+        def __init__(self):
+            self.arguments = None
+
+        def set(self, **kwargs):
+            self.arguments = kwargs
+            return Request()
+
+    class YouTube:
+        def __init__(self):
+            self.api = Thumbnails()
+
+        def thumbnails(self):
+            return self.api
+
+    youtube = YouTube()
+    result = youtube_uploader.upload_thumbnail(youtube, "video123", thumbnail)
+
+    assert result["kind"] == "youtube#thumbnailSetResponse"
+    assert youtube.api.arguments["videoId"] == "video123"
+    assert youtube.api.arguments["media_body"].filename == str(thumbnail)
+    assert youtube.api.arguments["media_body"].kwargs == {
+        "mimetype": "image/png",
+        "resumable": False,
+    }
+
+
+def test_upload_thumbnail_rejects_missing_file(tmp_path):
+    with pytest.raises(RuntimeError, match="does not exist or is empty"):
+        youtube_uploader.upload_thumbnail(object(), "video123", tmp_path / "missing.png")
+
+
+def test_upload_thumbnail_reports_permission_or_api_failure(tmp_path):
+    thumbnail = tmp_path / "thumbnail.png"
+    thumbnail.write_bytes(b"png-data")
+
+    class Request:
+        def execute(self):
+            raise RuntimeError("permission denied")
+
+    class Thumbnails:
+        def set(self, **kwargs):
+            return Request()
+
+    class YouTube:
+        def thumbnails(self):
+            return Thumbnails()
+
+    with pytest.raises(RuntimeError, match="thumbnail upload failed"):
+        youtube_uploader.upload_thumbnail(YouTube(), "video123", thumbnail)
