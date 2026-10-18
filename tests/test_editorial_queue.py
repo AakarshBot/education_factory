@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from channel_history import HistoryEntry
@@ -28,15 +30,25 @@ def make_score(
     )
 
 
-def history(topic, status="published"):
+NOW = datetime(2026, 10, 19, 0, 0, tzinfo=timezone.utc)
+
+
+def history(
+    topic,
+    status="published",
+    *,
+    exam="SSC",
+    subject="Maths",
+    created_at="2026-10-18T00:00:00Z",
+):
     return HistoryEntry(
-        exam="SSC",
-        subject="Maths",
+        exam=exam,
+        subject=subject,
         topic=topic,
         lesson_type="practice",
         title=f"{topic} Practice",
         status=status,
-        created_at="2026-10-01T00:00:00Z",
+        created_at=created_at,
     )
 
 
@@ -101,9 +113,90 @@ def test_queue_skips_recent_published_topics():
     jobs = build_editorial_queue(
         scores,
         history=[history("Percentages")],
+        now=NOW,
     )
 
     assert [job.topic for job in jobs] == ["Profit and Loss"]
+
+
+
+def test_queue_skips_recent_related_topic_but_keeps_distinct_option():
+    scores = [
+        make_score(
+            exam="Banking",
+            subject="English",
+            topic="Error Detection",
+            total_score=98.0,
+        ),
+        make_score(
+            exam="Banking",
+            subject="English",
+            topic="Cloze Test",
+            total_score=82.0,
+        ),
+    ]
+
+    jobs = build_editorial_queue(
+        scores,
+        max_jobs=2,
+        history=[
+            history(
+                "Advanced Error Detection",
+                exam="Banking",
+                subject="English",
+            )
+        ],
+        now=NOW,
+    )
+
+    assert [job.topic for job in jobs] == ["Cloze Test"]
+
+
+def test_queue_allows_related_topic_after_cooldown_expires():
+    jobs = build_editorial_queue(
+        [
+            make_score(
+                exam="Banking",
+                subject="English",
+                topic="Error Detection",
+            )
+        ],
+        history=[
+            history(
+                "Advanced Error Detection",
+                exam="Banking",
+                subject="English",
+                created_at="2026-10-01T00:00:00Z",
+            )
+        ],
+        now=NOW,
+    )
+
+    assert [job.topic for job in jobs] == ["Error Detection"]
+
+
+def test_queue_uses_related_topic_only_when_no_distinct_candidate_exists():
+    jobs = build_editorial_queue(
+        [
+            make_score(
+                exam="Banking",
+                subject="English",
+                topic="Error Detection",
+                total_score=95.0,
+            )
+        ],
+        history=[
+            history(
+                "Advanced Error Detection",
+                exam="Banking",
+                subject="English",
+            )
+        ],
+        now=NOW,
+    )
+
+    assert [job.topic for job in jobs] == ["Error Detection"]
+    assert "Fallback: no distinct eligible topic" in jobs[0].rationale
 
 
 def test_queue_does_not_skip_failed_topics():
