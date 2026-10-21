@@ -73,7 +73,6 @@ def adaptation(weights=None, *, format_ready=None):
             "practice": 1.0,
             "timed_test": 1.0,
             "concept_practice": 1.0,
-            "revision": 1.0,
         }
         subject_weights = {"maths": 1.0}
 
@@ -341,7 +340,6 @@ def test_select_lesson_type_respects_adaptation_after_all_formats_are_measured()
         "practice": 0.9,
         "timed_test": 1.1,
         "concept_practice": 0.9,
-        "revision": 0.9,
     }, format_ready=True)
 
     assert factory._select_lesson_type(result, history) == "timed_test"
@@ -389,7 +387,6 @@ def test_select_lesson_type_uses_performance_after_all_formats_are_measured():
         "practice": 0.9,
         "timed_test": 1.1,
         "concept_practice": 1.0,
-        "revision": 1.0,
     }, format_ready=True)
 
     assert factory._select_lesson_type(result, history) == "timed_test"
