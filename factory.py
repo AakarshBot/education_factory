@@ -85,7 +85,7 @@ def _require_supported_edge_tts() -> None:
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
-AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
+AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
 SHORT_PUBLISH_DELAY = timedelta(hours=8)
