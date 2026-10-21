@@ -196,7 +196,9 @@ def test_generate_questions_repairs_unsupported_exponent(monkeypatch):
     assert result[0].correct_answer == "8"
     assert len(prompts) == 2
     assert "unsupported exponent" in prompts[1]
-    assert "integer exponents from -12 through 12" in prompts[1]
+    assert "integer from -12 through 12" in prompts[1]
+    assert "Do not reuse the invalid expression" in prompts[1]
+    assert "13 is outside -12 through 12" in prompts[1]
 
 def test_normalizes_common_math_symbols(monkeypatch):
     generated = {

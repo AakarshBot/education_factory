@@ -37,8 +37,14 @@ def _evaluate(node: ast.AST) -> Fraction:
         if isinstance(node.op, ast.Div) and right == 0:
             raise ValidationError("division by zero")
         if isinstance(node.op, ast.Pow):
-            if right.denominator != 1 or abs(right.numerator) > 12:
-                raise ValidationError("unsupported exponent")
+            if right.denominator != 1:
+                raise ValidationError(
+                    f"unsupported exponent: {right} is not an integer"
+                )
+            if abs(right.numerator) > 12:
+                raise ValidationError(
+                    f"unsupported exponent: {right} is outside -12 through 12"
+                )
             return left ** right.numerator
         return _ALLOWED_BINARY_OPS[type(node.op)](left, right)
 
