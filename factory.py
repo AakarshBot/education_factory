@@ -18,7 +18,7 @@ from factory_state import DEFAULT_STATE_FILE, load_state, record_run, save_state
 from editorial_queue import EditorialJob, build_editorial_queue, has_recent_related_topic
 from explanation_generator import generate_explanations
 from english_narration_generator import generate_english_narration_segments
-from format_analysis import analyze_formats
+from format_analysis import MIN_COMPARISON_SAMPLES, analyze_formats
 from job_manifest import (
     JobManifest,
     load_manifest,
@@ -85,7 +85,7 @@ def _require_supported_edge_tts() -> None:
 DEFAULT_QUESTIONS = 10
 DEFAULT_DIFFICULTY = "mixed"
 DEFAULT_LANGUAGE = "Hinglish"
-AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice", "revision")
+AUTO_LESSON_TYPES = ("practice", "timed_test", "concept_practice")
 LOCAL_ZONE = ZoneInfo("Asia/Kolkata")
 SHORT_MAX_DURATION_SECONDS = 180.0
 SHORT_PUBLISH_DELAY = timedelta(hours=8)
@@ -296,15 +296,80 @@ def _scene_durations(texts: list[str], total_duration: float) -> list[float]:
     return durations
 
 
-def _select_lesson_type(adaptation) -> str:
+def _select_lesson_type(adaptation, history=()) -> str:
     available = {
         lesson_type: adaptation.format_weights.get(lesson_type, 1.0)
         for lesson_type in AUTO_LESSON_TYPES
     }
+
+    aliases = {
+        "concept + practice": "concept_practice",
+        "timed test": "timed_test",
+    }
+
+    def normalize(lesson_type: str) -> str:
+        clean = lesson_type.strip().lower()
+        return aliases.get(clean, clean)
+
+    active_history = [
+        entry
+        for entry in history
+        if entry.content_format == "long_form"
+        and entry.status.strip().lower() in {"published", "scheduled"}
+        and entry.video_id
+    ]
+    recent_types = [
+        normalize(entry.lesson_type)
+        for entry in active_history[-8:]
+        if normalize(entry.lesson_type) in AUTO_LESSON_TYPES
+    ]
+    recent_counts = {
+        lesson_type: recent_types.count(lesson_type)
+        for lesson_type in AUTO_LESSON_TYPES
+    }
+
+    measured_counts = {lesson_type: 0 for lesson_type in AUTO_LESSON_TYPES}
+    for entry in active_history:
+        lesson_type = normalize(entry.lesson_type)
+        if (
+            lesson_type in measured_counts
+            and entry.status.strip().lower() == "published"
+            and entry.metrics.get("views") is not None
+        ):
+            measured_counts[lesson_type] += 1
+
+    # Bootstrap every supported format with enough measured videos before
+    # allowing early, sparse metrics to steer the channel toward one format.
+    under_tested = [
+        lesson_type
+        for lesson_type in AUTO_LESSON_TYPES
+        if measured_counts[lesson_type] < MIN_COMPARISON_SAMPLES
+    ]
+    if under_tested:
+        return min(
+            under_tested,
+            key=lambda lesson_type: (
+                recent_counts[lesson_type],
+                AUTO_LESSON_TYPES.index(lesson_type),
+            ),
+        )
+
+    if not getattr(adaptation, "format_ready", False):
+        return min(
+            AUTO_LESSON_TYPES,
+            key=lambda lesson_type: (
+                recent_counts[lesson_type],
+                AUTO_LESSON_TYPES.index(lesson_type),
+            ),
+        )
+
+    # Once every format has a comparable sample, prefer performance, then
+    # use the least-recently-used format to break ties.
     return max(
         AUTO_LESSON_TYPES,
         key=lambda lesson_type: (
             available[lesson_type],
+            -recent_counts[lesson_type],
             -AUTO_LESSON_TYPES.index(lesson_type),
         ),
     )
@@ -635,7 +700,7 @@ def run_factory(
                 )
                 save_backlog(backlog, backlog_file)
 
-                lesson_type = _select_lesson_type(adaptation)
+                lesson_type = _select_lesson_type(adaptation, history)
                 manifest.selected.update(
                     {
                         "priority": job.priority,
