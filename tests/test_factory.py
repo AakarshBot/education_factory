@@ -67,7 +67,7 @@ def metadata():
     )
 
 
-def adaptation(weights=None):
+def adaptation(weights=None, *, format_ready=None):
     class Result:
         format_weights = weights if weights is not None else {
             "practice": 1.0,
@@ -77,7 +77,26 @@ def adaptation(weights=None):
         }
         subject_weights = {"maths": 1.0}
 
-    return Result()
+    result = Result()
+    result.format_ready = weights is not None if format_ready is None else format_ready
+    return result
+
+
+def history_entry(lesson_type, index, *, metrics=None, content_format="long_form"):
+    from channel_history import HistoryEntry
+
+    return HistoryEntry(
+        exam="SSC",
+        subject="Maths",
+        topic=f"Topic {index}",
+        lesson_type=lesson_type,
+        title=f"Lesson {index}",
+        status="published",
+        created_at="2026-10-01T00:00:00+00:00",
+        video_id=f"video-{index}",
+        metrics=metrics or {},
+        content_format=content_format,
+    )
 
 
 
@@ -321,6 +340,50 @@ def test_select_lesson_type_respects_adaptation():
 
 def test_select_lesson_type_defaults_to_practice():
     assert factory._select_lesson_type(adaptation({})) == "practice"
+
+
+def test_select_lesson_type_explores_under_tested_formats_before_reusing_practice():
+    history = [
+        history_entry("practice", index, metrics={"views": 0.0})
+        for index in range(8)
+    ]
+
+    assert factory._select_lesson_type(
+        adaptation({}, format_ready=False),
+        history,
+    ) == "timed_test"
+
+
+def test_select_lesson_type_explores_next_least_used_format():
+    history = [
+        history_entry("practice", 0, metrics={"views": 0.0}),
+        history_entry("timed_test", 1, metrics={"views": 0.0}),
+    ]
+
+    assert factory._select_lesson_type(
+        adaptation({}, format_ready=False),
+        history,
+    ) == "concept_practice"
+
+
+def test_select_lesson_type_uses_performance_after_all_formats_are_measured():
+    history = []
+    index = 0
+    for lesson_type in factory.AUTO_LESSON_TYPES:
+        for _ in range(3):
+            history.append(
+                history_entry(lesson_type, index, metrics={"views": 10.0})
+            )
+            index += 1
+
+    result = adaptation({
+        "practice": 0.9,
+        "timed_test": 1.1,
+        "concept_practice": 1.0,
+        "revision": 1.0,
+    }, format_ready=True)
+
+    assert factory._select_lesson_type(result, history) == "timed_test"
 
 
 def test_short_segment_indices_selects_one_question_cycle():
