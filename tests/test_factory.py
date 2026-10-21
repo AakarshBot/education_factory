@@ -328,14 +328,23 @@ def test_select_job_applies_topic_family_adaptation():
     )
     assert selected.topic == "Percentages"
 
-def test_select_lesson_type_respects_adaptation():
+def test_select_lesson_type_respects_adaptation_after_all_formats_are_measured():
+    history = [
+        history_entry(lesson_type, index, metrics={"views": 0.0})
+        for index, lesson_type in enumerate(
+            lesson_type
+            for lesson_type in factory.AUTO_LESSON_TYPES
+            for _ in range(3)
+        )
+    ]
     result = adaptation({
         "practice": 0.9,
         "timed_test": 1.1,
         "concept_practice": 0.9,
         "revision": 0.9,
-    })
-    assert factory._select_lesson_type(result) == "timed_test"
+    }, format_ready=True)
+
+    assert factory._select_lesson_type(result, history) == "timed_test"
 
 
 def test_select_lesson_type_defaults_to_practice():
