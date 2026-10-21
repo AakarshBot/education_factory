@@ -52,8 +52,13 @@ def test_unsafe_math_expression_fails():
 
 
 def test_math_expression_rejects_exponent_above_safe_bound():
-    with pytest.raises(ValidationError, match="unsupported exponent"):
+    with pytest.raises(ValidationError, match=r"unsupported exponent: 13 is outside -12 through 12"):
         evaluate_math_expression("2 ** 13")
+
+
+def test_math_expression_reports_fractional_exponent():
+    with pytest.raises(ValidationError, match=r"unsupported exponent: 1/2 is not an integer"):
+        evaluate_math_expression("9 ** (1 / 2)")
 
 
 def test_math_question_requires_machine_checkable_expression():
