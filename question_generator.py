@@ -174,11 +174,16 @@ Return only the requested structured JSON.
         if validation_error is not None:
             if "unsupported exponent" in str(validation_error).lower():
                 correction = (
-                    "The previous math_expression used an unsupported exponent. "
-                    "Regenerate the complete question set using only integer exponents "
-                    "from -12 through 12; rewrite any question needing a larger power "
-                    "with smaller values. Recheck that each expression exactly matches "
-                    "its selected numeric answer."
+                    "The previous math_expression failed exponent validation. "
+                    "Do not reuse the invalid expression or merely rearrange it. "
+                    "Every ** exponent must be an integer from -12 through 12; "
+                    "fractional exponents are not supported. The validator's message "
+                    "includes the exact rejected exponent. Replace the failing question "
+                    "with a simpler, self-contained one using small integer powers, or "
+                    "rewrite the exact power as repeated multiplication if that remains "
+                    "clear and exact. Prefer avoiding ** when a simpler arithmetic "
+                    "expression teaches the same point. Regenerate the full set and "
+                    "verify each math_expression exactly matches its selected answer."
                 )
             elif "not numeric" in str(validation_error).lower():
                 correction = (
